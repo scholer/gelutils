@@ -96,6 +96,10 @@ from PIL import Image#, TiffImagePlugin
 from PIL.TiffImagePlugin import OPEN_INFO, II
 # from PIL.TiffImagePlugin import BITSPERSAMPLE, SAMPLEFORMAT, EXTRASAMPLES, PHOTOMETRIC_INTERPRETATION, FILLORDER, OPEN_INFO
 
+import logging
+logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
+logger = logging.getLogger(__name__)
+
 
 # Adjust PIL so that it will open .GEL files:
 # GEL image mode; using same as for PhotoInterpretation=1 mode.
@@ -327,7 +331,7 @@ def convert(argns):
         gelimg.save(pngfilename)
         argns.pngfilename = pngfilename
         print "PNG saved:", pngfilename
-    
+
     return gelimg, orgimg, argns
 
 

@@ -54,6 +54,11 @@ import os
 #import PIL
 from geltransformer import get_gel
 
+import logging
+logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
+logger = logging.getLogger(__name__)
+
+
 def geltopng(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None):
     """
     Opens a .GEL file, linearize the data, adjust the range, crops, rotates,
@@ -62,7 +67,3 @@ def geltopng(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None
     #gelbasename, gelext = os.path.split(filepath)
     img = get_gel(filepath, linearize=linearize)
     return img
-
-
-
-

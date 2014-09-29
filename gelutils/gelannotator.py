@@ -14,7 +14,7 @@
 ##
 ##    You should have received a copy of the GNU General Public License
 ##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# pylint: disable=W0142
+# pylint: disable=W0142,C0103
 
 """
 
@@ -43,10 +43,16 @@ except ImportError:
     sys.path.append(os.path.normpath(r"C:\Users\scholer\Dev\src-repos\svgwrite"))
     import svgwrite
 
+import logging
+logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
+logger = logging.getLogger(__name__)
 
-from rsenv.utils.clipboard import get_clipboard
-from rsenv.dataparsing.textdata_util import gen_trimmed_lines
-from rsenv.dataparsing.file_parsers import trimmed_lines_from_file
+from clipboard import get_clipboard
+from utils import gen_trimmed_lines, trimmed_lines_from_file
+
+def find_yamlfilepath(gelfn):
+    basename, gelext = os.path.splitext(gelfn)
+    return basename+'.yml'
 
 
 
@@ -93,7 +99,7 @@ def get_annotations(gelfn):#, remove_asterix='first_only'):
 
 def makeSVG(gelfile, laneannotations=None, xmargin=None, xspacing=None, yoffset=100, ypadding=5,
             textfmt="{name}", laneidxstart=0, yamlfile=None, embed=False, png=False,
-            extraspaceright=0, rotation=60,
+            extraspaceright=0, textrotation=60,
             fontsize=None, fontfamily=None, fontweight=None):
     """
 
@@ -178,12 +184,18 @@ def makeSVG(gelfile, laneannotations=None, xmargin=None, xspacing=None, yoffset=
     #
 
 
+def makePNG(argns):
+    """
+    Make PNG from GEL file and update argns to reflect that change.
+    """
+    gelfile = argns.gelfile
+    gelbasename, gelext = os.path.splitext(gelfile)
+    if gelext == '.GEL':
+        pass
 
 
 
-
-
-if __name__ == '__main__':
+def parseargs():
     ap = argparse.ArgumentParser()
     ap.add_argument('gelfile')
     ap.add_argument('--yoffset', type=int, help="Y offset (how far down the gel image should be).") #, default=100
@@ -192,7 +204,7 @@ if __name__ == '__main__':
     ap.add_argument('--xspacing', type=int, help="Force a certain x spacing.")
     ap.add_argument('--extraspaceright', type=int, help="Add additional padding/whitespace to the right (if the gel is not wide enought for the last annotation).")
 
-    ap.add_argument('--rotation', type=int, help="Angle to rotate text (counter-clockwise).")
+    ap.add_argument('--rotation', type=int, dest='textrotation', help="Angle to rotate text (counter-clockwise).")
 
     ap.add_argument('--fontsize', type=int, help="Specify default font size.")
     ap.add_argument('--fontfamily', help="Specify default font family, e.g. arial or MyriadPro.")
@@ -201,6 +213,7 @@ if __name__ == '__main__':
     ap.add_argument('--textfmt', help="How to format the lane annotations, e.g. '{idx} {name}'.")
 
     ap.add_argument('--yamlfile', help="Load options from YAML file, update and save.")
+    ap.add_argument('--saveyaml', help="Save yaml to this file when complete.")
     ap.add_argument('--embed', action='store_true', help="Embed image data in svg file. (default is to link)")
     ap.add_argument('--no-embed', dest='embed', action='store_false', help="Do not embed image data in svg file, link to the file instead.")
     ap.add_argument('--png', action='store_true', help="Save svg as png (requires cairo package).")
@@ -208,7 +221,20 @@ if __name__ == '__main__':
     #xmargin=(40, 30), xspacing=None, yoffset=100
     #textfmt="{idx} {name}", laneidxstart=0
 
-    argns = ap.parse_args()
+    return ap.parse_args()
+
+
+def compile(args):
+    """
+    Idea: Pass in an args dict, and this will take care of everything.
+    """
+
+    pass
+
+
+if __name__ == '__main__':
+    argns = parseargs()
+    gelfile = argns.gelfile
     args = {}
     if argns.yamlfile:
         try:
@@ -226,9 +252,7 @@ if __name__ == '__main__':
     #print args
 
     ## If you want to go directly from a .GEL file, here is the spot:
-    gelbasename, gelext = os.path.splitext(gelfile)
-    if gelext == '.GEL':
-        pass
+    # pass
 
     drawing = makeSVG(**args)
     print "Annotated svg saved as:", drawing.filename
