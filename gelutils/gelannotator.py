@@ -224,6 +224,12 @@ if __name__ == '__main__':
     args.update((k, v) for k, v in argns.__dict__.items() if v is not None)    # To remove None-value arguments.
     #print argns.__dict__
     #print args
+
+    ## If you want to go directly from a .GEL file, here is the spot:
+    gelbasename, gelext = os.path.splitext(gelfile)
+    if gelext == '.GEL':
+        pass
+
     drawing = makeSVG(**args)
     print "Annotated svg saved as:", drawing.filename
     if argns.yamlfile:

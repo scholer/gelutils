@@ -51,7 +51,7 @@ So...
 """
 
 import os
-import PIL
+#import PIL
 from geltransformer import get_gel
 
 def geltopng(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None):
@@ -59,8 +59,9 @@ def geltopng(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None
     Opens a .GEL file, linearize the data, adjust the range, crops, rotates,
     and saves as .png
     """
-    gelbasename, gelext = os.path.split(filepath)
+    #gelbasename, gelext = os.path.split(filepath)
     img = get_gel(filepath, linearize=linearize)
+    return img
 
 
 
