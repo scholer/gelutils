@@ -14,7 +14,7 @@
 ##
 ##    You should have received a copy of the GNU General Public License
 ##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# pylint: disable=W0142
+# pylint: disable=W0141,W0142,C0103,R0913,R0914
 
 """
 
@@ -90,6 +90,8 @@ https://pillow.readthedocs.org/en/latest/handbook/concepts.html
 
 import os
 import glob
+import re
+
 #from functools import partial
 import numpy
 from PIL import Image#, TiffImagePlugin
@@ -100,6 +102,8 @@ import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
+from utils import getfilepath, init_logging
+from argutils import parseargs, mergedicts
 
 # Adjust PIL so that it will open .GEL files:
 # GEL image mode; using same as for PhotoInterpretation=1 mode.
@@ -166,6 +170,26 @@ OPEN_INFO.update(gelfilemodes)  # Update the OPEN_INFO dict; is used to identify
 #    npdata**2
 
 
+
+def get_PMT(img):
+    """
+     (33449, <Scan Info>)
+    """
+    try:
+        scaninfo = img.tag[33449]
+    except (KeyError, AttributeError):
+        return
+    prog = re.compile(r'(\d{3})\sV')
+    for line in scaninfo.split('\n'):
+        match = prog.match(line)
+        if match:
+            return match.groups()[0]
+
+def has_PMT(filename):
+    prog = re.compile(r'.*\d{3}[_\s]?V.*')
+    return prog.match(filename)
+
+
 def find_dynamicrange(npdata, cutoff=(0, 0.99)):
     """
     Try to determine the range given the numpy data, so that the
@@ -174,10 +198,10 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99)):
     I.e. for a cutoff of (0.02, 0.95), this function will return a dynamic range
     that will quench the lowest 2% and the top 5%.
     """
-    counts, bins = numpy.histogram(npdata, bins=20)
+    counts, bins = numpy.histogram(npdata, bins=100)
     total = sum(counts)
     cutoffmin = 0
-    print counts.cumsum()
+    #print counts.cumsum()
     try:
         binupper = next(i for i, cumsum in enumerate(counts.cumsum()) if cumsum > total*cutoff[1])
         cutoffmax = int(bins[binupper]) # Must return int
@@ -189,19 +213,26 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99)):
     return (cutoffmin, cutoffmax)
 
 
-def processimage(gelimg, linearize=False, dynamicrange=None, invert=False, crop=None):
+def processimage(gelimg, args=None, **kwargs):
     """
+    gelimg is a PIL Image file, not just a path.
     Linearizes all data points (pixels) in gelimg.
     gelimg should be a PIL.Image.Image object.
     crop is a 4-tuple box:
         (x1, y1, x2, y2)
         (1230, 100, 2230, 800)
     """
+    if args is None:
+        args = {}
+    defaultargs = dict(linearize=False, dynamicrange=None, invert=False, crop=None)
+    args.update(mergedicts(defaultargs, args, kwargs))
+
+    # unpack essentials (that are not changed):
+
     scalefactor = gelimg.tag.getscalar(33446) # or tifimg.tag.tags[33446][0]
-    opts = {}
-    if crop:
-        orgimage = gelimg
-        gelimg = gelimg.crop(crop)
+    if args['crop']:
+        #orgimage = gelimg
+        gelimg = gelimg.crop(args['crop'])
 
     #linearize_this = partial(linearize, scalefactor=scalefactor) # closure
     # alternatively:
@@ -226,21 +257,29 @@ def processimage(gelimg, linearize=False, dynamicrange=None, invert=False, crop=
     #npdata = numpy.asarray(img.getdata())
     #npdata = numpy.asarray(gelimg.getdata())
     npimg = numpy.array(gelimg) # Do not use getdata
-    if linearize:
+    if args['linearize']:
+        logger.debug('Linearizing gel data...')
         npimg = (npimg**2)/scalefactor[1]
 
-    if dynamicrange == 'auto' or (invert and not dynamicrange):
-        # If we want to invert, we need to have a range:
+    if args['dynamicrange'] == 'auto' or (args['invert'] and not args['dynamicrange']):
+        # If we want to invert, we need to have a range. If it is not specified, we need to find it.
         #dynamicrange = (0, 100000)
-        dynamicrange = map(int, find_dynamicrange(npimg)) # Ensure you receive ints.
+        args['dynamicrange'] = map(int, find_dynamicrange(npimg)) # Ensure you receive ints.
 
-    if dynamicrange:
+    if isinstance(args['dynamicrange'], int):
+        args['dynamicrange'] = [0, args['dynamicrange']]
+    if len(args['dynamicrange']) == 1:
+        args['dynamicrange'] = [0, args['dynamicrange'][0]]
+
+    if args['dynamicrange']:
         # Transform image so all values < dynamicrange[0] is set to 0
         # all values > dynamicrange[1] is set to 2**16 and all values in between are scaled accordingly.
         # Closure:
+        print "(a) dynamicrange:", args['dynamicrange']
         minval, maxval = 0, 2**16-1
-        lowest, highest = dynamicrange
-        if invert:
+        lowest, highest = args['dynamicrange']
+        if args['invert']:
+            logger.debug('Inverting image...')
             def adjust_fun(val):
                 if val < lowest:
                     return maxval
@@ -257,61 +296,60 @@ def processimage(gelimg, linearize=False, dynamicrange=None, invert=False, crop=
         adjust_vec = numpy.vectorize(adjust_fun)
         npimg = adjust_vec(npimg)
     linimg = Image.fromarray(npimg, gelimg.mode)
-    opts['dynamicrange'] = dynamicrange
-    return linimg, opts
+    return linimg, args
 
 
-def get_gel(filepath, linearize=False, dynamicrange=None, invert=False, crop=None):
+def get_gel(filepath, args):
     """
     Returns gel as PIL.Image.Image object.
     If linearize is True (default), the .GEL data will be linearized before returning.
     Note that invert only takes effect if you specify a dynamic range.
     """
     orgimage = Image.open(filepath)
-    gelimage, opts = processimage(orgimage, linearize=linearize, dynamicrange=dynamicrange, invert=invert, crop=crop)
+    gelimage, opts = processimage(orgimage, args)
     return gelimage, orgimage, opts
 
-import re
 
-def get_PMT(img):
+def convert(gelfile, args, **kwargs):
     """
-     (33449, <Scan Info>)
+    Converts gel file to png given the info in args.
     """
-    try:
-        scaninfo = img.tag[33449]
-    except (KeyError, AttributeError):
-        return
-    prog = re.compile(r'(\d{3})\sV')
-    for line in scaninfo.split('\n'):
-        match = prog.match(line)
-        if match:
-            return match.groups()[0]
+    defaultargs = dict(linearize=False, dynamicrange=None, invert=False, crop=None, opts=None)
+    if args is None:
+        args = {}
+    args.update(mergedicts(defaultargs, args, kwargs))
+    logger.debug("convert() invoked.")
+    gelfile = gelfile or args['gelfile']
+    basename, gelext = os.path.splitext(gelfile)
 
-def has_PMT(filename):
-    prog = re.compile(r'.*\d{3}[_\s]?V.*')
-    return prog.match(filename)
+    if gelext == '.gel':
+        # Set better defaults for gel file:
+        if args.get('linearize') is None:
+            args['linearize'] = True
+        if args.get('invert') is None:
+            args['invert'] = True
 
+    dr = args.get('dynamicrange', None)
+    if dr is None:
+        dr = args['dynamicrange'] = 'auto'
+    elif isinstance(dr, int):
+        dr = args['dynamicrange'] = (0, dr)
+    elif len(dr) < 2:
+        dr = args['dynamicrange'] = (0, dr[0])
 
-def convert(argns):
-    """
-    Converts gel file to png given the info in argns.
-    """
-
-    basename, gelext = os.path.splitext(argns.gelfile)
-
-    if argns.autorange and not argns.dynamicrange:
-        argns.dynamicrange = 'auto'
-
-    argkeys = ('linearize', 'dynamicrange', 'crop', 'invert')
-    args = {k: v for k, v in argns.__dict__.items() if k in argkeys}
-    print args
-    gelimg, orgimg, opts = get_gel(argns.gelfile, **args)
+    # Good to have opts even if args is locked for updates:
+    gelimg, orgimg, opts = get_gel(gelfile, args)
     # Use orgimg for info, e.g. orgimg.info and orgimg.tag
     print "Range: ", gelimg.getextrema()
-    argns.opts = opts
     dr = opts['dynamicrange']
+    print "dynamic range:", dr
 
-    if argns.png:
+    #if args.get('convertgelto', 'png') is None:
+    #    args['convertgelto'] = 'png'
+    #if args.get('convertgelto'] == 'png'):
+    if dr is None:
+        rng = "norange"
+    else:
         if dr[1] % 1000 == 0:
             if dr[0] % 1000 == 0:
                 rng = u"{}-{}k".format(*(i/1000 for i in dr))
@@ -319,51 +357,43 @@ def convert(argns):
                 rng = u"{}-{}k".format(dr[0], dr[1]/1000)
         else:
             rng = u"{}-{}".format(*dr)
-        if not has_PMT(basename):
-            pmt = get_PMT(orgimg)
-            if pmt:
-                rng = u"{}V_{}".format(pmt, rng)
-        if not argns.overwrite:
-            N_existing = len(glob.glob(basename+'*.png'))
-            pngfilename = u"{}_{}_{}.png".format(basename, rng, N_existing)
-        else:
-            pngfilename = u"{}_{}.png".format(basename, rng)
-        gelimg.save(pngfilename)
-        argns.pngfilename = pngfilename
-        print "PNG saved:", pngfilename
+    if not has_PMT(basename):
+        pmt = get_PMT(orgimg)
+        if pmt:
+            rng = u"{}V_{}".format(pmt, rng)
+    if not args.get('overwrite', True):
+        N_existing = len(glob.glob(basename+'*.png'))
+        pngfilename = u"{}_{}_{}.png".format(basename, rng, N_existing)
+    else:
+        pngfilename = u"{}_{}.png".format(basename, rng)
+    # Make sure you save relative to the gelfile:
+    print "Saving gelfile to:", getfilepath(gelfile, pngfilename)
+    gelimg.save(getfilepath(gelfile, pngfilename))
+    args['pngfile'] = pngfilename
+    print "PNG saved:", pngfilename
 
-    return gelimg, orgimg, argns
+    return gelimg, args
+
 
 
 if __name__ == '__main__':
 
     def activate_readline():
-        import rlcompleter
+        #import rlcompleter
         import readline
         readline.parse_and_bind('tab: complete')
     ar = activate_readline
+    init_logging()
 
     #testdir = r'C:\Users\scholer\Dropbox\_experiment_data\2014_Harvard\RS323 p8634 scaffold prep w Nandhini v2\RS323d Agarose analysis of p8634 prep (20140925)'
     #os.chdir(testdir)
     #testfile = 'RS323_Agarose_ScaffoldPrep_550V.gel'
-    import argparse
-    ap = argparse.ArgumentParser()
-    ap.add_argument('gelfile')
-    ap.add_argument('--linearize', action='store_true', help="Linearize gel (if e.g. typhoon).") #, default=100
-    ap.add_argument('--no-linearize', action='store_false', dest='linearize', help="Linearize gel (if e.g. typhoon).") #, default=100
-    ap.add_argument('--dynamicrange', nargs=2, type=int, help="Dynamic range, min max, e.g. 300 5000.")
-    ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
-    ap.add_argument('--crop', nargs=4, type=int, help="Crop image to this box (x1 y1 x2 y2) aka (left upper right lower), e.g. 500 100 1200 400.")
-    ap.add_argument('--invert', action='store_true', help="Invert image data.")
-    ap.add_argument('--no-invert', action='store_false', dest='invert', help="Invert image data.")
-    ap.add_argument('--png', action='store_true', help="Save as png.")
-    ap.add_argument('--overwrite', action='store_true', default=True, help="Overwrite existing png.")
-    ap.add_argument('--no-overwrite', action='store_false', dest='overwrite', help="Do not overwrite existing png.")
 
-    argns = ap.parse_args()
-    print argns.__dict__
-    argns.png = True
-    convert(argns)
+    argns = parseargs(prog='geltransformer')
+    gelfile = argns.gelfile
+    args = argns.__dict__
+    #args.setdefault('png', True)
+    convert(gelfile, args)
 
 """
 Old stuff:

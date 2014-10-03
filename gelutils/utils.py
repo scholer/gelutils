@@ -24,6 +24,68 @@ Most of these originate from RsEnvironment module.
 
 """
 
+import os
+import logging
+
+def getfilepath(gelfilepath, otherfilepath):
+    """ Ensures that otherfilepath is a proper file path. """
+    if os.path.isabs(otherfilepath):
+        return otherfilepath
+    gelfiledir = os.path.dirname(gelfilepath)
+    return os.path.join(gelfiledir, otherfilepath)
+
+
+
+def init_logging(argsns=None, prefix="gelutils"):
+    """
+    Set up standard Labfluence logging system based on values provided by argsns, namely:
+    - loglevel
+    - logtofile
+    - testing
+
+    """
+
+    # Examples of different log formats:
+    #logfmt = "%(levelname)s: %(filename)s:%(lineno)s %(funcName)s() > %(message)s"
+    #logfmt = "%(levelname)s %(name)s:%(lineno)s %(funcName)s() > %(message)s"
+    # loguserfmt = format of log displayed to the user; logfilefmt = format of log messages written to logfile.
+    loguserfmt = "%(asctime)s %(levelname)-5s %(name)20s:%(lineno)-4s%(funcName)20s() %(message)s"
+    #logfilefmt = '%(asctime)s %(levelname)-6s - %(name)s:%(lineno)s - %(funcName)s() - %(message)s'
+    logdatefmt = "%Y%m%d-%H:%M:%S" # "%Y%m%d-%Hh%Mm%Ss"
+    logtimefmt = "%H:%M:%S" # Output to user in console
+    #logfiledir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'logs')
+    #if not os.path.exists(logfiledir):
+    #    os.mkdir(logfiledir)
+    #if argsns.logtofile:
+    #    logfilepath = argsns.logtofile
+    #else:
+    #    logfilenameformat = '{}_testing.log' if getattr(argsns, 'testing', False) else '{}_debug.log'
+    #    logfilename = logfilenameformat.format(prefix)
+    #    logfilepath = os.path.join(logfiledir, logfilename)
+    #logging.root.setLevel(logging.DEBUG)
+    #logstreamhandler = logging.StreamHandler()
+    #logging.root.addHandler(logstreamhandler)
+    #logstreamformatter = logging.Formatter(loguserfmt, logtimefmt)
+    #logstreamhandler.setFormatter(logstreamformatter)
+    logging.basicConfig(level=logging.DEBUG, format=loguserfmt, datefmt=logtimefmt)    # filename='example.log',
+
+
+
+def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None):
+    """
+    This is sort of the inverse of gen_trimmed_lines, it returns
+    all lines that starts with either '#' or '*',
+    corresponding to a enumerated or bullet list in wiki format.
+    commentmidchar, if specified, will remove anything to the right of this string, e.g.
+    >>> gen_wikilist_entries(("sample (volume)",), firstchar='*#-+', commentmidchar="(")
+    ["sample"]
+    """
+    lines = gen_stripped_nonempty_lines(lines)
+    lines = (line[1:].strip().split(listchar)[0] for line in lines if line[0] in listchar)
+    return lines
+
+
+
 
 def gen_trimmed_lines(lines, commentchar='#', commentmidchar=None):
     """
@@ -39,7 +101,6 @@ def gen_trimmed_lines(lines, commentchar='#', commentmidchar=None):
         commentmidchar = commentchar
     return gen_stripped_nonempty_lines(gen_noncomments_lines(lines,
                                  firstchar=commentchar, midchar=commentchar))
-
 
 def gen_stripped_nonempty_lines(lines):
     """
@@ -63,12 +124,24 @@ def gen_noncomments_lines(lines, firstchar='#', midchar=None):
 
 
 
-def trimmed_lines_from_file(filepath, commentchar='#', commentmidchar=None):
+def trimmed_lines_from_file(filepath, args=None):
     """
     Reads all non-comment parts of non-empty lines from file <filepath>,
     and returns these as a list, closing the file after loading the lines.
     See textdata_util.gen_trimmed_lines doc for info on commenchar and commentmidchar.
+    Wow, I just realized
     """
+    if args is None:
+        args = {}
     with open(filepath) as fd:
-        trimmed_lines = list(gen_trimmed_lines(fd, commentchar, commentmidchar))
-    return trimmed_lines
+        if args.get('linetrim', None) == 'wikilist':
+            # Add arguments to args for convenience to the user:
+            args.setdefault('listchar', '*#-+')
+            args.setdefault('commentmidchar', None)
+            trimmed_lines = gen_wikilist_entries(fd, args['listchar'], args['commentmidchar'])
+        else:
+            args.setdefault('commentchar', '#')
+            args.setdefault('commentmidchar', None)
+            trimmed_lines = gen_trimmed_lines(fd, args.get('commentchar', None), args.get('commentmidchar', None))
+        lines = list(trimmed_lines)
+    return lines
