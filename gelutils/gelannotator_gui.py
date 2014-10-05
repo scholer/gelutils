@@ -34,19 +34,14 @@ and png and svg files are saved, the omnipresent args is also saved.
 
 from __future__ import print_function
 
-import Tkinter as tk
-import ttk
 try:
     from tkFileDialog import askopenfilename
 except ImportError:
     # python 3:
-    from tkinter.filedialog import askopenfilename
-#import tkMessageBox
-#import ttk
+    from tkinter.filedialog import askopenfilename      # pylint: disable=F0401
 
 import os
 import yaml
-import webbrowser
 
 import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
@@ -54,177 +49,51 @@ logger = logging.getLogger(__name__)
 
 from gelannotator import annotate_gel, find_yamlfilepath, find_annotationsfilepath
 from argutils import parseargs, make_parser, mergedicts
-from utils import init_logging
+from utils import init_logging, getrelfilepath, getabsfilepath
+from tkui.gelannotator_tkroot import GelAnnotatorTkRoot
+
+from utils import open_utf  # unicode writer.
+open = open_utf     # overwrite default
 
 
-class GelAnnotatorTkRoot(tk.Tk):
-    """
-    The actual UI.
-    """
-    def __init__(self, app, title=None):
-        tk.Tk.__init__(self) # IMPORTANT FIRST STEP for a Tk root!
-        self.App = app          # Needed to bind button function? No, I bind button function in App code instead.
-        self.init_variables()
-        self.init_ui()
-        if title:
-            self.title(title)
-
-    def init_variables(self):
-        self.Gelfilepath = tk.StringVar()
-        self.Annotationsfilepath = tk.StringVar()
-        self.Yamlfilepath = tk.StringVar()
-
-
-    def init_ui(self, ):
-        """
-        Initialize the UI widgets. Refactored to separate method,
-        since the tkroot UI might be required before
-        information on the widgets are available.
-         ------------------------------------
-        | GEL file:  |_____________________| |
-        | Lane file: |_____________________| |
-        | YAML file: |_____________________| | << fileinfo frame, column=0, row=0
-         ------------------------------------
-        |          |  ANNOTATE!  |           | << button frame, column=0, row=0
-         ------------------------------------
-        | Lane names:     | YAML config:     |
-        |  -------------  |  --------------  | << text input frame
-        | |             | | |              | |
-        | |             | | |              | | << lanenames frame
-        | |             | | |              | | << yaml frame
-        | |             | | |              | |
-        | |             | | |              | |
-        |  -------------  |  --------------  |
-        |  |Save|  |Load| |  |Save|  |Load|  |
-        |  Autosave |_|   |  Autosave |_|    |
-         ------------------------------------
-        |  _________   __________   ______   |
-        | |OK (Keep)| |OK (Clear)| |Cancel|  | << buttonbox frame
-        |  ¨¨¨¨¨¨¨¨¨   ¨¨¨¨¨¨¨¨¨¨   ¨¨¨¨¨¨   |
-         ------------------------------------
-        |  Shift-enter=Annotate,             |
-        |  Added entry: "<product name>"     | << Info frame
-        |  View page in browser              |
-         ------------------------------------
-        """
-        #self.FileinfoFrame = fileframe = tk.Frame(self)
-        #self.YamlFrame = yamlframe = tk.Frame(self)
-
-        ## .grid column defaults to 0 and row defaults to the first unused row in the grid.
-
-        ### Make sure mainframe expands: ###
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
-
-        ### MAINFRAME ###
-        mainframe = tk.Frame(self)
-        mainframe.grid(sticky='news', row=0, column=0)          # Defaults to 0
-        mainframe.columnconfigure(0, weight=1)
-        mainframe.rowconfigure(2, weight=1)     # Row 2 is textinput frame
-
-        ### FILE FRAME -- has filepaths ###
-        fileframe = tk.Frame(mainframe)
-        fileframe.grid(sticky='news', row=0, column=0)           # All vertical frames are placed implicitly
-        fileframe.columnconfigure(1, weight=1, minsize=30)
-        #lbl = tk.Text(self, )
-        lbl = tk.Label(fileframe, text="Gel file: ")
-        lbl.grid(sticky='w', row=1, column=0)
-        lbl = tk.Label(fileframe, text="Lane file:")
-        lbl.grid(sticky='w', row=2, column=0)
-        lbl = tk.Label(fileframe, text="Yaml file:")
-        lbl.grid(sticky='w', row=3, column=0)        #self.GelfileEntry = entry = tk.Entry(fileframe, textvariable=self.Gelfilepath)
-        entry = tk.Entry(fileframe, textvariable=self.Gelfilepath)
-        entry.grid(row=1, column=1, sticky='ew')
-        entry = tk.Entry(fileframe, textvariable=self.Annotationsfilepath)
-        entry.grid(row=2, column=1, sticky='ew')
-        entry = tk.Entry(fileframe, textvariable=self.Yamlfilepath)
-        entry.grid(row=3, column=1, sticky='ew')
-
-        ### BUTTON FRAME ###
-        buttonframe = tk.Frame(mainframe)
-        buttonframe.grid(sticky='news', column=0, row=1)
-        btn = self.AnnotateBtn = tk.Button(buttonframe, text="ANNOTATE!", command=self.App.annotate)
-        btn.grid(sticky='news', row=1, column=2)
-        buttonframe.columnconfigure(2, weight=2)
-        buttonframe.columnconfigure((1, 3), weight=1)
-        #self.ProcessBtn = btn = tk.Button(fileframe, text="Process!")
-        #btn.grid(row=3, column=1, columnspan=2, sticky='news')
-
-        ### textinput FRAME - Contains both annotationsframe and yamlframe. ###
-        textinput = tk.Frame(mainframe)     # Specify starting width and height
-        textinput.grid(sticky="news", column=0, row=2)# Make sure it expands
-        textinput.rowconfigure(0, weight=1)           # Make sure it expands vertically
-        textinput.columnconfigure((0,1), weight=1)
-
-        ### ANNOTATIONS FRAME ##
-        annotationsframe = tk.Frame(textinput)
-        annotationsframe.grid(sticky='news', column=0, row=0)
-        annotationsframe.rowconfigure(1, weight=1)             # row 1 column 0 has text input
-        annotationsframe.columnconfigure(0, weight=1)
-        lbl = tk.Label(annotationsframe, text="Lane annotations file:")
-        lbl.grid(sticky='w', column=0, row=0)
-        text = self.AnnotationsText = tk.Text(annotationsframe, width=40, height=20) # default: width=80, height=24
-        text.grid(sticky='news', column=0, row=1)
-
-        ### YAML FRAME ##
-        yamlframe = tk.Frame(textinput)
-        yamlframe.grid(sticky='news', column=1, row=0)
-        yamlframe.rowconfigure(1, weight=1)             # row 1 has text input
-        yamlframe.columnconfigure(0, weight=1)
-        lbl = tk.Label(yamlframe, text="Yaml (config) file:")
-        lbl.grid(sticky='w', column=0, row=0)
-        text = self.YamlText = tk.Text(yamlframe, width=40, height=20)
-        text.grid(sticky='news', column=0, row=1)
-
-
-
-        print("Init ui done.")
-
-
-    def get_yaml(self):
-        return self.YamlText.get('1.0', tk.END)
-
-    def set_yaml(self, value):
-        if self.YamlText.get('1.0', tk.END):
-            self.YamlText.delete('1.0', tk.END)
-        if value:
-            self.YamlText.insert('1.0', value)
-
-    def get_annotations(self):
-        return self.AnnotationsText.get('1.0', tk.END)
-
-    def set_annotations(self, value):
-        if self.AnnotationsText.get('1.0', tk.END):
-            self.AnnotationsText.delete('1.0', tk.END)
-        if value:
-            self.AnnotationsText.insert('1.0', value)
-
-
-
-class GelAnnotatorApp(object):
+class GelAnnotatorApp(object):   # pylint: disable=R0904
     """
     Main gel annotator App object.
     Encapsulates Tk root GUI object.
     """
-    def __init__(self, args):
-        #self.Args = args
+    def __init__(self, args):           # pylint: disable=W0621
+        self.Args = args                # only saved to make init easier.
         print("args: ", args)
         self.Root = tkroot = GelAnnotatorTkRoot(self, title="Gel Annotator GUI")
 
         ## We generally do not want gelfile to be in args after this point:
         gelfilepath = args.pop('gelfile', '')
         if not gelfilepath:
-            gelfilepath = self.browse_for_gelfile()
-        gelfilepath = os.path.realpath(gelfilepath)
-        self.set_gelfilepath(gelfilepath)
+            # Better to allow tkinter to fully initialize before making user prompts:
+            self.Lastuseddir = os.path.expanduser('~')
+            tkroot.after_idle(self.browse_for_gelfile)
+        else:
+            #gelfilepath = os.path.realpath(gelfilepath) # no reason to do this?
+            self.Lastuseddir = os.path.dirname(gelfilepath)
+            self.set_gelfilepath(gelfilepath)
+            self.reset_aux_files(gelfilepath)
+
+    def reset_aux_files(self, gelfilepath):
+        """
+        Resets yaml and annotation files after changing the gelfile.
+        Remember that all filepaths except gelfile should be given relative to gelfile.
+        """
         # Desired location for yaml file, either input or based on gel file:
+        args = self.Args    # pylint: disable=W0621
         yamlfilepath = args.pop('yamlfile', '')
         if not yamlfilepath:
             yamlfilepath = find_yamlfilepath(gelfilepath)
+            yamlfilepath = getrelfilepath(gelfilepath, yamlfilepath)
         annotationsfilepath = args.pop('annotationsfile', '')
         # Desired location for annotations file, either input or based on gel file:
         if not annotationsfilepath:
             annotationsfilepath = find_annotationsfilepath(gelfilepath)
+            annotationsfilepath = getrelfilepath(gelfilepath, annotationsfilepath)
 
         self.set_yamlfilepath(yamlfilepath)
         self.set_annotationsfilepath(annotationsfilepath)
@@ -241,19 +110,33 @@ class GelAnnotatorApp(object):
 
 
     def get_gelfilepath(self, ):
+        """ Returns content of gel-filepath entry widget. """
         return self.Root.Gelfilepath.get()
 
-    def set_gelfilepath(self, value):
-        self.Root.Gelfilepath.set(value)
-        set_workdir(value)
+    def set_gelfilepath(self, filepath):
+        """ Sets content of gel-filepath entry widget. """
+        self.Root.Gelfilepath.set(filepath)
+        self.Root.Gelfiledirectory.set(os.path.dirname(os.path.abspath(filepath)))
+        #set_workdir(value)
+
+    def getgeldir(self):
+        """ Returns directory of gel-filepath entry widget, if not empty else user home dir. """
+        gelfilepath = self.get_gelfilepath()
+        if gelfilepath:
+            return os.path.dirname(gelfilepath)
+        else:
+            return os.path.expanduser('~')
 
     def get_yamlfilepath(self, ):
+        """ Returns content of yaml-filepath entry widget. """
         return self.Root.Yamlfilepath.get()
 
     def set_yamlfilepath(self, value):
+        """ Sets content of yaml-filepath entry widget. """
         self.Root.Yamlfilepath.set(value)
 
     def get_yaml(self):
+        """ Returns content of yaml text widget. """
         return self.Root.get_yaml()
 
     def set_yaml(self, value):
@@ -261,13 +144,15 @@ class GelAnnotatorApp(object):
         #print("Setting content of yaml widget to:", value)
         self.Root.set_yaml(value)
 
-    def init_yaml(self, args, filepath=None):
+    def init_yaml(self, args, filepath=None):       # pylint: disable=W0621
         """
         Merge args with yaml file (args take precedence).
         """
         #if args is None:
         #    args = self.Args
-        fn = filepath or self.get_yamlfilepath()
+        gelfile = self.get_gelfilepath()
+        yamlfile_relative = self.get_yamlfilepath()
+        fn = filepath or getabsfilepath(gelfile, yamlfile_relative)
         try:
             with open(fn) as fd:
                 yamlconfig = yaml.load(fd)
@@ -283,16 +168,20 @@ class GelAnnotatorApp(object):
 
 
     def load_yaml(self, filepath=None):
-        """ Load content of yaml flie into yaml text widget. """
-        fn = filepath or self.get_yamlfilepath()
+        """ Load content of yaml file into yaml text widget. """
+        gelfile = self.get_gelfilepath()
+        yamlfile_relative = self.get_yamlfilepath()
+        fn = filepath or getabsfilepath(gelfile, yamlfile_relative)
         with open(fn) as fd:
             #text = yaml.load(fd)
             text = fd.read()
         self.set_yaml(text)
 
-    def save_yaml(self):
+    def save_yaml(self, event=None):     # pylint: disable=W0613
         """ Save content of yaml text widget to yaml file. """
-        fn = self.get_yamlfilepath()
+        gelfile = self.get_gelfilepath()
+        yamlfile_relative = self.get_yamlfilepath()
+        fn = getabsfilepath(gelfile, yamlfile_relative)
         text = self.get_yaml()
         if not fn:
             raise ValueError("Yaml file entry is empty.")
@@ -302,25 +191,39 @@ class GelAnnotatorApp(object):
             fd.write(text)
 
     def get_annotationsfilepath(self, ):
+        """ Returns content of annotations-filepath entry widget. """
         return self.Root.Annotationsfilepath.get()
 
     def set_annotationsfilepath(self, value):
+        """ Sets content of annotations-filepath entry widget. """
         self.Root.Annotationsfilepath.set(value)
 
     def get_annotations(self):
+        """ Returns content of annotations text widget. """
         return self.Root.get_annotations()
 
     def set_annotations(self, value):
+        """ Sets content of annotations text widget. """
         self.Root.set_annotations(value)
 
     def load_annotations(self, filepath=None):
-        fn = filepath or self.get_annotationsfilepath()
+        """
+        Loads the content of <filepath> into annotations text widget.
+        filepath defaults to annotations-filepath widget entry.
+        """
+        gelfile = self.get_gelfilepath()
+        filepath_relative = self.get_annotationsfilepath()
+        fn = filepath or getabsfilepath(gelfile, filepath_relative)
         with open(fn) as fd:
             text = fd.read()
         self.set_annotations(text)
 
-    def save_annotations(self):
-        fn = self.get_annotationsfilepath()
+    def save_annotations(self, event=None):     # pylint: disable=W0613
+        """ Saves the content of annotations text widget to annotations-filepath. """
+        gelfile = self.get_gelfilepath()
+        filepath_relative = self.get_annotationsfilepath()
+        fn = getabsfilepath(gelfile, filepath_relative)
+        #fn = self.get_annotationsfilepath()
         text = self.get_annotations()
         if not fn:
             raise ValueError("Annotations file entry is empty.")
@@ -328,38 +231,75 @@ class GelAnnotatorApp(object):
             fd.write(text)
 
     def browse_for_gelfile(self):
+        """ Browse for gel image file. """
+        # This call should probably be moved to tkroot...:
         filename = askopenfilename(filetypes=(("GEL files", "*.gel"),
                                               ("Image files", "*.png;*.jpg"),
                                               ("All supported", "*.gel;*.png;*.jpg"),
                                               ("All files", "*.*")
-                                              ))
-        print("Setting gelfile to:", filename)
+                                              ),
+                                   initialdir=self.getgeldir(),
+                                   parent=self.Root,
+                                   title="Please select annotations file"
+                                   )
+        #print("Setting gelfile to:", filename)
+        # Issue: after returning, the main UI does not take focus until the user has switched windows. (Win)
+        # This may be an issue if the main loop has not been started? http://bytes.com/topic/python/answers/30934-tkinter-focus-text-selection-problem-tkfiledialog
+        #gelfilepath = os.path.realpath(gelfilepath)
+        #self.set_gelfilepath(gelfilepath)
         self.set_gelfilepath(filename)
+        self.reset_aux_files(filename)
 
     def browse_for_yamlfile(self):
+        """
+        Browse for yaml file.
+        Note that yamlfile, annotationsfile, etc are given relative to the gelfile.
+        """
         filename = askopenfilename(filetypes=(("YAML files", "*.yaml;*.yml"),
                                               ("All files", "*.*")
-                                              ))
+                                              ),
+                                   initialdir=self.getgeldir(),
+                                   parent=self.Root,
+                                   title="Please select yaml settings file"
+                                   )
+        logger.debug("User selected yamlfile: %s", filename)
+        gelfile = self.get_gelfilepath()
+        filename = getrelfilepath(gelfile, filename)
         print("Setting yamlfile to:", filename)
         self.set_yamlfilepath(filename)
+        self.load_yaml(filename)
 
     def browse_for_annotationsfile(self):
+        """
+        Browse for annotations file.
+        Note that yamlfile, annotationsfile, etc are given relative to the gelfile.
+        """
         filename = askopenfilename(filetypes=(("Text files", "*.txt"),
                                               ("YAML files", "*.yaml;*.yml"),
                                               ("All files", "*.*")
-                                              ))
-        print("Setting yamlfile to:", filename)
-        self.set_yamlfilepath(filename)
+                                              ),
+                                   initialdir=self.getgeldir(),
+                                   parent=self.Root,
+                                   title="Please select annotations file"
+                                   )
+        logger.debug("User selected annotationsfile: %s", filename)
+        gelfile = self.get_gelfilepath()
+        filename = getrelfilepath(gelfile, filename)
+        print("Setting annotationsfile to:", filename)
+        self.set_annotationsfilepath(filename)
+        self.load_annotations(filename)
 
 
 
     def mainloop(self):
+        """ Starts this App's tk root mainloop. """
         logger.info("Starting tkroot mainloop()...")
         self.Root.mainloop()
         logger.info("<< Tkroot mainloop() complete - (and App start() ) <<")
 
 
     def annotate(self):
+        """ Performs annotations (typically upon button press). """
         # Load/save? Uhm, no, just save
         # and then invoke gelannotator with args.
         # Update yaml when done.
@@ -369,8 +309,10 @@ class GelAnnotatorApp(object):
         annotationsfile = self.get_annotationsfilepath()
         self.save_yaml()
         self.save_annotations()
-        logger.debug("Annotating gel, using args: %s", args)
-        dwg, svgfilename = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)
+        logger.debug("Annotating gel, using annotationsfile '%s' and yamlfile '%s'",
+                     annotationsfile, yamlfile)
+        dwg, svgfilename, args = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)  # pylint: disable=W0612
+        # updated args are returned.
         if args.get('updateyaml', True):
             # Not sure if this should be done here or in gelannotator:
             logger.debug("Re-loading yaml file")
@@ -404,8 +346,12 @@ def get_workdir(args):
         return os.getcwd()
 
 def set_workdir(args):
-    d = get_workdir(args)
-    print("Chainging dir:", d)
+    """ Change working directory to match args, where args is gelfile or args dict. """
+    if isinstance(args, basestring):
+        d = os.path.dirname(args)
+    else:
+        d = get_workdir(args)
+    logger.info("Chainging dir: %s", d)
     os.chdir(d)
 
 
@@ -419,7 +365,7 @@ if __name__ == '__main__':
         ap = make_parser()
         argns = ap.parse_args('RS323_Agarose_ScaffoldPrep_550V.gel'.split())
     else:
-        argns = parseargs()
-    args = argns.__dict__
+        argns = parseargs('gui')
+    cmdlineargs = argns.__dict__
     # set_workdir(args) Not needed, done by app during set_gelfilepath
-    main(args)
+    main(cmdlineargs)

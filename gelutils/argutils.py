@@ -42,14 +42,17 @@ def make_parser(prog='gelannotator'):
     ap = argparse.ArgumentParser()
 
 
-    ap.add_argument('gelfile')
+    if prog == 'gui':
+        ap.add_argument('gelfile', nargs='?')
+    else:
+        ap.add_argument('gelfile')
 
 
     ## For geltransformer -- also nice for gel annotator
 
     ap.add_argument('--linearize', action='store_true', default=None, help="Linearize gel (if e.g. typhoon).")
     ap.add_argument('--no-linearize', action='store_false', dest='linearize', help="Linearize gel (if e.g. typhoon).")
-    ap.add_argument('--dynamicrange', nargs=2, help="""
+    ap.add_argument('--dynamicrange', nargs='+', metavar=("minima", "maxima"), help="""
                     Specify dynamic range (contrast). Valid argumets are '<min> <max>', '<max>' and 'auto'.
                     <min> and <max> can be provided as absolute values e.g. '300 5000',
                     or as percentage values, e.g. '0.1% 99%'.
@@ -59,16 +62,23 @@ def make_parser(prog='gelannotator'):
                     If specifying 'auto', the software automatically try to determine a suitable contrast range.""")
     #ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
     ap.add_argument('--crop', nargs=4, type=int, metavar=('left', 'upper', 'right', 'lower'), help="Crop image to this box (left upper right lower) aka (x1 y1 x2 y2), e.g. 500 100 1200 400.")
+    ap.add_argument('--cropfromedges', action='store_true', default=None,
+                    help="Crop <right> and <lower> specifies pixels from their respective edges instead of absolute coordinates from the upper left corner.")
+
     ap.add_argument('--invert', action='store_true', default=None, help="Invert gel data, so zero is white, high intensity black.")
     ap.add_argument('--no-invert', action='store_false', dest='invert', help="Do not invert image data. Zero will be black, high intensity white.")
+
     ap.add_argument('--convertgelto', default='png', help="Convert gel to this format.")
     #ap.add_argument('--png', action='store_true', help="Save as png.")
     ap.add_argument('--overwrite', action='store_true', default=True, help="Overwrite existing png.")
     ap.add_argument('--no-overwrite', action='store_false', dest='overwrite', help="Do not overwrite existing png.")
-    ap.add_argument('--rotategel', type=int, dest='textrotation', help="Angle to rotate gel (counter-clockwise).")
+    ap.add_argument('--rotategel', type=int, dest='rotate', help="Angle to rotate gel (counter-clockwise).")
+    ap.add_argument('--rotateexpands', action='store_true', default=False,
+                    help="When rotating, the image size expands to make room. False (default) means that the gel will keep its original size.")
 
 
-    if prog == 'gelannotator':
+
+    if prog in ('gelannotator', 'gui'):
         ap.add_argument('--pngfile', help="Use this pngfile instead of the specified gelfile.")
         ap.add_argument('--reusepng', action='store_true', dest='reusepng', help="Prefer png file over the specified gelfile.")
         ap.add_argument('--no-reusepng', action='store_false', dest='reusepng', help="Do not use pngfile, even if it is specified.")
@@ -95,11 +105,14 @@ def make_parser(prog='gelannotator'):
         ap.add_argument('--embed', action='store_true', help="Embed image data in svg file. (default)")
 
         ap.add_argument('--annotationsfile', help="Load lane annotations from this file. If not specified, will try to guess the right file.")
+        ap.add_argument('--lineinputstyle', help="""This can be used to change how lines in the sample annotation file are interpreted.
+                        Default is to use all non-empty lines that does not begin with '#'.
+                        Set this to wikilist to only include lines that starts with either of #, *, -, +.""")
 
         ap.add_argument('--openwebbrowser', action='store_true', help="Open annotated svg file in default webbrowser.")
 
 
-        #ap.add_argument('--svgtopng', action='store_true', help="Save svg as png (requires cairo package).")
+        ap.add_argument('--svgtopng', action='store_true', help="Save svg as png (requires cairo package).")
 
     #xmargin=(40, 30), xspacing=None, yoffset=100
     #textfmt="{idx} {name}", laneidxstart=0
@@ -115,7 +128,11 @@ def parseargs(prog='gelannotator'):#, partial=False, mockstring=None):
     #    # parse_known_args will not raise errors if sys.argv arguments not recognized by this parser.
     #    # This is useful if you have several parts of the program parsing the arguments.
     #    return ap.parse_known_args()
-    return ap.parse_args()
+    argns = ap.parse_args()
+    if getattr(argns, 'dynamicrange'):
+        if argns.dynamicrange[0] == 'auto':
+            argns.dynamicrange = 'auto'
+    return argns
 
 
 def mergedicts(*dicts):
