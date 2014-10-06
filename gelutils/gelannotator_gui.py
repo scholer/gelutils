@@ -307,6 +307,10 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         logger.debug("Showing help file: %s", helpfile)
         webbrowser.open(helpfile)
 
+    def update_status(self, newstatus):
+        if len(newstatus) > 82:
+            newstatus = "..."+newstatus[-82:]
+        self.Root.Statustext.set(newstatus)
 
     def annotate(self, event=None):     # event not used, pylint: disable=W0613
         """
@@ -325,6 +329,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         logger.debug("Annotating gel, using annotationsfile '%s' and yamlfile '%s'",
                      annotationsfile, yamlfile)
         dwg, svgfilename, args = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)  # pylint: disable=W0612
+        self.update_status("SVG file generated: "+svgfilename)
         # updated args are returned.
         if args.get('updateyaml', True):
             # Not sure if this should be done here or in gelannotator:

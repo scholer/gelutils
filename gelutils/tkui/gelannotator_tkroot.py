@@ -66,6 +66,7 @@ class GelAnnotatorTkRoot(tk.Tk):    # pylint: disable=R0904
         self.Gelfiledirectory = tk.StringVar()
         self.Annotationsfilepath = tk.StringVar()
         self.Yamlfilepath = tk.StringVar()
+        self.Statustext = tk.StringVar(value="Tip: Use CTRL+ENTER to annotate. (Buffers can be saved with ctrl+s, but that's also done automatically.)")
 
         self.init_ui()
         if title:
@@ -202,9 +203,13 @@ Non-used:
         text.bind(sequence='<Control-s>', func=self.App.save_yaml)
 
         ### INFO FRAME  - displays some help to the user. ##
-        infoframe = ttk.Frame(mainframe)     # Specify starting width and height
+        infoframe = tk.Frame(mainframe, bd=1, relief='sunken')     # Specify starting width and height
         infoframe.grid(sticky="news", column=0, row=3)# Make sure it expands
-        lbl = ttk.Label(infoframe, text="Tip: Use CTRL+ENTER to annotate. (Buffers can be saved with ctrl+s, but that's also done automatically.)")
+        # standard statusbar style:
+        # Using standard tk, don't want to bother with ttk styles for now...
+        # anchor='w' ??
+        lbl = self.Statusbar = tk.Label(infoframe, textvariable=self.Statustext)#, borderwidth=1, relief='sunken')
+                                         #text="Tip: Use CTRL+ENTER to annotate. (Buffers can be saved with ctrl+s, but that's also done automatically.)")
         lbl.grid(sticky='news')
         #lbl = ttk.Label(infoframe, text="(Buffers can be saved with ctrl+s, but you don't have to.)")
         #lbl.grid(sticky='news')
@@ -215,6 +220,9 @@ Non-used:
         self.bind(sequence='<Control-Return>', func=self.App.annotate)
 
         logger.debug("Init ui done.")
+
+    def set_statustext(self, value):
+        self.Statustext.set(value)
 
     def set_gelfilepath(self, filepath):
         self.Gelfilepath.set(filepath)
