@@ -49,7 +49,7 @@ logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
 from clipboard import get_clipboard
-from utils import gen_trimmed_lines, trimmed_lines_from_file, init_logging, getabsfilepath
+from utils import gen_trimmed_lines, trimmed_lines_from_file, init_logging, getabsfilepath, printdict
 from argutils import mergedicts, parseargs #, make_parser
 from geltransformer import convert
 from imageconverter import svg2png
@@ -70,10 +70,15 @@ def find_yamlfilepath(gelfn, rel=False):
 
 def find_annotationsfilepath(gelfn, rel=False):
     """
-    Finds a suitable yaml filename depending on gel filename.
+    Finds a suitable annotationsfile depending on gel filename.
+
+    The filepath is actual, not relative.
+
     Update: modified get_annotation_fn_by_gel_fn to not raise StopIteration.
     """
-    return get_annotation_fn_by_gel_fn(gelfn, rel=rel)
+    fp = get_annotation_fn_by_gel_fn(gelfn, rel=rel)
+    logger.debug("Selected annotationsfile: %s", fp)
+    return fp
 
 def get_annotation_fn_by_gel_fn(gelfn, rel=False, fallback=True):
     """
@@ -88,14 +93,18 @@ def get_annotation_fn_by_gel_fn(gelfn, rel=False, fallback=True):
     # First search for files with a name similar to the gelfile, then search for standard annotation filenames:
     search_ext = ("*.annotations.txt", "*.txt", "*.lanes.yml")
     std_pats = ('samples.txt', 'annotations.txt')
-    search_pats = (pat for pat in chain((annotationsfn+ext for ext in search_ext),
-                                        std_pats))
+    search_pats = chain(*((annotationsfn+ext for ext in search_ext),
+                           (os.path.join(gelfiledir, stdfile) for stdfile in std_pats)))
+    search_pats = list(search_pats) # DEBUG
+    logger.debug("search_ext: %s", search_ext)
+    logger.debug("search_pats: %s", search_pats)
     if not fallback:
         return next(fn for fn in chain(*(glob.glob(pat) for pat in search_pats)))
     if rel:
         fallback = os.path.basename(annotationsfn) + '.annotations.txt'
     else:
         fallback = annotationsfn + '.annotations.txt'
+    logger.debug("Fallback is: %s", fallback)
     return next((fn for fn in chain(*(glob.glob(pat) for pat in search_pats))), fallback)
 
 #def asterix_line_trimming(annotation_lines, remove_asterix='first_only', require_asterix=False):
@@ -108,6 +117,8 @@ def get_annotation_fn_by_gel_fn(gelfn, rel=False, fallback=True):
 def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_asterix='first_only'):
     """
     Returns annotations given gel filename.
+    Annotationsfile, whether given directly or through args,
+    is relative to gelfile.
     """
     if args.get('fromclipboard', False):
         laneannotations = list(gen_trimmed_lines(get_clipboard().split('\n')))
@@ -142,8 +153,16 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
 
 def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kwargs):
     """
+
+    Arguments:
+        gelfile : gelfile that is the basis. Not pngfile; that is given in args.
+        args    : dict with arguments used to control the annotations.
+        annotationsfile : file with lane annotations (only used if laneannotations is None).
+        laneannotations : list of lane annotations.
+
     annotationsfile and laneannotations specifically not kwargs and defaultargs;
-    we dont want to add this to args if it was not present there already.
+
+    We dont want to add this to args if it was not present there already.
     Supported keyword arguments:
     gelfile, laneannotations, xmargin, xspacing, yoffset, ypadding, textfmt, laneidxstart,
     yamlfile, embed, png, extraspaceright, textrotation, fontsize, fontfamily, fontweight
@@ -202,10 +221,10 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
         pngfile_actual = gelfile
         pngfile_relative = os.path.basename(gelfile)
     else:
-        print "args['pngfile'] is None? : ", args['pngfile']
-        print "args['gelfile'] is: ", args['gelfile']
-        print "gelfile is:", gelfile
-        print "args is: {%s}" % ", ".join("{} : {}".format(repr(k), repr(v)) for k, v in sorted(args.items()))
+        logger.warning("args['pngfile'] is None? : %s", args['pngfile'])
+        logger.warning("args['gelfile'] is: %s", args['gelfile'])
+        logger.warning("gelfile is: %s", gelfile)
+        logger.warning("args is: {%s}", printdict(args))
         raise TypeError("Could not determine pngfile version of gel image.")
 
     pngimage = Image.open(pngfile_actual)
@@ -315,9 +334,20 @@ def ensurePNG(gelfile, args):
 
 def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
     """
-    Idea: Pass in an args dict, and this will take care of everything.
+    Arguments:
+
+    args: dict with standard arguments.
+
+    gelfile: main gelfile.
+
+    annotationfile: file with annotations. Is this actual or relative to gelfile? - Relative.
+
+    yamlfile: file with options in yaml format. Is this actual or relative to gelfile? - Relative.
+
     Returns updated args dict with anything that may have been changed as a result of the run.
     """
+    logger.debug("""annotate_gel invoked with gelfile='%s', yamlfile='%s', annotationsfile='%s',
+                 and args=%s""", gelfile, yamlfile, annotationsfile, printdict(args))
     if args is None:
         args = {}
     if isinstance(args, argparse.Namespace):
@@ -327,6 +357,7 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
     if annotationsfile is None:
         annotationsfile = args.get('annotationsfile')
     if yamlfile:
+        yamlfile = getabsfilepath(gelfile, yamlfile)
         try:
             logger.debug("Loading additional settings (those not already specified) from file: %s", yamlfile)
             yamlsettings = yaml.load(open(yamlfile))
@@ -337,6 +368,7 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
         except IOError as e:
             logger.debug(e)
             logger.debug("No existing yaml file: %s -- That's OK.", yamlfile)
+            logger.debug("-- cwd is: %s", os.getcwd())
         except KeyError as e:
             logger.debug("KeyError: %s", e)
     # update no
@@ -344,6 +376,7 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
 
     ensurePNG(gelfile, args)
 
+    # annotationsfile is relative to gelfile; makeSVG takes care of it.
     dwg, svgfilename = makeSVG(gelfile, args, annotationsfile=annotationsfile)
 
     if args.get('svgtopng'):

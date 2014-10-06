@@ -50,11 +50,11 @@ logger = logging.getLogger(__name__)
 
 from gelannotator import annotate_gel, find_yamlfilepath, find_annotationsfilepath
 from argutils import parseargs, make_parser, mergedicts
-from utils import init_logging, getrelfilepath, getabsfilepath
+from utils import init_logging, getrelfilepath, getabsfilepath, printdict
 from tkui.gelannotator_tkroot import GelAnnotatorTkRoot
 
 from utils import open_utf  # unicode writer.
-open = open_utf     # overwrite default
+open = open_utf     # overwrite built-in, yes that's the point: pylint: disable=W0622
 
 
 class GelAnnotatorApp(object):   # pylint: disable=R0904
@@ -64,7 +64,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
     """
     def __init__(self, args):           # pylint: disable=W0621
         self.Args = args                # only saved to make init easier.
-        print("args: ", args)
+        logger.debug("GelAnnotatorApp initializing with args=%s", printdict(args))
         self.Root = tkroot = GelAnnotatorTkRoot(self, title="Gel Annotator GUI")
 
         ## We generally do not want gelfile to be in args after this point:
@@ -107,7 +107,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         try:
             self.load_annotations()
         except (IOError, OSError) as e:
-            print(str(e), "-- No problem, will save to default when annotating.")
+            logger.debug("%s -- No problem, will save to default when annotating.", e)
 
 
     def get_gelfilepath(self, ):
@@ -162,7 +162,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             logger.debug("Could not find/load yaml file %s", fn)
             yamlconfig = {}
         logger.debug("yamlconfig: %s", yamlconfig)
-        logger.debug("args: %s", args)
+        logger.debug("args: %s", printdict(args))
         args.update(mergedicts(yamlconfig, args))
         #self.Args = args
         self.set_yaml(yaml.dump(args, default_flow_style=False))
@@ -266,7 +266,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         logger.debug("User selected yamlfile: %s", filename)
         gelfile = self.get_gelfilepath()
         filename = getrelfilepath(gelfile, filename)
-        print("Setting yamlfile to:", filename)
+        logger.debug("Setting yamlfile to: %s", filename)
         self.set_yamlfilepath(filename)
         self.load_yaml(filename)
 
@@ -286,7 +286,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         logger.debug("User selected annotationsfile: %s", filename)
         gelfile = self.get_gelfilepath()
         filename = getrelfilepath(gelfile, filename)
-        print("Setting annotationsfile to:", filename)
+        logger.debug("Setting annotationsfile to: %s", filename)
         self.set_annotationsfilepath(filename)
         self.load_annotations(filename)
 
@@ -298,7 +298,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.Root.mainloop()
         logger.info("<< Tkroot mainloop() complete - (and App start() ) <<")
 
-    def show_help(self, event=None):
+    def show_help(self, event=None):     # event not used, method could be function pylint: disable=W0613,R0201
         """
         Show some help to the user.
         """
@@ -308,8 +308,10 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         webbrowser.open(helpfile)
 
 
-    def annotate(self, event=None):
-        """ Performs annotations (typically upon button press). """
+    def annotate(self, event=None):     # event not used, pylint: disable=W0613
+        """
+        Performs annotations (typically upon button press).
+        """
         # Load/save? Uhm, no, just save
         # and then invoke gelannotator with args.
         # Update yaml when done.
@@ -317,6 +319,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         gelfile = self.get_gelfilepath()
         yamlfile = self.get_yamlfilepath()
         annotationsfile = self.get_annotationsfilepath()
+        # yaml and annotationsfile are relative to gelfile.
         self.save_yaml()
         self.save_annotations()
         logger.debug("Annotating gel, using annotationsfile '%s' and yamlfile '%s'",
@@ -352,7 +355,7 @@ def get_workdir(args):
         next(os.path.dirname(path) for path in (args[k] for k in ('gelfile', 'yamlfile', 'annotationsfile') if k in args)
              if path and os.path.isabs(path))
     except StopIteration:
-        print("No absolute directory found, using cwd.")
+        logger.debug("No absolute directory found, using cwd.")
         return os.getcwd()
 
 def set_workdir(args):

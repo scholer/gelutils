@@ -188,7 +188,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     Returns processed image
     """
-    stdargs = dict(linearize=linearize, dynamicrange=dynamicrange, invert=invert, crop=crop)
+    stdargs = dict(linearize=linearize, dynamicrange=dynamicrange, invert=invert, crop=crop, rotate=rotate)
     logger.debug("processimage() invoked with gelimg %s, args %s, stdargs %s and kwargs %s",
                  gelimg, printdict(args), printdict(stdargs), printdict(kwargs))
     if args is None:

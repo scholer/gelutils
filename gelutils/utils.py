@@ -134,7 +134,10 @@ def getrelfilepath(gelfilepath, otherfilepath):
 
 def printdict(d):
     """ Returns a string of d with sorted keys. """
-    return "{"+", ".join("{}: {}".format(repr(k), repr(v)) for k, v in sorted(d.items())) +"}"
+    try:
+        return "{"+", ".join("{}: {}".format(repr(k), repr(v)) for k, v in sorted(d.items())) +"}"
+    except AttributeError:
+        return d
 
 
 def init_logging(argsns=None, prefix="gelutils"):
