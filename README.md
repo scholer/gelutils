@@ -1,25 +1,25 @@
 
-# GELUTILS
+# GELUTILS #
 
 Tools and utilities for working with scientific GEL files.
 
 Current features:
 * Quickly annotate lanes on gel using sample names from a plain text file.
 * Linearize GEL files stored in MD GEL squareroot format (e.g. gel files from Typhoon scanners).
+* A simple GUI to control the program.
 
 
-## Suggested features what would make this easier to use
+## Bugs and suggested features ##
 
-Please feel free to write me with bugs or feature suggestions.
+If you find any bugs, please let me know -- they are usually
+very easy and fast to fix.
+
+Also feel free to write me with feature suggestions.
 Or, even better: Fork this repository, fix the bugs and
 implement the features as you want, then send me a pull request :)
 
 
-### GUI(s) ###
-Currently, all utilities are controlled from the command line. 
-This is really both the fastest way and my preferred way. And the UNIX way.
+## Help ##
 
-And while a GUI could speed up some things (such as defining crop regions 
-and adjusting parameters), I doubt that the time saved could ever make
-up for the time spent implementing GUIs.
-
+Please refer to the files in the 'doc/' directory for help and documentation.
+And, of course, the source if you are so inclined.
