@@ -96,6 +96,7 @@ import re
 #from functools import partial
 import numpy
 from PIL import Image#, TiffImagePlugin
+from PIL.Image import NEAREST, ANTIALIAS, BICUBIC, BILINEAR  # pylint: disable=W0611
 from PIL import ImageOps
 from PIL.TiffImagePlugin import OPEN_INFO, II
 # from PIL.TiffImagePlugin import BITSPERSAMPLE, SAMPLEFORMAT, EXTRASAMPLES, PHOTOMETRIC_INTERPRETATION, FILLORDER, OPEN_INFO
@@ -177,7 +178,8 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99)):
     return (cutoffmin, cutoffmax)
 
 
-def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=None, crop=None, rotate=None, **kwargs):          # pylint: disable=R0912
+def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=None,
+                 crop=None, rotate=None, scale=None, **kwargs):          # pylint: disable=R0912
     """
     gelimg is a PIL Image file, not just a path.
     Linearizes all data points (pixels) in gelimg.
@@ -188,7 +190,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     Returns processed image
     """
-    stdargs = dict(linearize=linearize, dynamicrange=dynamicrange, invert=invert, crop=crop, rotate=rotate)
+    stdargs = dict(linearize=linearize, dynamicrange=dynamicrange, invert=invert, crop=crop, rotate=rotate, scale=scale)
     logger.debug("processimage() invoked with gelimg %s, args %s, stdargs %s and kwargs %s",
                  gelimg, printdict(args), printdict(stdargs), printdict(kwargs))
     if args is None:
@@ -204,6 +206,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     info = gelimg.info
     width, height = gelimg.size
+    widthheight = [width, height]
     info['extrema_ante'] = gelimg.getextrema()
     tifftags = {33445: 'MD_FileTag', 33446: 'MD_ScalePixel', 33447: 'unknown', 33448: 'user'}
     for tifnum, desc in tifftags.items():
@@ -226,14 +229,30 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     if args['rotate']:
         # NEAREST=1, BILINEAR=2, BICUBIC=3
-        gelimg = gelimg.rotate(angle=args['rotate'], filter=3, expand=args.get('rotateexpands'))
+        gelimg = gelimg.rotate(angle=args['rotate'], resample=3, expand=args.get('rotateexpands'))
 
     if args['crop']:
+        # left, upper, right, lower
+        crop = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in args['crop'])
+        # convert 0.05 to absolute pixels:
+        crop = [int(widthheight[i % 2]*x) if x < 1 else x for i, x in enumerate(crop)]
         if args.get('cropfromedges'):
-            left, upper, right, lower = args['crop']
+            left, upper, right, lower = crop
+            logger.debug("Cropping image to: %s", (left, upper, width-right, height-lower))
             gelimg = gelimg.crop((left, upper, width-right, height-lower))
         else:
-            gelimg = gelimg.crop(args['crop'])
+            logger.debug("Cropping image to: %s", (left, upper, right, lower))
+            gelimg = gelimg.crop(crop)
+
+    if args.get('scale'):
+        scale = float(args['scale'].strip('%'))/100 if isinstance(args['scale'], basestring) and '%' in args['scale'] \
+                else args['scale']
+        # convert 0.05 to absolute pixels:
+        newsize = [int(scale*width), int(scale*height)]
+        logger.info("Resizing image by a factor of %s (%s) to %s", scale, args['scale'], newsize)
+        #resample = 3 #
+        gelimg = gelimg.resize(newsize, resample=ANTIALIAS)
+
 
     # If we are not linearizing or adjusting dynamic range, we can take a shortcut that does not involve numpy:
     if (not (args['linearize'] and scalefactor)) and (not args['dynamicrange'] or args['dynamicrange'] == 'auto'):
@@ -246,7 +265,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
             if args['dynamicrange'] == 'auto':
                 # This may yield a rather different result than the dynamic range below:
                 modimg = ImageOps.autocontrast(modimg or gelimg)
-            info['extrema_post'] = gelimg.getextrema()
+            info['extrema_post'] = gelimg.getextrema()  # getextrema() will actually load the image.
             return modimg or gelimg, info
         except IOError as e:
             logger.info("""Could not use PIL ImageOps to perform requested operations, "%s"
@@ -262,14 +281,24 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
     if dr == 'auto' or (args['invert'] and not dr):
         # If we want to invert, we need to have a range. If it is not specified, we need to find it.
         #dynamicrange = (0, 100000)
-        args['dynamicrange'] = map(int, find_dynamicrange(npimg)) # Ensure you receive ints.
+        logger.debug("Dynamic range is %s (args['invert']=%s)", dr, args['invert'])
+        dr = args['dynamicrange'] = map(int, find_dynamicrange(npimg)) # Ensure you receive ints.
+        logger.debug("--- determined dynamic range: %s", dr)
 
-
-    if args['dynamicrange']:
-        if isinstance(args['dynamicrange'], int):
+    if dr:
+        if isinstance(args['dynamicrange'], (int, float, basestring)):
             args['dynamicrange'] = [0, args['dynamicrange']]
         if len(args['dynamicrange']) == 1:
             args['dynamicrange'] = [0, args['dynamicrange'][0]]
+
+        # Convert relative values: First, convert % to fraction:
+        dr = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in dr)
+        # convert (0.05, 0.95) to absolute range:
+        if all(x < 1 for x in dr):
+            logger.debug("Finding dynamic range for %s (args['dynamicrange']=%s)", dr, args['dynamicrange'])
+            dr = map(int, find_dynamicrange(npimg))
+            logger.debug("--- determined dynamic range: %s", dr)
+
 
         # Transform image so all values < dynamicrange[0] is set to 0
         # all values > dynamicrange[1] is set to 2**16 and all values in between are scaled accordingly.

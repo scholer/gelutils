@@ -165,7 +165,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     We dont want to add this to args if it was not present there already.
     Supported keyword arguments:
     gelfile, laneannotations, xmargin, xspacing, yoffset, ypadding, textfmt, laneidxstart,
-    yamlfile, embed, png, extraspaceright, textrotation, fontsize, fontfamily, fontweight
+    yamlfile, embed, png, xtraspaceright, textrotation, fontsize, fontfamily, fontweight
 
     ypadding: vertical space between annotations and gel.
 
@@ -177,8 +177,8 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     if args is None:
         args = {}
     defaultargs = dict(xmargin=[40, 40], xspacing=None, yoffset=100, ypadding=5,
-            textfmt="{name}", laneidxstart=0, embed=False,
-            extraspaceright=0, textrotation=60,
+            textfmt="{name}", laneidxstart=0, embed=None,
+            xtraspaceright=0, textrotation=60,
             fontsize=None, fontfamily='sans-serif', fontweight='bold')
     if isinstance(args, argparse.Namespace):
         args = args.__dict__
@@ -232,9 +232,28 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     imgwidth, imgheight = pngimage.size
     pngimage.fp.close()
     # use gelfp_wo_ext or pngfp_wo_ext as basis?
+
+    # Convert any relative values (fractions, percentage):
+    ypad, yoff = (args['ypadding'], args['yoffset'])
+    # If we have percentage: convert to fraction
+    ypad, yoff = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in (ypad, yoff))
+    # If we have fraction: convert to absolute pixel value
+    ypad, yoff = (imgheight*y if y < 1 else y for y in (ypad, yoff))
+    ypad, yoff = (int(round(y)) for y in (ypad, yoff)) # Ensure integer
+
+    # convert '5%' to 0.05 if string:
+    xmargin = (float(x.strip('%'))/100 if isinstance(x, basestring) else x for x in args['xmargin'])
+    # convert 0.05 to absolute pixels:
+    xmargin = [int(round(imgwidth*x)) if x < 1 else x for x in xmargin] # Do I have to round this?
+    xtra_right, = (args['xtraspaceright'], )
+    xtra_right, = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in (xtra_right, ))
+    xtra_right, = (imgwidth*x if x < 1 else x for x in (xtra_right, ))
+    xtra_right, = (int(round(y)) for y in (xtra_right, )) # Ensure integer
+
+
     svgfilename = pngfp_wo_ext + '_annotated.svg'
-    size = dict(width="{}px".format(imgwidth+args['extraspaceright']),
-                height="{}px".format(imgheight+args['yoffset']))
+    size = dict(width="{}px".format(imgwidth+xtra_right),
+                height="{}px".format(imgheight+yoff))
     # Apparently, setting width, height here doesn't work:
     dwg = svgwrite.Drawing(svgfilename, profile='tiny') #, **size)      # size can apparently not be specified here
     dwg.attribs.update(size)
@@ -244,8 +263,8 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     # xlink:href is first argument 'href'.
     # width="100%" height="100%" or  width="524" height="437" ?
     # additional image attribs: overflow, width, height, transform
-    if args['embed']:
-        filedata = open(gelfile, 'rb').read()
+    if args.get('embed', True):
+        filedata = open(pngfile_actual, 'rb').read()
         # when you DECODE, the length of the base64 encoded data should be a multiple of 4.
         #print "len(filedata):", len(filedata)
         datab64 = base64.encodestring(filedata)
@@ -254,22 +273,25 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
                      '.jpeg': 'image/jpeg',
                      '.png' : 'image/png'}
         mimetype = mimebyext[pngext]
+        logger.debug("Embedding data from %s into svg file.", pngfile_actual)
         imghref = ",".join(("data:"+mimetype+";base64", datab64))
     else:
         imghref = pngfile_relative
+        logger.debug("Linking to png file %s in svg file.", pngfile_actual)
     img = g1.add(dwg.image(imghref, width=imgwidth, height=imgheight))  # Using size in percentage doesn't work.
-    img.translate(tx=0, ty=args['yoffset'])
+    img.translate(tx=0, ty=yoff)
 
     # Add annotations:
     g2 = dwg.add(dwg.g(id='Annotations'))
 
     Nlanes = len(laneannotations)
     if not args['xspacing']:
-        xspacing = (imgwidth-sum(args['xmargin']))/(Nlanes-1)    # Number of spaces is 1 less than number of lanes.
+        xspacing = (imgwidth-sum(xmargin))/(Nlanes-1)    # Number of spaces is 1 less than number of lanes.
 
     #print "xmargin=", xmargin, ", xspacing=", xspacing, "sum(xmargin)+xspacing:", sum(xmargin)+xspacing
     #print "imgwidth:", imgwidth, ", imgwidth-sum(xmargin):", imgwidth-sum(xmargin), ", N:", N
     #print "sum(xmargin)+(N-1)*xspacing:", sum(xmargin)+(N-1)*xspacing
+
 
     for idx, annotation in enumerate(laneannotations):
         text = g2.add(dwg.text(args['textfmt'].format(idx=idx+args['laneidxstart'], name=annotation)))
@@ -277,11 +299,11 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
             argkey = att.replace('-', '')
             if args[argkey]:
                 text.attribs[att] = args[argkey]
-        text.translate(tx=args['xmargin'][0]+xspacing*idx, ty=args['yoffset']-args['ypadding'])
+        text.translate(tx=xmargin[0]+xspacing*idx, ty=yoff-ypad)
         text.rotate(-args['textrotation']) # rotate(self, angle, center=None)
 
     dwg.save()
-    print "Annotated gel saved to file:", svgfilename
+    logger.info("Annotated gel saved to file: %s", svgfilename)
 
     return dwg, svgfilename
 
@@ -308,7 +330,10 @@ def ensurePNG(gelfile, args):
     if gelext.lower() in ('.png', '.jpg', '.jpeg'):
         # Hmm... it might be nicer to allow rotation of an existing png image, not only .gel files?
         if any(args.get(k) for k in ('invert', 'crop', 'rotate')):
+            logger.debug("invert, crop or rotate requested; performing conversion even if gelfile is PNG...")
             convert(gelfile, args)
+        elif not args.get('reusepng', True):
+            pass    #
         return
     if args.get('pngfile') and args.get('reusepng', True):
         # We have a png file and want to re-use it and not re-generate it:
@@ -360,7 +385,7 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
         yamlfile = getabsfilepath(gelfile, yamlfile)
         try:
             logger.debug("Loading additional settings (those not already specified) from file: %s", yamlfile)
-            yamlsettings = yaml.load(open(yamlfile))
+            yamlsettings = yaml.safe_load(open(yamlfile))
             #for key, value in settings.items():
             #    setattr(argns, key, value)
             # Make sure to update in-place:
@@ -402,7 +427,11 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
         # Not sure if this should be done here or in gelannotator:
         logger.debug("Saving/updating yaml file: ")
         with open(yamlfile, 'wb') as fd:
-            yaml.dump(args, fd, default_flow_style=False)
+            # yaml.dump_all(documents, stream=None, Dumper=<class 'yaml.dumper.Dumper'>,
+            # default_style=None, default_flow_style=None, canonical=None, indent=None, width=None,
+            # allow_unicode=None, line_break=None, encoding='utf-8', explicit_start=None, explicit_end=None,
+            # version=None, tags=None)
+            yaml.safe_dump(args, fd, default_flow_style=False)
 
     return dwg, svgfilename, args
 

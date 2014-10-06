@@ -116,6 +116,7 @@ def svg2png(svgfilepath, target='png', tool=None, removeExt=True, **kwargs):
             #outputfn = convert_method(svgfilepath, target, kwargs)
             logger.debug("Trying to convert '%s' using method %s", svgfilename, convert_method)
             outputfn = convert_method(svgfilename, target, kwargs) # currently using filename, not path.
+            outputfn = os.path.abspath(outputfn)
             logger.debug("--conversion succeeded, output file: '%s'", outputfn)
             break
         except RuntimeError as e:

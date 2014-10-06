@@ -156,7 +156,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         fn = filepath or getabsfilepath(gelfile, yamlfile_relative)
         try:
             with open(fn) as fd:
-                yamlconfig = yaml.load(fd)
+                yamlconfig = yaml.safe_load(fd)
                 logger.debug("loading yaml file: %s", fn)
         except IOError:
             logger.debug("Could not find/load yaml file %s", fn)
@@ -308,8 +308,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         webbrowser.open(helpfile)
 
     def update_status(self, newstatus):
-        if len(newstatus) > 82:
-            newstatus = "..."+newstatus[-82:]
+        if len(newstatus) > 110:
+            newstatus = "..."+newstatus[-115:]
         self.Root.Statustext.set(newstatus)
 
     def annotate(self, event=None):     # event not used, pylint: disable=W0613
@@ -329,7 +329,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         logger.debug("Annotating gel, using annotationsfile '%s' and yamlfile '%s'",
                      annotationsfile, yamlfile)
         dwg, svgfilename, args = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)  # pylint: disable=W0612
-        self.update_status("SVG file generated: "+svgfilename)
+        self.update_status("SVG file generated: " + ("...." + svgfilename[-75:] if len(svgfilename) > 80 else svgfilename))
         # updated args are returned.
         if args.get('updateyaml', True):
             # Not sure if this should be done here or in gelannotator:
