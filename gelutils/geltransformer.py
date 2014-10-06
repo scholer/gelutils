@@ -177,7 +177,7 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99)):
     return (cutoffmin, cutoffmax)
 
 
-def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=None, crop=None, **kwargs):          # pylint: disable=R0912
+def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=None, crop=None, rotate=None, **kwargs):          # pylint: disable=R0912
     """
     gelimg is a PIL Image file, not just a path.
     Linearizes all data points (pixels) in gelimg.
@@ -258,7 +258,8 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         logger.debug('Linearizing gel data using scalefactor %s...', scalefactor)
         npimg = (npimg**2)/scalefactor[1]
 
-    if args['dynamicrange'] == 'auto' or (args['invert'] and not args['dynamicrange']):
+    dr = args.get('dynamicrange')
+    if dr == 'auto' or (args['invert'] and not dr):
         # If we want to invert, we need to have a range. If it is not specified, we need to find it.
         #dynamicrange = (0, 100000)
         args['dynamicrange'] = map(int, find_dynamicrange(npimg)) # Ensure you receive ints.

@@ -123,12 +123,15 @@ Non-used:
         mainframe.grid(sticky='news', row=0, column=0)          # Defaults to 0
         mainframe.columnconfigure(0, weight=1)
         mainframe.rowconfigure(2, weight=1)     # Row 2 is textinput frame
+        mainframe.rowconfigure(1, minsize=40)   # Button frame.
 
         ### FILE FRAME -- has filepaths ###
         fileframe = ttk.Frame(mainframe)
         fileframe.grid(sticky='news', row=0, column=0)           # All vertical frames are placed implicitly
         fileframe.columnconfigure(1, weight=1, minsize=30)
         #lbl = tk.Text(self, )
+
+        # Filepath labels:
         lbl = ttk.Label(fileframe, text="Directory: ")
         lbl.grid(sticky='w', row=0, column=0)
         lbl = ttk.Label(fileframe, text="Gel file: ")
@@ -139,6 +142,7 @@ Non-used:
         lbl.grid(sticky='w', row=3, column=0)        #self.GelfileEntry = entry = ttk.Entry(fileframe, textvariable=self.Gelfilepath)
         # How to make the right-most text visible? , justify='right' does not have the desired effect...
 
+        # Filepath entries:
         entry = ttk.Entry(fileframe, textvariable=self.Gelfiledirectory, state='readonly')
         entry.grid(row=0, column=1, sticky='ew')
         entry = ttk.Entry(fileframe, textvariable=self.Gelfilepath)     # = self.GelfilepathEntry
@@ -147,6 +151,10 @@ Non-used:
         entry.grid(row=2, column=1, sticky='ew')
         entry = ttk.Entry(fileframe, textvariable=self.Yamlfilepath)
         entry.grid(row=3, column=1, sticky='ew')
+
+        # BROWSE buttons
+        btn = ttk.Button(fileframe, text='Help...', command=self.App.show_help)
+        btn.grid(row=0, column=2)
         btn = ttk.Button(fileframe, text='Browse', command=self.App.browse_for_gelfile)
         btn.grid(row=1, column=2)
         btn = ttk.Button(fileframe, text='Browse', command=self.App.browse_for_annotationsfile)
@@ -159,6 +167,7 @@ Non-used:
         buttonframe.grid(sticky='news', column=0, row=1)
         btn = self.AnnotateBtn = ttk.Button(buttonframe, text="ANNOTATE!", command=self.App.annotate)  # pylint: disable=W0201
         btn.grid(sticky='news', row=1, column=2)
+        buttonframe.rowconfigure(1, minsize=40) # mainframe row 1 must also be set to minsize.
         buttonframe.columnconfigure(2, weight=2)
         buttonframe.columnconfigure((1, 3), weight=1)
         #self.ProcessBtn = btn = ttk.Button(fileframe, text="Process!")
@@ -193,13 +202,17 @@ Non-used:
         text.bind(sequence='<Control-s>', func=self.App.save_yaml)
 
         ### INFO FRAME  - displays some help to the user. ##
-        textinput = ttk.Frame(mainframe)     # Specify starting width and height
-        textinput.grid(sticky="news", column=0, row=3)# Make sure it expands
-        lbl = ttk.Label(yamlframe, text="Yaml (config) file:")
-        lbl.grid(sticky='news', column=0, row=0)
-        textinput.rowconfigure(0, weight=1)           # Make sure it expands vertically
-        textinput.columnconfigure(0, weight=1)
+        infoframe = ttk.Frame(mainframe)     # Specify starting width and height
+        infoframe.grid(sticky="news", column=0, row=3)# Make sure it expands
+        lbl = ttk.Label(infoframe, text="Tip: Use CTRL+ENTER to annotate. (Buffers can be saved with ctrl+s, but that's also done automatically.)")
+        lbl.grid(sticky='news')
+        #lbl = ttk.Label(infoframe, text="(Buffers can be saved with ctrl+s, but you don't have to.)")
+        #lbl.grid(sticky='news')
+        #l = tk.Label(f, text="( Shift-enter=OK (keep), Enter=OK (clear), Escape=Abort )")
+        #infoframe.rowconfigure(0, weight=1)           # Make sure it expands vertically
+        #infoframe.columnconfigure(0, weight=1)
 
+        self.bind(sequence='<Control-Return>', func=self.App.annotate)
 
         logger.debug("Init ui done.")
 

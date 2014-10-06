@@ -72,7 +72,7 @@ def make_parser(prog='gelannotator'):
     #ap.add_argument('--png', action='store_true', help="Save as png.")
     ap.add_argument('--overwrite', action='store_true', default=True, help="Overwrite existing png.")
     ap.add_argument('--no-overwrite', action='store_false', dest='overwrite', help="Do not overwrite existing png.")
-    ap.add_argument('--rotategel', type=int, dest='rotate', help="Angle to rotate gel (counter-clockwise).")
+    ap.add_argument('--rotate', type=int, help="Angle to rotate gel (counter-clockwise).")
     ap.add_argument('--rotateexpands', action='store_true', default=False,
                     help="When rotating, the image size expands to make room. False (default) means that the gel will keep its original size.")
 
@@ -95,6 +95,7 @@ def make_parser(prog='gelannotator'):
         ap.add_argument('--fontweight', help="Font weight: normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | inherit.")
 
         ap.add_argument('--textfmt', help="How to format the lane annotations, e.g. '{idx} {name}'. Format keys include: idx, name")
+        ap.add_argument('--laneidxstart', help="Change the start number of the {idx} value of lane annotations.")
 
         ap.add_argument('--yamlfile', help="Load options from YAML file, update and save.")
         ap.add_argument('--saveyamlto', help="Force saving yaml to this file when complete.")

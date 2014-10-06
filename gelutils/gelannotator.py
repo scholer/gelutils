@@ -54,31 +54,33 @@ from argutils import mergedicts, parseargs #, make_parser
 from geltransformer import convert
 from imageconverter import svg2png
 
-from utils import open_utf  # not required for
+#from utils import open_utf  # not required for
 
 
-def find_yamlfilepath(gelfn, rel=True):
+def find_yamlfilepath(gelfn, rel=False):
     """
     Finds a suitable yaml filename depending on gel filename.
+    The returned file is absolute;
+    use utils.getrelfilepath to get relative to gelfile.
     """
     if rel:
-        gelfn = os.path.basename(gelfn)
+        gelfn = os.path.basename(gelfn)         # "filename", without directory
     basename, _ = os.path.splitext(gelfn)
     return basename+'.yml'
 
-def find_annotationsfilepath(gelfn, rel=True):
+def find_annotationsfilepath(gelfn, rel=False):
     """
     Finds a suitable yaml filename depending on gel filename.
     Update: modified get_annotation_fn_by_gel_fn to not raise StopIteration.
     """
     return get_annotation_fn_by_gel_fn(gelfn, rel=rel)
 
-def get_annotation_fn_by_gel_fn(gelfn, rel=True, fallback=True):
+def get_annotation_fn_by_gel_fn(gelfn, rel=False, fallback=True):
     """
     Return the first, best candidate for an annotation file for the given gel file.
     """
     gelfiledir = os.path.dirname(gelfn)
-    gelfilebasename = os.path.basename(gelfn)
+    gelfilebasename = os.path.basename(gelfn)       # gelfile, without directory
     #if gelfiledir:
     #    logger.debug('Changing dir to: %s', gelfiledir)
     #    os.chdir(gelfiledir)
@@ -91,7 +93,7 @@ def get_annotation_fn_by_gel_fn(gelfn, rel=True, fallback=True):
     if not fallback:
         return next(fn for fn in chain(*(glob.glob(pat) for pat in search_pats)))
     if rel:
-        fallback = os.path.splitext(gelfilebasename)[0] + '.annotations.txt'
+        fallback = os.path.basename(annotationsfn) + '.annotations.txt'
     else:
         fallback = annotationsfn + '.annotations.txt'
     return next((fn for fn in chain(*(glob.glob(pat) for pat in search_pats))), fallback)
@@ -196,7 +198,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     elif gelext in ('.png', '.jpg', '.jpeg'):
         logger.debug("args['pngfile'] not specified, but gelfile ext is suitable (%s), referring to gelfile (%s) as pngfile.",
                      gelext, gelfile)
-        pngext = gelext
+        pngfp_wo_ext, pngext = gelfp_wo_ext, gelext
         pngfile_actual = gelfile
         pngfile_relative = os.path.basename(gelfile)
     else:

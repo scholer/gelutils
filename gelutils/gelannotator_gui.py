@@ -42,6 +42,7 @@ except ImportError:
 
 import os
 import yaml
+import webbrowser
 
 import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
@@ -297,8 +298,17 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.Root.mainloop()
         logger.info("<< Tkroot mainloop() complete - (and App start() ) <<")
 
+    def show_help(self, event=None):
+        """
+        Show some help to the user.
+        """
+        helpfile = os.path.join(os.path.abspath(os.path.dirname(
+            os.path.realpath(__file__))), '..', 'doc', 'GelAnnotator_GUI_help.txt')
+        logger.debug("Showing help file: %s", helpfile)
+        webbrowser.open(helpfile)
 
-    def annotate(self):
+
+    def annotate(self, event=None):
         """ Performs annotations (typically upon button press). """
         # Load/save? Uhm, no, just save
         # and then invoke gelannotator with args.
