@@ -236,8 +236,8 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         crop = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in args['crop'])
         # convert 0.05 to absolute pixels:
         crop = [int(widthheight[i % 2]*x) if x < 1 else x for i, x in enumerate(crop)]
+        left, upper, right, lower = crop
         if args.get('cropfromedges'):
-            left, upper, right, lower = crop
             logger.debug("Cropping image to: %s", (left, upper, width-right, height-lower))
             gelimg = gelimg.crop((left, upper, width-right, height-lower))
         else:

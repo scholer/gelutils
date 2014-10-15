@@ -123,7 +123,7 @@ The primary dependencies are:
     * Python Image Library, PIL - or Pillow.
     * numpy  (to linearize GEL data)
     * svgwrite (to create svg file with annotations)
-    * cairosvg and cairocffi or imagemagick  (to generate the last, annotated PNG image)
+    * cairo, cairosvg and cairocffi  -- or alternatively just imagemagick  (to generate the last, annotated PNG image)
 
 You should be able to generate most of these through your distribution's package manager.
 If it is not available through the package manager, use pip:
