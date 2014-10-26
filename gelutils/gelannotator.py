@@ -24,6 +24,13 @@ Module for annotating gels.
 Annotates a gel image with lane descriptions from annotaitons file,
 saves as svg (maybe add pdf ability?).
 
+Note: Consider adding support for using PIL.PSDraw or PIL.ImageDraw
+as a fallback to using svgwrite + convert?
+See:
+    https://pillow.readthedocs.org/reference/ImageDraw.html
+    https://pillow.readthedocs.org/reference/PSDraw.html
+    https://pillow.readthedocs.org/handbook/tutorial.html#postscript-printing
+
 
 """
 
@@ -346,7 +353,7 @@ def ensurePNG(gelfile, args):
         convert(gelfile, args)   # convert will update args['pngfile']
     elif gelext.lower() in ('.tif', '.tiff'):
         # convert tif to png:
-        if args('linearize') is None: # set sane default
+        if args.get('linearize') is None: # set sane default
             args['linearize'] = False
         args.setdefault('convertgelto', 'png')
         convert(gelfile, args)

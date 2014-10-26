@@ -34,6 +34,9 @@ Using PIL?
 * Nope
 * http://stackoverflow.com/questions/3600164/read-svg-file-with-python-pil
 * Need to use cairo.
+** EDIT: In fact, you could use PIL, if you instead of creating an SVG just creates a PostScript document:
+    >>> from PIL import PSDraw
+    See https://pillow.readthedocs.org/handbook/tutorial.html#postscript-printing
 
 So...
 * Installed cairosvg

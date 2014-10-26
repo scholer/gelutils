@@ -105,7 +105,7 @@ import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
-from utils import init_logging, printdict, getabsfilepath, getrelfilepath
+from utils import init_logging, printdict, getrelfilepath
 from argutils import parseargs, mergedicts
 
 # PIL.Image.Image.convert has a little info on image modes.
@@ -220,7 +220,9 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
     try:
         scaninfo = gelimg.tag[33449]
         scalefactor = gelimg.tag.getscalar(33446) # or tifimg.tag.tags[33446][0]
-    except AttributeError:
+    except (AttributeError, KeyError):
+        # AttributeError if gelimg does not have .tag attribute (e.g. PNG file),
+        # KeyError if .tag dict does not include 33449 key (e.g. TIFF file)
         scaninfo = ""
         scalefactor = None
     pmt = get_PMT(scaninfo)
@@ -272,10 +274,40 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
                         -- falling back to standard numpy.""", e)
 
     # Using numpy to do pixel transforms:
-    npimg = numpy.array(gelimg) # Do not use getdata(), just pass the image. # pylint: disable=E1101
     if args['linearize'] and scalefactor:
+        npimg = numpy.array(gelimg, dtype=numpy.uint32) # Consider specifying dtype, e.g. uint32? # pylint: disable=E1101
+        #npimg = numpy.array(gelimg, dtype=numpy.float32) # Which is better, float32 or uint32? # pylint: disable=E1101
+        # TODO: Do performance test to see if float32 is better than uint32
+        #       And remember to alter mode when you return to Image.fromarray
         logger.debug('Linearizing gel data using scalefactor %s...', scalefactor)
+        # It seems that this gives some weird results??
+        # Try to find a pixel that is at max in npimg, e.g. npimg[176, 250]
+        # nplinimg[176, 250] is then -4 ??
+        # npimg.dtype is dtype('int32') -- should be ok?
+        # No, wait... when you do multiplication, that might be an issue... Yes:
+        # >>> aarr = np.array([0, 1, 2**12, 2**14, 2**16-1])
+        # >>> aarr**2
+        # array([        0,         1,  16777216, 268435456,   -131071])  <--- NEGATIVE NUMBER!
+        # maybe use npimg.astype()
+        # Ah, of course -- by default we get a signed int32. This means the max is 2**31, not 2**32.
+        # sqrt(2**31) = 46340 <-- this was the max value before hitting the floor. (2**15*sqrt(2))
+        # For more: http://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
+        #   http://docs.scipy.org/doc/numpy/reference/generated/numpy.dtype.html
+        #   http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html
+        #npimg = npimg.astype('float32') # Is this overkill?
+        #npimg = npimg.astype('uint32') # This is good for values up to 2**16-1 (2**16 yields 0)
         npimg = (npimg**2)/scalefactor[1]
+        npimg = npimg.astype('int32') # Need to cast to lower or we cannot save back (it seems)
+        #npimg = npimg.astype('uint16') # ...but how low? (Too low...)
+        # Edit: Just using uint32 at numpy.array(gelimg), should do the trick.
+        # Summary:
+        # * It seems that as long as you do the calculations as float32 or uint32 it is fine,
+        # * And you must cast back to int32 or it looks weird.
+        # ** Edit: well, duh, you use gelimg.mode when you use Image.fromarray, so if npimg is
+        #       in float format, you have to set the mode accordingly.
+    else:
+        npimg = numpy.array(gelimg) # Do not use getdata(), just pass the image. # pylint: disable=E1101
+
 
     dr = args.get('dynamicrange')
     if dr == 'auto' or (args['invert'] and not dr):
@@ -287,9 +319,10 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     if dr:
         if isinstance(args['dynamicrange'], (int, float, basestring)):
-            args['dynamicrange'] = [0, args['dynamicrange']]
+            # If we have only provided a single argument, assume it is dr_high and set low to 0.
+            dr = args['dynamicrange'] = [0, args['dynamicrange']]
         if len(args['dynamicrange']) == 1:
-            args['dynamicrange'] = [0, args['dynamicrange'][0]]
+            dr = args['dynamicrange'] = [0, args['dynamicrange'][0]]
 
         # Convert relative values: First, convert % to fraction:
         dr = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in dr)
@@ -305,29 +338,55 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         # Closure:
         logger.debug("(a) dynamicrange: %s", args['dynamicrange'])
         ## TODO: FIX THIS FOR non 16-bit images:
+        ## TODO: THERE IS A BUG WHERE OVERSATURATED AREAS ARE PAINTED WHITE.
+        ## IT IS NOT THE INVERSION, HOWEVER, SO TAKE A LOOK AT HOW THE FILE IS READ,
+        ## I.e. open file with PIL and look at the values or see if there is a mask or something.
+        ## TODO: Consider converting the image to 32-bit floating point
         minval, maxval = 0, 2**16-1     # Note: This is not true for e.g. 8-bit png files
-        lowest, highest = info['dynamicrange'] = args['dynamicrange']
+        dr_low, dr_high = info['dynamicrange'] = args['dynamicrange']
         if args['invert']:
             logger.debug('Inverting image...')
             def adjust_fun(val):
                 """ Function to adjust dynamic range of image, inverting the image in the process. """
-                if val < lowest:
-                    return maxval
-                elif val > highest:
-                    return minval
-                return (maxval*(highest-val))/(highest-lowest)
+                if val <= dr_low:
+                    return maxval # This is correct when we are inverting the image.
+                    #return minval
+                elif val >= dr_high:
+                    return minval # This is correct when we are inverting the image.
+                    #return maxval
+                return (maxval*(dr_high-val))/(dr_high-dr_low)
         else:
+            print "minval, maxval:", minval, maxval
+            print "dr_low, dr_high:", dr_low, dr_high
+            # Aparently, there is a case where when the higher boundary is reached, it behaves weird?
+            # Higher values are whiter:
             def adjust_fun(val):
                 """ Function to adjust dynamic range of image. """
-                if val < lowest:
-                    return minval
-                elif val > highest:
-                    return maxval
-                return (maxval*(val-lowest))/(highest-lowest)
+                if val <= dr_low:
+                    return minval # I would expect this to be the correct behaviour?
+                    #return int(0.66*maxval)
+                    # When we are at very high values, we get this? -- confirmed. (And we also get it for low values < dr_low...)
+                    # Try it by doing numpy.array(gelimg) or numpy.asarray(gelimg)
+                    # Note that numpy "flips" the y-axis of the image relative to how it is treated by PIL.
+                    # And, in numpy the indexing is reversed.
+                    #return int(0.50*maxval)
+                elif val >= dr_high:
+                    return maxval # I would expect this to be the correct behaviour?
+                    #return int(0.33*maxval)
+                    #return int(0.80*maxval)
+                    #return int(0.33*minval)
+                else:
+                    # return maxval*(val-dr_low)/(dr_high-dr_low)+minval
+                    return int(float(maxval)*(val-dr_low)/(dr_high-dr_low)+minval)
+        # Numpy adjustment:
+        # Note: This seems correct when I try it manually and plot it.
         adjust_vec = numpy.vectorize(adjust_fun)    # pylint: disable=E1101
         npimg = adjust_vec(npimg)
 
+    # Maybe this is what gives the problem? No, also seems good.
+    # Is it the linearization?
     linimg = Image.fromarray(npimg, gelimg.mode)
+
     # saving org info in info dict:
 
     info['extrema_post'] = linimg.getextrema()
