@@ -86,6 +86,23 @@ https://pillow.readthedocs.org/en/latest/handbook/concepts.html
     I (32-bit signed integer pixels)
     F (32-bit floating point pixels)
 
+MORE PILLOW refs:
+    http://pillow.readthedocs.org/en/latest/handbook/writing-your-own-file-decoder.html
+    http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html
+    https://pillow.readthedocs.org/handbook/concepts.html
+
+
+Alternatives to using PIL:
+
+MATPLOTLIB:
+* Is suggested by: http://stackoverflow.com/questions/15284601/python-pil-struggles-with-uncompressed-16-bit-tiff-images
+
+TIFFLIB:
+* Christoph Gohlke's tifffile module
+* http://stackoverflow.com/questions/18446804/python-read-and-write-tiff-16-bit-three-channel-colour-images
+
+CV2 (+numpy):
+* http://blog.philippklaus.de/2011/08/handle-16bit-tiff-images-in-python/  [uses old Pillow]
 
 """
 
@@ -231,7 +248,12 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     if args['rotate']:
         # NEAREST=1, BILINEAR=2, BICUBIC=3
-        gelimg = gelimg.rotate(angle=args['rotate'], resample=3, expand=args.get('rotateexpands'))
+        # Edit, no, at least not for original PIL: NONE = NEAREST = 0; ANTIALIAS = 1; LINEAR = BILINEAR = 2; CUBIC = BICUBIC = 3
+        # OLD PIL rotate only supports NEAREST, BILINEAR, BICUBIC
+        # gelimg = gelimg.rotate(angle=args['rotate'], resample=3, expand=args.get('rotateexpands'))
+        # Edit: There is an issue in rotate, if I have pixels that are almost saturated,
+        # then after rotation they are squashed to negative values.
+        gelimg = gelimg.rotate(angle=args['rotate'], resample=0, expand=args.get('rotateexpands'))
 
     if args['crop']:
         # left, upper, right, lower
@@ -273,13 +295,20 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
             logger.info("""Could not use PIL ImageOps to perform requested operations, "%s"
                         -- falling back to standard numpy.""", e)
 
+    # https://pillow.readthedocs.org/handbook/concepts.html
+    # 'I' = 32-bit signed integer, 'F' = 32-bit float, 'L' = 8-bit
+    npimgmode = gelimg.mode # Default is 'I' for GEL and TIFF, 'L' for grayscale PNG.
+
     # Using numpy to do pixel transforms:
     if args['linearize'] and scalefactor:
+        # We need to have 32-bit unsigned interger when we square the values;
+        # otherwise values above 2**15*sqrt(2) gets squashed to negative values.
         npimg = numpy.array(gelimg, dtype=numpy.uint32) # Consider specifying dtype, e.g. uint32? # pylint: disable=E1101
         #npimg = numpy.array(gelimg, dtype=numpy.float32) # Which is better, float32 or uint32? # pylint: disable=E1101
         # TODO: Do performance test to see if float32 is better than uint32
         #       And remember to alter mode when you return to Image.fromarray
         logger.debug('Linearizing gel data using scalefactor %s...', scalefactor)
+        logger.debug('npimg min, max before linearization: %s, %s', npimg.min(), npimg.max())
         # It seems that this gives some weird results??
         # Try to find a pixel that is at max in npimg, e.g. npimg[176, 250]
         # nplinimg[176, 250] is then -4 ??
@@ -297,14 +326,21 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         #npimg = npimg.astype('float32') # Is this overkill?
         #npimg = npimg.astype('uint32') # This is good for values up to 2**16-1 (2**16 yields 0)
         npimg = (npimg**2)/scalefactor[1]
+        logger.debug('npimg min, max after linearization: %s, %s', npimg.min(), npimg.max())
         npimg = npimg.astype('int32') # Need to cast to lower or we cannot save back (it seems)
-        #npimg = npimg.astype('uint16') # ...but how low? (Too low...)
+        logger.debug('npimg min, max after casting to int32: %s, %s', npimg.min(), npimg.max())
+        #npimgmode = 'I;32' # or maybe just set the npimagemode?
+        # 'I;32' doesn't work. 'I;16' does. Support seems flaky. https://github.com/python-pillow/Pillow/issues/863
+        #npimg = npimg.astype('uint16') # ...but how low? (This is too low...)
         # Edit: Just using uint32 at numpy.array(gelimg), should do the trick.
         # Summary:
         # * It seems that as long as you do the calculations as float32 or uint32 it is fine,
         # * And you must cast back to int32 or it looks weird.
         # ** Edit: well, duh, you use gelimg.mode when you use Image.fromarray, so if npimg is
         #       in float format, you have to set the mode accordingly.
+        # * For more on image modes, https://pillow.readthedocs.org/handbook/concepts.html
+        # Note: Make sure whether you are using PIL or Pillow before you go exploring:
+        # PIL.PILLOW_VERSION
     else:
         npimg = numpy.array(gelimg) # Do not use getdata(), just pass the image. # pylint: disable=E1101
 
@@ -327,6 +363,8 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         # Convert relative values: First, convert % to fraction:
         dr = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in dr)
         # convert (0.05, 0.95) to absolute range:
+        # Note: What if you have floating-point pixel values between 0 and 1? (E.g. for HDR images).
+        # In that case, the dynamic range might not be distribution ranges but actual min/max pixel values.
         if all(x < 1 for x in dr):
             logger.debug("Finding dynamic range for %s (args['dynamicrange']=%s)", dr, args['dynamicrange'])
             dr = map(int, find_dynamicrange(npimg))
@@ -337,13 +375,17 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         # all values > dynamicrange[1] is set to 2**16 and all values in between are scaled accordingly.
         # Closure:
         logger.debug("(a) dynamicrange: %s", args['dynamicrange'])
+        logger.debug('npimg min, max before adjusting dynamic range: %s, %s', npimg.min(), npimg.max())
         ## TODO: FIX THIS FOR non 16-bit images:
         ## TODO: THERE IS A BUG WHERE OVERSATURATED AREAS ARE PAINTED WHITE.
         ## IT IS NOT THE INVERSION, HOWEVER, SO TAKE A LOOK AT HOW THE FILE IS READ,
         ## I.e. open file with PIL and look at the values or see if there is a mask or something.
         ## TODO: Consider converting the image to 32-bit floating point
-        minval, maxval = 0, 2**16-1     # Note: This is not true for e.g. 8-bit png files
+        minval, maxval = 0, 2**16-1     # Note: This is not true for e.g. 8-bit png files.
+        # (However PNG files may be in 'I' mode as well, probably 16-bit?)
         dr_low, dr_high = info['dynamicrange'] = args['dynamicrange']
+        logger.debug("minval, maxval: %s, %s", minval, maxval)
+        logger.debug("dr_low, dr_high: %s, %s", dr_low, dr_high)
         if args['invert']:
             logger.debug('Inverting image...')
             def adjust_fun(val):
@@ -354,10 +396,9 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
                 elif val >= dr_high:
                     return minval # This is correct when we are inverting the image.
                     #return maxval
+                # This might also be an issue: maxval*70000 > 2**32
                 return (maxval*(dr_high-val))/(dr_high-dr_low)
         else:
-            print "minval, maxval:", minval, maxval
-            print "dr_low, dr_high:", dr_low, dr_high
             # Aparently, there is a case where when the higher boundary is reached, it behaves weird?
             # Higher values are whiter:
             def adjust_fun(val):
@@ -382,10 +423,12 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         # Note: This seems correct when I try it manually and plot it.
         adjust_vec = numpy.vectorize(adjust_fun)    # pylint: disable=E1101
         npimg = adjust_vec(npimg)
+        logger.debug('npimg min, max after adjusting dynamic range: %s, %s', npimg.min(), npimg.max())
 
     # Maybe this is what gives the problem? No, also seems good.
     # Is it the linearization?
-    linimg = Image.fromarray(npimg, gelimg.mode)
+    #linimg = Image.fromarray(npimg, gelimg.mode)
+    linimg = Image.fromarray(npimg, npimgmode)
 
     # saving org info in info dict:
 
@@ -491,6 +534,8 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
     logger.debug("pngfilename: %s", pngfilename)
     logger.debug("pngfilename_relative: %s", pngfilename_relative)
     logger.debug("Saving gelfile to: %s", pngfilename)
+    # Note: gelimg may be in 16-bit; saving would produce a 16-bit grayscale PNG.
+    # Image size can possibly be reduced by 50% by saving as 8-bit grayscale.
     gelimg.save(pngfilename)
     # Note: 'pngfile' may also be a jpeg file, if the user specified convertgelto jpg
     args['pngfile'] = info['pngfile'] = pngfilename_relative
