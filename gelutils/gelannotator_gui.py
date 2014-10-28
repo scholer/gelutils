@@ -168,12 +168,18 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.set_yaml(yaml.dump(args, default_flow_style=False))
 
 
-    def load_yaml(self, filepath=None):
-        """ Load content of yaml file into yaml text widget. """
-        gelfile = self.get_gelfilepath()
-        yamlfile_relative = self.get_yamlfilepath()
-        fn = filepath or getabsfilepath(gelfile, yamlfile_relative)
-        with open(fn) as fd:
+    def load_yaml(self, filepath=None, filepath_is_relative_to_gelfile=True):
+        """
+        Load content of yaml file into yaml text widget.
+        If filepath is provided, should it be relative to gelfile?
+        """
+        if filepath is None:
+            filepath = self.get_yamlfilepath() # get_yamlfilepath returns relative to gelfile.
+        if filepath_is_relative_to_gelfile:
+            # Obtain absolute path if given path is relative to gelfile:
+            gelfile = self.get_gelfilepath()
+            filepath = getabsfilepath(gelfile, filepath)
+        with open(filepath) as fd:
             #text = yaml.load(fd)
             text = fd.read()
         self.set_yaml(text)
@@ -207,15 +213,22 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         """ Sets content of annotations text widget. """
         self.Root.set_annotations(value)
 
-    def load_annotations(self, filepath=None):
+    def load_annotations(self, filepath=None, filepath_is_relative_to_gelfile=True):
         """
         Loads the content of <filepath> into annotations text widget.
         filepath defaults to annotations-filepath widget entry.
         """
-        gelfile = self.get_gelfilepath()
-        filepath_relative = self.get_annotationsfilepath()
-        fn = filepath or getabsfilepath(gelfile, filepath_relative)
-        with open(fn) as fd:
+        logger.debug("Provided filepath: %s", filepath)
+        if filepath is None:
+            filepath = self.get_annotationsfilepath() # get_yamlfilepath returns relative to gelfile.
+            logger.debug("Getting filepath from textentry: %s", filepath)
+        if filepath_is_relative_to_gelfile:
+            # Obtain absolute path if given path is relative to gelfile:
+            gelfile = self.get_gelfilepath()
+            logger.debug("gelfile is: %s")
+            filepath = getabsfilepath(gelfile, filepath)
+            logger.debug("Converted relative filepath to absolute using gelfile: %s", filepath)
+        with open(filepath) as fd:
             text = fd.read()
         self.set_annotations(text)
 
@@ -267,8 +280,9 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         gelfile = self.get_gelfilepath()
         filename = getrelfilepath(gelfile, filename)
         logger.debug("Setting yamlfile to: %s", filename)
+        logger.debug("os.getcwd(): %s", os.getcwd())
         self.set_yamlfilepath(filename)
-        self.load_yaml(filename)
+        self.load_yaml()
 
     def browse_for_annotationsfile(self):
         """
@@ -287,8 +301,9 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         gelfile = self.get_gelfilepath()
         filename = getrelfilepath(gelfile, filename)
         logger.debug("Setting annotationsfile to: %s", filename)
+        logger.debug("os.getcwd(): %s", os.getcwd())
         self.set_annotationsfilepath(filename)
-        self.load_annotations(filename)
+        self.load_annotations() # If you provide filename, it currently should be absolute?
 
 
 
