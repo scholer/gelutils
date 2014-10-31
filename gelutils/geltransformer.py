@@ -104,8 +104,13 @@ TIFFLIB:
 CV2 (+numpy):
 * http://blog.philippklaus.de/2011/08/handle-16bit-tiff-images-in-python/  [uses old Pillow]
 
+SciPy alone:
+* http://docs.scipy.org/doc/scipy-0.14.0/reference/ndimage.html
+* http://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.ndimage.interpolation.rotate.html
+
 """
 
+from __future__ import print_function
 import os
 import glob
 import re
@@ -143,7 +148,14 @@ gelfilemodes = {
 
 OPEN_INFO.update(gelfilemodes)  # Update the OPEN_INFO dict; is used to identify TIFF image modes.
 
+PIL_VERSION = Image.VERSION
+PIL_IS_PILLOW = getattr(Image, 'PILLOW_VERSION', False)
 
+# Note: logging might not have been initialized yet...:
+print("\n\n", "- "*40, "\n")
+logger.info("PIL version: %s || PILLOW? - %s", PIL_VERSION, PIL_IS_PILLOW)
+print("PIL version: %s || PILLOW? - %s" % (PIL_VERSION, PIL_IS_PILLOW))
+print("\n\n", "- "*40, "\n")
 
 
 def get_PMT(img):
@@ -187,11 +199,11 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99)):
     try:
         binupper = next(i for i, cumsum in enumerate(counts.cumsum()) if cumsum > total*cutoff[1])
         cutoffmax = int(bins[binupper]) # Must return int
-        print "Cutoffmax:", cutoffmax
+        logger.debug("Cutoffmax: %s", cutoffmax)
     except StopIteration:
         cutoffmax = cutoff*npdata.max()
-        print "Could not find any bins, setting cutoffbin to", cutoffmax
-    print "(cutoffmin, cutoffmax):", (cutoffmin, cutoffmax)
+        logger.debug("Could not find any bins, setting cutoffbin to %s", cutoffmax)
+    logger.debug("(cutoffmin, cutoffmax): %s", (cutoffmin, cutoffmax))
     return (cutoffmin, cutoffmax)
 
 
@@ -253,7 +265,15 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         # gelimg = gelimg.rotate(angle=args['rotate'], resample=3, expand=args.get('rotateexpands'))
         # Edit: There is an issue in rotate, if I have pixels that are almost saturated,
         # then after rotation they are squashed to negative values.
-        gelimg = gelimg.rotate(angle=args['rotate'], resample=0, expand=args.get('rotateexpands'))
+        # Perhaps check whether Pillow has this problem, and if it does not, then use LINEAR or CUBIC resampling with that.
+        # Alternatively, cconsider casting to numpy/scipy image and rotating with that? (Offers spline interpolation of arbitrary order))
+        # * http://docs.scipy.org/doc/scipy-0.14.0/reference/ndimage.html
+        # * http://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.ndimage.interpolation.rotate.html
+        #gelimg = gelimg.rotate(angle=args['rotate'], resample=0, expand=args.get('rotateexpands'))
+        # Trying bilinear or bicubic with Pillow:
+        gelimg = gelimg.rotate(angle=args['rotate'], resample=2, expand=args.get('rotateexpands'))
+        # Bicubic still has the squashing issue...
+        # Bi-linear seems good, though.
 
     if args['crop']:
         # left, upper, right, lower
