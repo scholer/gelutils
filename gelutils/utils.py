@@ -175,7 +175,7 @@ def init_logging(argsns=None, prefix="gelutils"):
 
 
 
-def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None):
+def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None, includeempty=False):
     """
     This is sort of the inverse of gen_trimmed_lines, it returns
     all lines that starts with either '#' or '*',
@@ -183,28 +183,35 @@ def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None):
     commentmidchar, if specified, will remove anything to the right of this string, e.g.
     >>> gen_wikilist_entries(("sample (volume)",), firstchar='*#-+', commentmidchar="(")
     ["sample"]
+    The 'includeempty' arg is not available: A line must start with 'listchar' to even be included.
+    If you want 'empty' lines when using 'wikilist' lineinput, just add "empty" lines with '#' as the first char.
     """
+    #if not includeempty:
+        # Remove empty lines. Actually, this is not needed; empty lines cannot have the '#'
+        # (listchar) at line[0] which is required to be included.
     lines = gen_stripped_nonempty_lines(lines)
     lines = (line[1:].strip().split(listchar)[0] for line in lines if line[0] in listchar)
     return lines
 
 
-
-
-def gen_trimmed_lines(lines, commentchar='#', commentmidchar=None):
+def gen_trimmed_lines(lines, commentchar='#', commentmidchar=None, includeempty=False):
     """
     Returns non-empty, non-comment lines.
-    commentchar (default='#') defines a character that is used to denote a comment in a line:
-        # This is a note.
-    commentmidchar can be used to define a 'mid-line' comment.
-        data = value # Here is a 'midline comment' about data or value.
+    Args:
+        commentchar (default='#') defines a character that is used to denote a comment in a line:
+            # This is a note.
+        commentmidchar can be used to define a 'mid-line' comment.
+            data = value # Here is a 'midline comment' about data or value.
+        includeempty : whether to include empty lines. Default (False) is to remove empty lines.
     commentmidchar defaults to the same as commentchar.
     Set commentchar to False (not None) to disable "midline comments".
     """
     if commentmidchar is None:
         commentmidchar = commentchar
-    return gen_stripped_nonempty_lines(gen_noncomments_lines(lines,
-                                 firstchar=commentchar, midchar=commentchar))
+    noncommentlines = gen_noncomments_lines(lines, firstchar=commentchar, midchar=commentchar)
+    if includeempty:
+        return noncommentlines
+    return gen_stripped_nonempty_lines(noncommentlines)
 
 def gen_stripped_nonempty_lines(lines):
     """
@@ -227,16 +234,6 @@ def gen_noncomments_lines(lines, firstchar='#', midchar=None):
     return noncomment
 
 
-def setIfNone(targetdict, key, value):
-    """ Update an entry in targetdict if either targetdict[key] is None or key not in targetdict. """
-    if targetdict.get(key) is None:
-        targetdict[key] = value
-
-def updateNoneValues(targetdict, updatedict):
-    """ With all items in updatedict update targetdict ONLY IF targetdict[key] is None or key not in targetdict."""
-    for k, v in updatedict.items():
-        setIfNone(targetdict, k, v)
-
 def trimmed_lines_from_file(filepath, args=None):
     """
     Reads all non-comment parts of non-empty lines from file <filepath>,
@@ -247,14 +244,25 @@ def trimmed_lines_from_file(filepath, args=None):
     if args is None:
         args = {}
     with open(filepath) as fd:
-        if args.get('lineinputstyle', None) == 'wikilist':
+        args.setdefault('commentmidchar', None) # Same for all...
+        if args.get('lineinputstyle', None) in ('wikilist', 'wiki', 'list'):
             # Add arguments to args for convenience to the user:
             setIfNone(args, 'listchar', '*#-+')
-            setIfNone(args, 'commentmidchar', None)
             trimmed_lines = gen_wikilist_entries(fd, args['listchar'], args['commentmidchar'])
         else:
-            setIfNone(args, 'commentchar', '#')
-            setIfNone(args, 'commentmidchar', None)
-            trimmed_lines = gen_trimmed_lines(fd, args.get('commentchar', None), args.get('commentmidchar', None))
+            setIfNone(args, 'commentchar', '#') # Explicitly added to args to make it easier to change.
+            includeempty = args.setdefault('lines_includeempty', 'False')
+            trimmed_lines = gen_trimmed_lines(fd, args.get('commentchar', '#'), args.get('commentmidchar'), includeempty=includeempty)
         lines = list(trimmed_lines)
     return lines
+
+
+def setIfNone(targetdict, key, value):
+    """ Update an entry in targetdict if either targetdict[key] is None or key not in targetdict. """
+    if targetdict.get(key) is None:
+        targetdict[key] = value
+
+def updateNoneValues(targetdict, updatedict):
+    """ With all items in updatedict update targetdict ONLY IF targetdict[key] is None or key not in targetdict."""
+    for k, v in updatedict.items():
+        setIfNone(targetdict, k, v)

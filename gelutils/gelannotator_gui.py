@@ -61,6 +61,48 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
     """
     Main gel annotator App object.
     Encapsulates Tk root GUI object.
+
+    TODO: Add feature that allows the user to specify 'crop', and 'xmargin' by clicking a PIL image.
+    Implementation alternatives:
+    * Use matplotlib
+    * Use tkinter
+    * Use something else?
+
+    Other projects with interactive crop, rotate, etc:
+    * cropgui : tkinter python crop gui application, http://emergent.unpythonic.net/01235516977, https://github.com/jepler/cropgui/
+    * photo_splitter : Splits a photo into several smaller pieces, very nice python tkinter gui app, https://github.com/dnouri/photo_splitter
+    * cropy   : No GUI, but tries to guess the optimal cropping parameters/content provided a given size, https://github.com/mapado/cropy
+    * pycrop  : Another entropy-based "auto-crop" tool, https://github.com/christopherhan/pycrop
+
+    After looking at cropgui and photo_splitter, I think Tkinter is a viable option.
+    How it should work:
+    * Display the image in a frame.
+    * A vertical radio button to select the argument you are adjusting: crop, xmargin, rotate.
+    * Rotate should actually rotate the preview image. (That is easier than having to make rotated rectangles, etc)
+    * Scale should be a separate radio-button with options "100%, 50%, 33%, 25%" and should scale the preview image.
+    * Crop is a red-framed overlay of the cropped area. It can be drag-drop of edged, or user can draw a new rectangle.
+    * xmargin is a horizontal ruler that extends from the left to the right. Is dependent on crop.
+    * Rotate can use the same horizontal ruler. Rotation can be controlled by aligning the ends of the ruler.
+    ** Consider also having a number-wheel for adjusting rotation?
+
+    How much would it take to make automatic functions?
+
+    xmargin: can be extracted from the well pattern at the top of the gel.
+    * Locate wells by...?
+    * FFT can probably be used to determine the well spacing, since the pixel values vs column number
+      will look like a square wave, http://en.wikipedia.org/wiki/Square_wave
+    * Then look for when the gel image does not match the FFT approximation.
+    * The first and last well is the first and last of the fft wells where the FFT approximation is still good.
+    * numpy functions: fft.fft, fft.rfft, fft.rfftfreq
+    * scipy functions: fftpack  # http://docs.scipy.org/doc/scipy-0.14.0/reference/tutorial/fftpack.html
+
+
+    rotation: adjusted using the bottom of the wells. These can usually be identified from the sharp vertical peak.
+    * Only use the top 10% of the gel.
+    * For each column of pixels, determine if there is one that stands out. Use the derivative and find the first significant peak.
+    * Filter for badly identified pixels (where the position "jumps").
+    * "Plot" the pixels that stands out vs the column and make a linear fit. [Figuratively]
+    * Use the slope of the linear fit to determine rotation.
     """
     def __init__(self, args):           # pylint: disable=W0621
         self.Args = args                # only saved to make init easier.

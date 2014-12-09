@@ -34,7 +34,8 @@ See:
 
 """
 
-
+from __future__ import print_function
+from six import string_types # python 2*3 compatability
 import os
 import sys
 import glob
@@ -48,7 +49,7 @@ import webbrowser
 try:
     import svgwrite     # pylint: disable=F0401
 except ImportError:
-    sys.path.append(os.path.normpath(r"C:\Users\scholer\Dev\src-repos\svgwrite"))
+    sys.path.append(os.path.normpath(r"C:\Users\scholer\Dev\src-repos\my-forked-repos\svgwrite"))
     import svgwrite     # pylint: disable=F0401
 
 import logging
@@ -131,7 +132,7 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
         laneannotations = list(gen_trimmed_lines(get_clipboard().split('\n')))
         if laneannotations and len(laneannotations) < 30:
             # If laneannotations is more than 30, it is probably not intended to use.
-            print "Found lines in clipboard:", laneannotations
+            print("Found lines in clipboard:", laneannotations)
             return laneannotations
     annotationsfile = annotationsfile or args['annotationsfile']
     gelfile = gelfile or args['gelfile']
@@ -160,6 +161,7 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
 
 def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kwargs):
     """
+    Creates SVG file with lane annotations overlayed over the gel.
 
     Arguments:
         gelfile : gelfile that is the basis. Not pngfile; that is given in args.
@@ -183,7 +185,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     """
     if args is None:
         args = {}
-    defaultargs = dict(xmargin=[40, 40], xspacing=None, yoffset=100, ypadding=5,
+    defaultargs = dict(xmargin=[40, 40], xspacing=None, yoffset=150, ypadding=5,
             textfmt="{name}", laneidxstart=0, embed=None,
             xtraspaceright=0, textrotation=60,
             fontsize=None, fontfamily='sans-serif', fontweight='bold')
@@ -200,7 +202,11 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
 
     if gelfile is None:
         gelfile = args['gelfile']
+    # Convention:
+    # A file path is denoted as: <filepath> = <folderpath>/<basename> = <dirname>/<fnroot><ext>
+    # dirname, dirpath and folderpath are all the same. Foldername, however, is only the last part, not the full path.
     gelfp_wo_ext, gelext = os.path.splitext(gelfile)
+    gelfnroot = os.path.basename(gelfp_wo_ext)
     gelext = gelext.lower()
 
     # Load annotations:
@@ -243,22 +249,28 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     # Convert any relative values (fractions, percentage):
     ypad, yoff = (args['ypadding'], args['yoffset'])
     # If we have percentage: convert to fraction
-    ypad, yoff = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in (ypad, yoff))
+    ypad, yoff = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in (ypad, yoff))
     # If we have fraction: convert to absolute pixel value
     ypad, yoff = (imgheight*y if y < 1 else y for y in (ypad, yoff))
     ypad, yoff = (int(round(y)) for y in (ypad, yoff)) # Ensure integer
 
     # convert '5%' to 0.05 if string:
-    xmargin = (float(x.strip('%'))/100 if isinstance(x, basestring) else x for x in args['xmargin'])
+    xmargin = (float(x.strip('%'))/100 if isinstance(x, string_types) else x for x in args['xmargin'])
     # convert 0.05 to absolute pixels:
     xmargin = [int(round(imgwidth*x)) if x < 1 else x for x in xmargin] # Do I have to round this?
     xtra_right, = (args['xtraspaceright'], )
-    xtra_right, = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in (xtra_right, ))
+    xtra_right, = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in (xtra_right, ))
     xtra_right, = (imgwidth*x if x < 1 else x for x in (xtra_right, ))
     xtra_right, = (int(round(y)) for y in (xtra_right, )) # Ensure integer
 
 
-    svgfilename = pngfp_wo_ext + '_annotated.svg'
+    ext = '.svg'
+    svgfnfmt = args.get('svgfnfmt', "{pngfnroot}_annotated{ext}")
+    folderpath = os.path.dirname(pngfile_actual)
+    pngfnroot = os.path.basename(pngfp_wo_ext)
+    svgfilename = svgfnfmt.format(pngfnroot=pngfnroot, gelfnroot=gelfnroot, ext=ext)
+    svgfilename = os.path.join(folderpath, svgfilename)
+    #svgfilename = pngfp_wo_ext + '_annotated.svg'
     size = dict(width="{}px".format(imgwidth+xtra_right),
                 height="{}px".format(imgheight+yoff))
     # Apparently, setting width, height here doesn't work:
@@ -281,7 +293,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
                      '.png' : 'image/png'}
         mimetype = mimebyext[pngext]
         logger.debug("Embedding data from %s into svg file.", pngfile_actual)
-        imghref = ",".join(("data:"+mimetype+";base64", datab64))
+        imghref = "data:"+mimetype+";base64,"+datab64.decode()
     else:
         imghref = pngfile_relative
         logger.debug("Linking to png file %s in svg file.", pngfile_actual)
@@ -292,6 +304,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     g2 = dwg.add(dwg.g(id='Annotations'))
 
     Nlanes = len(laneannotations)
+    # Consider deprechating xspacing argument; I only ever use xmargin.
     if not args['xspacing']:
         xspacing = (imgwidth-sum(xmargin))/(Nlanes-1)    # Number of spaces is 1 less than number of lanes.
 
@@ -366,17 +379,22 @@ def ensurePNG(gelfile, args):
 
 def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
     """
+    Outer wrapper to annotate gel.
+        0) Load yaml and annotations files.
+        1) Creates/ensures a PNG file.
+        2) Create SVG with annotations.
+        3) Converts svg to png if requested and other stuff.
+
+    Returns 3-tuple of:
+        drawing
+        svgfilename
+        args - updated args dict with anything that may have been changed as a result of the run.
+
     Arguments:
-
-    args: dict with standard arguments.
-
-    gelfile: main gelfile.
-
-    annotationfile: file with annotations. Is this actual or relative to gelfile? - Relative.
-
-    yamlfile: file with options in yaml format. Is this actual or relative to gelfile? - Relative.
-
-    Returns updated args dict with anything that may have been changed as a result of the run.
+        args: dict with standard arguments.
+        gelfile: main gelfile.
+        annotationfile: file with annotations. Is this actual or relative to gelfile? - Relative.
+        yamlfile: file with options in yaml format. Is this actual or relative to gelfile? - Relative.
     """
     logger.debug("""annotate_gel invoked with gelfile='%s', yamlfile='%s', annotationsfile='%s',
                  and args=%s""", gelfile, yamlfile, annotationsfile, printdict(args))
@@ -474,7 +492,7 @@ if __name__ == '__main__':
     #drawing = makeSVG(**args)
     drawing, svgfn, updatedargs = annotate_gel(cmd_gelfile, argns)
     if drawing:
-        print "Annotated svg saved as:", drawing.filename
+        print("Annotated svg saved as:", drawing.filename)
     #if argns.yamlfile:
     #    with open(argns.yamlfile, 'wb') as fd:
     #        yaml.dump(args, fd, default_flow_style=False)

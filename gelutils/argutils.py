@@ -72,13 +72,22 @@ def make_parser(prog='gelannotator'):
     #ap.add_argument('--png', action='store_true', help="Save as png.")
     ap.add_argument('--overwrite', action='store_true', default=None, help="Overwrite existing png.")
     ap.add_argument('--no-overwrite', action='store_false', dest='overwrite', help="Do not overwrite existing png.")
-    ap.add_argument('--rotate', type=int, help="Angle to rotate gel (counter-clockwise).")
+    # Format for png file: Note that {ext} includes the dot in '.png'
+    ap.add_argument('--pngfnfmt', default="{gelfnroot}_{dr_rng}{N_existing}{ext}", help="How to format the png filename (if created).")
+    ap.add_argument('--pngmode', default='L', help="PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit.")
+
+    ap.add_argument('--rotate', type=float, help="Angle to rotate gel (counter-clockwise).")
     ap.add_argument('--rotateexpands', action='store_true', default=None,
                     help="When rotating, the image size expands to make room. False (default) means that the gel will keep its original size.")
 
+    ap.add_argument('--scale', help="Scale the gel by this amount. Can be given as float (0.1, 2.5) or percentage (10%, 250%).")
 
 
     if prog in ('gelannotator', 'gui'):
+        # How to format svg filename:
+        # Valid placeholders are: {pngfnroot}, {gelfnroot}, {ext}
+        # Note that {ext} includes the dot in '.svg'
+        ap.add_argument('--svgfnfmt', default="{pngfnroot}_annotated{ext}", help="How to format the png filename (if created).")
         ap.add_argument('--pngfile', help="Use this pngfile instead of the specified gelfile.")
         ap.add_argument('--reusepng', action='store_true', default=None, help="Prefer png file over the specified gelfile.")
         ap.add_argument('--no-reusepng', action='store_false', dest='reusepng', help="Do not use pngfile, even if it is specified.")
@@ -109,6 +118,8 @@ def make_parser(prog='gelannotator'):
         ap.add_argument('--lineinputstyle', help="""This can be used to change how lines in the sample annotation file are interpreted.
                         Default is to use all non-empty lines that does not begin with '#'.
                         Set this to wikilist to only include lines that starts with either of #, *, -, +.""")
+        ap.add_argument('--lines_includeempty', help="Whether to include empty lines. Not applicable to 'wikilist' lineinputstyle (use blank lines starting with '#' in this case).")
+
 
         ap.add_argument('--openwebbrowser', action='store_true', default=None, help="Open annotated svg file in default webbrowser. (Default is not to.)")
         ap.add_argument('--no-openwebbrowser', action='store_false', dest='openwebbrowser', help="Do not open file in webbrowser.")
@@ -116,6 +127,7 @@ def make_parser(prog='gelannotator'):
 
         ap.add_argument('--svgtopng', action='store_true', default=None, help="Save svg as png (requires cairo package).")
         ap.add_argument('--no-svgtopng', action='store_false', dest='svgtopng', help="Do not save svg as png (requires cairo package).")
+
 
     #xmargin=(40, 30), xspacing=None, yoffset=100
     #textfmt="{idx} {name}", laneidxstart=0

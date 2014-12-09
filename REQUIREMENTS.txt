@@ -1,0 +1,6 @@
+six
+PIL
+yaml
+swgwrite
+numpy
+base64

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 ##    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
 ##
@@ -37,6 +37,8 @@ text = clipboard.text() # gets clipboard
 app.processEvents() # Is required to avoid hanging...
 
 """
+from __future__ import print_function
+from six import string_types # python 2*3 compatability
 import os
 import sys
 
@@ -104,25 +106,25 @@ def set_clipboard(text, datatype=None):
         wcb.CloseClipboard() # User cannot use clipboard until it is closed.
     else:
         # If code is run from within e.g. an ipython qt console, invoking Tk root's mainloop() may hang the console.
-        r = Tk()
+        tkroot = Tk()
         # r.withdraw()
-        r.clipboard_clear()
-        r.clipboard_append(text)
-        r.mainloop() # the Tk root's mainloop() must be invoked.
-        r.destroy()
+        tkroot.clipboard_clear()
+        tkroot.clipboard_append(text)
+        tkroot.mainloop() # the Tk root's mainloop() must be invoked.
+        tkroot.destroy()
 
 def get_clipboard():
     """
     Get content of OS clipboard.
     """
     if 'xerox' in sys.modules.keys():
-        print "Returning clipboard content using xerox..."
+        print("Returning clipboard content using xerox...")
         return xerox.paste()
     elif 'pyperclip' in sys.modules.keys():
-        print "Returning clipboard content using pyperclip..."
+        print("Returning clipboard content using pyperclip...")
         return pyperclip.paste()
     elif 'gtk' in sys.modules.keys():
-        print "Returning clipboard content using gtk..."
+        print("Returning clipboard content using gtk...")
         clipboard = gtk.clipboard_get()
         return clipboard.wait_for_text()
     elif 'win32clipboard' in sys.modules.keys():
@@ -130,19 +132,19 @@ def get_clipboard():
         wcb.OpenClipboard()
         try:
             data = wcb.GetClipboardData(wcb.CF_TEXT)
-        except TypeError as e:
-            print e
-            print "No text in clipboard."
+        except TypeError as err:
+            print(err)
+            print("No text in clipboard.")
         wcb.CloseClipboard() # User cannot use clipboard until it is closed.
         return data
     else:
-        print "locals.keys() is: ", sys.modules.keys().keys()
-        print "falling back to Tk..."
-        r = Tk()
-        r.withdraw()
-        result = r.selection_get(selection="CLIPBOARD")
-        r.destroy()
-        print "Returning clipboard content using Tkinter..."
+        print("locals.keys() is: ", sys.modules.keys().keys())
+        print("falling back to Tk...")
+        tkroot = Tk()
+        tkroot.withdraw()
+        result = tkroot.selection_get(selection="CLIPBOARD")
+        tkroot.destroy()
+        print("Returning clipboard content using Tkinter...")
         return result
 
 
@@ -162,7 +164,7 @@ def addToClipBoard_windows(text):
     os.system(command)
 
 
-def copy_file_to_clipboard(fd):
+def copy_file_to_clipboard(file):
     """
     Copies the content of open file <fd> to clipboard.
     If fd is a string it is assumed that you want to
@@ -174,6 +176,6 @@ def copy_file_to_clipboard(fd):
     >>> copy_file_to_clipboard('/path/to/a/textfile.txt')
     >>> content = get_clipboard() # returns content of file.
     """
-    if isinstance(fd, basestring):
-        fd = open(fd)
-    set_clipboard(fd.read())
+    if isinstance(file, string_types):
+        file = open(file)
+    set_clipboard(file.read())

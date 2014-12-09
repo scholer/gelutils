@@ -108,9 +108,16 @@ SciPy alone:
 * http://docs.scipy.org/doc/scipy-0.14.0/reference/ndimage.html
 * http://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.ndimage.interpolation.rotate.html
 
+# For more on numpy dtypes:
+#   http://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
+#   http://docs.scipy.org/doc/numpy/reference/generated/numpy.dtype.html
+#   http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html
+
+
 """
 
 from __future__ import print_function
+from six import string_types # python 2*3 compatability
 import os
 import glob
 import re
@@ -127,19 +134,26 @@ import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
-from utils import init_logging, printdict, getrelfilepath
+from utils import init_logging, printdict, getrelfilepath, setIfNone
 from argutils import parseargs, mergedicts
 
 # PIL.Image.Image.convert has a little info on image modes.
 # Adjust PIL so that it will open .GEL files:
 # GEL image mode; using same as for PhotoInterpretation=1 mode.
 # (ByteOrder, PhotoInterpretation, SampleFormat, FillOrder, BitsPerSample,  ExtraSamples) => mode, rawmode
+# See https://pillow.readthedocs.org/handbook/concepts.html
+# Format is <bitmode>[;[bits][S][R][I], where
+# <bitmode> is {'1': 'monotone, 1-bit', 'L': 'Long, 8-bit', 'I': 'Integer, 32 or 16-bit', 'P': 'Palette', plus some bitmodes for RGB... }
+# [bits] specifies number of bits (if different from default), e.g. "I;16" is 16-bit integer while "I" is 32-bit.
+# S = signed (otherwise unsigned), R = reversed bilevel, I = Inverted (0 means white)
 gelfilemodes = {
         #(II, 0, 1, 1, (16,), ()): ("I;16", "I;16"),    # Gives problems with negative numbers.
         #(II, 0, 1, 1, (16,), ()): ("I;16S", "I;16S"), # "Unrecognized mode"
         #(II, 0, 1, 1, (16,), ()): ("I;16N", "I;16N"), # "Unrecognized mode"
-        #(II, 0, 1, 1, (16,), ()): ("I", "I"), # "IOError: image file is truncated."
+        #(II, 0, 1, 1, (16,), ()): ("I", "I"), # "IOError: image file is truncated." - because it expects 32-bit and image is 16-bit.
         (II, 0, 1, 1, (16,), ()): ("I", "I;16"), # THIS WORKS. Well, at least it does not produce negative numbers. I can put any value.
+        #(II, 0, 1, 1, (16,), ()): ("I", "I;16I"), # What about this? - Nope, "unknown raw mode"
+        #(II, 0, 1, 1, (16,), ()): ("I;16", "I;16"), # This also works, but we get error when saving PNG: "cannot write mode I;16 as PNG" (but I can change the output mode). But this also yields errors when rotating at right angels.
         #(II, 0, 1, 1, (16,), ()): ("F", "F;32F"), # "IOError: image file is truncated.
         #(II, 0, 1, 1, (16,), ()): ("I;32", "I;32N") # "Unrecognized mode"
         #(II, 0, 1, 1, (16,), ()): ("I", "I;32N") # This produces an IOError during load()
@@ -152,17 +166,58 @@ PIL_VERSION = Image.VERSION
 PIL_IS_PILLOW = getattr(Image, 'PILLOW_VERSION', False)
 
 # Note: logging might not have been initialized yet...:
-print("\n\n", "- "*40, "\n")
 logger.info("PIL version: %s || PILLOW? - %s", PIL_VERSION, PIL_IS_PILLOW)
 print("PIL version: %s || PILLOW? - %s" % (PIL_VERSION, PIL_IS_PILLOW))
-print("\n\n", "- "*40, "\n")
+
+
+def get_mode_minmax(mode):
+    """
+    Determine the maximum values for the specified image mode.
+    E.g. for a 32-bit integer image mode, the max value is 2**32-1.
+    """
+    # For float we set bit to 1 so that maxval becomes 1.0 .
+    # For now, we assume that 'I' is 16 bit, otherwise it won't work...
+    imgmode_to_bits = {'I': 16, 'I;16': 16, 'L': 8, '1': 1, 'F': 1.0}
+    try:
+        bits = imgmode_to_bits[mode]
+    except KeyError:
+        # Fall back to only using the first character in mode:
+        bits = imgmode_to_bits[mode[0]]
+    if 'S' in mode:
+        # signed, reduce bits by 1:
+        maxval = 2**(bits-1) - 1
+        minval = -maxval
+    else:
+        minval, maxval = 0, 2**bits - 1
+    return minval, maxval
+
+def get_bits_mode_dtype(mode):
+    """
+    Returns tuple of
+        (pixel_bits, pil_mode, numpy_dtype)
+    """
+    imgmode_to_bits = {'I': 32, 'L': 8}
+    bits_to_imgmode = {8: 'L', 32: 'I'} # These are the only two supported afaik.
+    try:
+        # If mode is an integer:
+        bits = int(mode)
+        pil_mode = bits_to_imgmode[bits]
+        dtype = 'int'+str(bits)   # e.g. 'int8'.
+    except ValueError:
+        # mode is not an integer, probably PIL image mode:
+        bits = int(imgmode_to_bits[mode])
+        dtype = 'int'+str(bits)   # e.g. 'int8'.
+        pil_mode = mode
+    return bits, pil_mode, dtype
+
+
 
 
 def get_PMT(img):
     """
      (33449, <Scan Info>)
     """
-    if isinstance(img, basestring):
+    if isinstance(img, string_types):
         scaninfo = img
     else:
         try:
@@ -184,7 +239,7 @@ def has_PMT(filename):
     return prog.match(filename)
 
 
-def find_dynamicrange(npdata, cutoff=(0, 0.99)):
+def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None):
     """
     Try to determine the range given the numpy data, so that the
     values within the cutoff fraction is within the dynamic range,
@@ -192,9 +247,11 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99)):
     I.e. for a cutoff of (0.02, 0.95), this function will return a dynamic range
     that will quench the lowest 2% and the top 5%.
     """
+    if roundtonearest is None:
+        roundtonearest = 1000
     counts, bins = numpy.histogram(npdata, bins=100)        # pylint: disable=E1101
     total = sum(counts)
-    cutoffmin = 0
+    cutoffmin = 0 # Currently, this is hard-coded...
     #print counts.cumsum()
     try:
         binupper = next(i for i, cumsum in enumerate(counts.cumsum()) if cumsum > total*cutoff[1])
@@ -204,7 +261,10 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99)):
         cutoffmax = cutoff*npdata.max()
         logger.debug("Could not find any bins, setting cutoffbin to %s", cutoffmax)
     logger.debug("(cutoffmin, cutoffmax): %s", (cutoffmin, cutoffmax))
-    return (cutoffmin, cutoffmax)
+    dr = [cutoffmin, cutoffmax]
+    if roundtonearest:
+        dr = [round(float(x)/roundtonearest)*roundtonearest for x in dr]
+    return dr
 
 
 def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=None,
@@ -231,11 +291,9 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
                            kwargs))     # Otherwise I would have used the 'defaultdict' approach.
     logger.debug("--combined args dict is: %s", printdict(args))
 
-    # unpack essentials (that are not changed):
-
+    ## unpack essentials (that are not changed):
     info = gelimg.info
-    width, height = gelimg.size
-    widthheight = [width, height]
+    width, height = widthheight = gelimg.size
     info['extrema_ante'] = gelimg.getextrema()
     tifftags = {33445: 'MD_FileTag', 33446: 'MD_ScalePixel', 33447: 'unknown', 33448: 'user'}
     for tifnum, desc in tifftags.items():
@@ -259,26 +317,21 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
     logger.debug("Image info: %s", info)
 
     if args['rotate']:
-        # NEAREST=1, BILINEAR=2, BICUBIC=3
-        # Edit, no, at least not for original PIL: NONE = NEAREST = 0; ANTIALIAS = 1; LINEAR = BILINEAR = 2; CUBIC = BICUBIC = 3
-        # OLD PIL rotate only supports NEAREST, BILINEAR, BICUBIC
-        # gelimg = gelimg.rotate(angle=args['rotate'], resample=3, expand=args.get('rotateexpands'))
-        # Edit: There is an issue in rotate, if I have pixels that are almost saturated,
-        # then after rotation they are squashed to negative values.
-        # Perhaps check whether Pillow has this problem, and if it does not, then use LINEAR or CUBIC resampling with that.
-        # Alternatively, cconsider casting to numpy/scipy image and rotating with that? (Offers spline interpolation of arbitrary order))
-        # * http://docs.scipy.org/doc/scipy-0.14.0/reference/ndimage.html
-        # * http://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.ndimage.interpolation.rotate.html
-        #gelimg = gelimg.rotate(angle=args['rotate'], resample=0, expand=args.get('rotateexpands'))
-        # Trying bilinear or bicubic with Pillow:
-        gelimg = gelimg.rotate(angle=args['rotate'], resample=2, expand=args.get('rotateexpands'))
-        # Bicubic still has the squashing issue...
-        # Bi-linear seems good, though.
+        # PIL resample filters:: NONE = NEAREST = 0; ANTIALIAS = 1; LINEAR = BILINEAR = 2; CUBIC = BICUBIC = 3
+        # PIL/Pillow rotate only supports NEAREST, BILINEAR, BICUBIC resample filters.
+        # Using BICUBIC resampling produces white/squashed pixels for saturated areas, so only using bilinear resampling.
+        gelimg = gelimg.rotate(angle=args['rotate'], resample=BILINEAR, expand=args.get('rotateexpands'))
+        width, height = widthheight = gelimg.size # Update, in case rotateexpands is True.
 
     if args['crop']:
-        # left, upper, right, lower
-        crop = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in args['crop'])
-        # convert 0.05 to absolute pixels:
+        # crop is 4-tuple of (left, upper, right, lower)
+        crop = args['crop']
+        if isinstance(crop, string_types) and ',' in crop:
+            # Maybe the user provided crop as a string: "left, top, right, lower"
+            crop = [item.strip() for item in crop.split(',')]
+            logger.debug("Converted input crop arg '%s' to: %s", args['crop'], crop)
+        crop = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in crop)
+        # convert fraction values ("0.05") to absolute pixels:
         crop = [int(widthheight[i % 2]*x) if x < 1 else x for i, x in enumerate(crop)]
         left, upper, right, lower = crop
         if args.get('cropfromedges'):
@@ -287,15 +340,21 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         else:
             logger.debug("Cropping image to: %s", (left, upper, right, lower))
             gelimg = gelimg.crop(crop)
+        width, height = widthheight = gelimg.size # Update
 
+    # Which order to do operations:
+    # Rotate first, because we need as much information as possible, and if rotateexpands=True then we might get some white areas we want to trim with crop.
+    # scale before or after crop?
+    # - If using relative values, this shouldn't matter much...
     if args.get('scale'):
-        scale = float(args['scale'].strip('%'))/100 if isinstance(args['scale'], basestring) and '%' in args['scale'] \
+        # convert percentage values to fractional, if relevant:
+        scale = float(args['scale'].strip('%'))/100 if isinstance(args['scale'], string_types) and '%' in args['scale'] \
                 else args['scale']
-        # convert 0.05 to absolute pixels:
-        newsize = [int(scale*width), int(scale*height)]
-        logger.info("Resizing image by a factor of %s (%s) to %s", scale, args['scale'], newsize)
-        #resample = 3 #
+        # convert fractional values (e.g. 0.05) to absolute pixels, if relevant:
+        newsize = (int(scale*width), int(scale*height))
+        logger.info("Resizing image by a factor of %s (%s) to %s using resample=%s", scale, args['scale'], newsize, ANTIALIAS)
         gelimg = gelimg.resize(newsize, resample=ANTIALIAS)
+        width, height = widthheight = gelimg.size
 
 
     # If we are not linearizing or adjusting dynamic range, we can take a shortcut that does not involve numpy:
@@ -315,112 +374,115 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
             logger.info("""Could not use PIL ImageOps to perform requested operations, "%s"
                         -- falling back to standard numpy.""", e)
 
+
+    ### IMAGE MODE ###
     # https://pillow.readthedocs.org/handbook/concepts.html
     # 'I' = 32-bit signed integer, 'F' = 32-bit float, 'L' = 8-bit
     npimgmode = gelimg.mode # Default is 'I' for GEL and TIFF, 'L' for grayscale PNG.
+    logger.debug("Original PIL image mode: '%s'", npimgmode)
+    output_bits, output_mode, output_dtype = get_bits_mode_dtype(args.get('png_mode', 'L'))
 
-    # Using numpy to do pixel transforms:
+
+    ### LINEARIZE, using numpy to do pixel transforms: ###
     if args['linearize'] and scalefactor:
-        # We need to have 32-bit unsigned interger when we square the values;
-        # otherwise values above 2**15*sqrt(2) gets squashed to negative values.
-        npimg = numpy.array(gelimg, dtype=numpy.uint32) # Consider specifying dtype, e.g. uint32? # pylint: disable=E1101
-        #npimg = numpy.array(gelimg, dtype=numpy.float32) # Which is better, float32 or uint32? # pylint: disable=E1101
+        # Default numpy value is int32 (signed).
+        # We need to specify that we want 32-bit *unsigned* intergers;
+        # otherwise values above 2**15*sqrt(2) gets squashed to negative values when we square the values.
+        npimg = numpy.array(gelimg, dtype=numpy.uint32) # Which dtype is better, float32 or uint32? # pylint: disable=E1101
+        #npimg = numpy.array(gelimg, dtype=numpy.float32) # Which dtype is better, float32 or uint32? # pylint: disable=E1101
         # TODO: Do performance test to see if float32 is better than uint32
         #       And remember to alter mode when you return to Image.fromarray
         logger.debug('Linearizing gel data using scalefactor %s...', scalefactor)
         logger.debug('npimg min, max before linearization: %s, %s', npimg.min(), npimg.max())
-        # It seems that this gives some weird results??
-        # Try to find a pixel that is at max in npimg, e.g. npimg[176, 250]
-        # nplinimg[176, 250] is then -4 ??
-        # npimg.dtype is dtype('int32') -- should be ok?
-        # No, wait... when you do multiplication, that might be an issue... Yes:
-        # >>> aarr = np.array([0, 1, 2**12, 2**14, 2**16-1])
-        # >>> aarr**2
-        # array([        0,         1,  16777216, 268435456,   -131071])  <--- NEGATIVE NUMBER!
-        # maybe use npimg.astype()
-        # Ah, of course -- by default we get a signed int32. This means the max is 2**31, not 2**32.
-        # sqrt(2**31) = 46340 <-- this was the max value before hitting the floor. (2**15*sqrt(2))
-        # For more: http://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
-        #   http://docs.scipy.org/doc/numpy/reference/generated/numpy.dtype.html
-        #   http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html
-        #npimg = npimg.astype('float32') # Is this overkill?
-        #npimg = npimg.astype('uint32') # This is good for values up to 2**16-1 (2**16 yields 0)
         npimg = (npimg**2)/scalefactor[1]
         logger.debug('npimg min, max after linearization: %s, %s', npimg.min(), npimg.max())
-        npimg = npimg.astype('int32') # Need to cast to lower or we cannot save back (it seems)
+        # You can use npimg.astype(<dtype>) to convert to other dtype:
+        # We need to cast to lower or we cannot save back (at least for old PIL;
+        # Pillow might handle 16-bit grayscale better?
+        #npimg = npimg.astype('int32') # Maybe better to do this conversion later, right before casting back?
         logger.debug('npimg min, max after casting to int32: %s, %s', npimg.min(), npimg.max())
+        # Can we simply set/adjust the image mode used when we return from npimg to pilimg?
         #npimgmode = 'I;32' # or maybe just set the npimagemode?
         # 'I;32' doesn't work. 'I;16' does. Support seems flaky. https://github.com/python-pillow/Pillow/issues/863
-        #npimg = npimg.astype('uint16') # ...but how low? (This is too low...)
-        # Edit: Just using uint32 at numpy.array(gelimg), should do the trick.
-        # Summary:
-        # * It seems that as long as you do the calculations as float32 or uint32 it is fine,
-        # * And you must cast back to int32 or it looks weird.
-        # ** Edit: well, duh, you use gelimg.mode when you use Image.fromarray, so if npimg is
-        #       in float format, you have to set the mode accordingly.
-        # * For more on image modes, https://pillow.readthedocs.org/handbook/concepts.html
-        # Note: Make sure whether you are using PIL or Pillow before you go exploring:
-        # PIL.PILLOW_VERSION
+        # Maybe we should go even lower and force 8-bit grayscale? (That is more than enough for visual inspection!)
+        # ...but how low?
+        # For more on image modes, https://pillow.readthedocs.org/handbook/concepts.html
+        # Note: Make sure whether you are using PIL or Pillow before you go exploring - PIL.PILLOW_VERSION
     else:
         npimg = numpy.array(gelimg) # Do not use getdata(), just pass the image. # pylint: disable=E1101
 
 
+
+    ### Preview with matplotlib: Linearized image before adjusting dynamic range
+    # Useful for debugging and other stuff:
+    if args.get('image_plot_before_dr_adjust', False):
+        # Consider ensuring that the backend is tkinter (however, that should probably be done by the GUI)
+        #from matplotlib import backends, get_backend, use as use_backend
+        import matplotlib
+        # Use matplotlib.get_backend() to check current backend; See matplotlib.backend for available backends.
+        matplotlib.use('tkagg')     # Must be invoked before loading pyplot
+        from matplotlib import pyplot
+        pyplot.ioff()    # Disable interactive mode.
+        imgplot = pyplot.imshow(npimg)
+        pyplot.colorbar()
+        pyplot.hold(False)
+        pyplot.show()
+        imgplot.remove()
+
+
+    ### ADJUST DYNAMIC RANGE ###
+
     dr = args.get('dynamicrange')
     if dr == 'auto' or (args['invert'] and not dr):
         # If we want to invert, we need to have a range. If it is not specified, we need to find it.
-        #dynamicrange = (0, 100000)
         logger.debug("Dynamic range is %s (args['invert']=%s)", dr, args['invert'])
-        dr = args['dynamicrange'] = map(int, find_dynamicrange(npimg)) # Ensure you receive ints.
+        dr = args['dynamicrange'] = [int(val) for val in find_dynamicrange(npimg)] # Ensure you receive ints.
         logger.debug("--- determined dynamic range: %s", dr)
 
     if dr:
-        if isinstance(args['dynamicrange'], (int, float, basestring)):
+        if isinstance(args['dynamicrange'], (int, float, string_types)):
             # If we have only provided a single argument, assume it is dr_high and set low to 0.
             dr = args['dynamicrange'] = [0, args['dynamicrange']]
         if len(args['dynamicrange']) == 1:
             dr = args['dynamicrange'] = [0, args['dynamicrange'][0]]
 
+        # Dynamic range can be given as absolute values or relative "cutoff";
+        # The cutoff is the percentage of pixels below/above the dynamic range.
         # Convert relative values: First, convert % to fraction:
-        dr = (float(x.strip('%'))/100 if isinstance(x, basestring) and '%' in x else x for x in dr)
+        dr = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in dr) # pylint: disable=E1103
         # convert (0.05, 0.95) to absolute range:
         # Note: What if you have floating-point pixel values between 0 and 1? (E.g. for HDR images).
         # In that case, the dynamic range might not be distribution ranges but actual min/max pixel values.
-        if all(x < 1 for x in dr):
-            logger.debug("Finding dynamic range for %s (args['dynamicrange']=%s)", dr, args['dynamicrange'])
-            dr = map(int, find_dynamicrange(npimg))
+        # Adding new argument 'dynamicrange_is_absolute' which can be used to force interpreting dynamicrange as absolute rather than relative cutoff.
+        if all(x < 1 for x in dr) and not args.get('dynamicrange_is_absolute'):
+            logger.debug("Finding dynamic range for cutoff %s (args['dynamicrange']=%s)", dr, args['dynamicrange'])
+            dr = map(int, find_dynamicrange(npimg, cutoff=dr, roundtonearest=args.get('dynamicrange_round')))
             logger.debug("--- determined dynamic range: %s", dr)
 
 
-        # Transform image so all values < dynamicrange[0] is set to 0
-        # all values > dynamicrange[1] is set to 2**16 and all values in between are scaled accordingly.
-        # Closure:
+        # Transform image so all values < dynamicrange[0] is set to 0,
+        # all values > dynamicrange[1] is set to the imagemode's max value,
+        # and all values in between are scaled accordingly.
         logger.debug("(a) dynamicrange: %s", args['dynamicrange'])
         logger.debug('npimg min, max before adjusting dynamic range: %s, %s', npimg.min(), npimg.max())
-        ## TODO: FIX THIS FOR non 16-bit images:
-        ## TODO: THERE IS A BUG WHERE OVERSATURATED AREAS ARE PAINTED WHITE.
-        ## IT IS NOT THE INVERSION, HOWEVER, SO TAKE A LOOK AT HOW THE FILE IS READ,
-        ## I.e. open file with PIL and look at the values or see if there is a mask or something.
-        ## TODO: Consider converting the image to 32-bit floating point
-        minval, maxval = 0, 2**16-1     # Note: This is not true for e.g. 8-bit png files.
-        # (However PNG files may be in 'I' mode as well, probably 16-bit?)
+        # When we adjust the dynamic range, the minimum and maximum depends on the output image mode:
+        # For 16-bit unsigned output, maxval is 2**16-1; for 8-bit unsigned output, it is 2**8-1:
+        minval, maxval = get_mode_minmax(output_mode)
         dr_low, dr_high = info['dynamicrange'] = args['dynamicrange']
-        logger.debug("minval, maxval: %s, %s", minval, maxval)
-        logger.debug("dr_low, dr_high: %s, %s", dr_low, dr_high)
+        logger.debug("Output minval, maxval: %s, %s", minval, maxval)
+        logger.debug("Dynamic range (dr_low, dr_high): %s, %s", dr_low, dr_high)
+        # Define closure to adjust the values, depending on whether to invert the image:
         if args['invert']:
-            logger.debug('Inverting image...')
+            logger.debug('Using adjust_fun that will invert the pixel values...')
             def adjust_fun(val):
                 """ Function to adjust dynamic range of image, inverting the image in the process. """
                 if val <= dr_low:
                     return maxval # This is correct when we are inverting the image.
-                    #return minval
                 elif val >= dr_high:
                     return minval # This is correct when we are inverting the image.
-                    #return maxval
-                # This might also be an issue: maxval*70000 > 2**32
+                # This might also be an issue: maxval*70000 > 2**32 ??
                 return (maxval*(dr_high-val))/(dr_high-dr_low)
         else:
-            # Aparently, there is a case where when the higher boundary is reached, it behaves weird?
-            # Higher values are whiter:
             def adjust_fun(val):
                 """ Function to adjust dynamic range of image. """
                 if val <= dr_low:
@@ -443,12 +505,34 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         # Note: This seems correct when I try it manually and plot it.
         adjust_vec = numpy.vectorize(adjust_fun)    # pylint: disable=E1101
         npimg = adjust_vec(npimg)
+        npimgmode = output_mode
         logger.debug('npimg min, max after adjusting dynamic range: %s, %s', npimg.min(), npimg.max())
+
+
+    # Preview with matplotlib: After adjusting dynamic range
+    if args.get('image_plot_after_dr_adjust', False):
+        from matplotlib import pyplot
+        imgplot = pyplot.imshow(npimg)
+        pyplot.colorbar()
+        pyplot.show()
+        imgplot.remove()
+
+    #npimg = npimg.astype('int32')
+    #npimg = npimg.astype('uint32')
+    #npimg = npimg.astype('uint8') # If output_mode is 'L', this needs to be int8 or uint8.
+    npimg = npimg.astype(output_dtype) # If output_mode is 'L', this needs to be int8 or uint8.
+
 
     # Maybe this is what gives the problem? No, also seems good.
     # Is it the linearization?
     #linimg = Image.fromarray(npimg, gelimg.mode)
-    linimg = Image.fromarray(npimg, npimgmode)
+    logger.debug("Reverting back to PIL image using image mode '%s'", npimgmode)
+    try:
+        linimg = Image.fromarray(npimg, npimgmode)
+    except ValueError as e:
+        # For PNG, the only accepted image modes are I, I;16 and L.
+        logger.error("Unable to convert npimage to PIL image using image mode '%s': %s", npimgmode, e)
+        raise ValueError(e)
 
     # saving org info in info dict:
 
@@ -529,25 +613,28 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
     else:
         if dr[1] % 1000 == 0:
             if dr[0] % 1000 == 0:
-                rng = "{}-{}k".format(*(i/1000 for i in dr))
+                rng = "{}-{}k".format(*(int(i/1000) for i in dr))
             else:
-                rng = "{}-{}k".format(dr[0], dr[1]/1000)
+                rng = "{}-{}k".format(int(dr[0]), int(dr[1]/1000))
         else:
-            rng = "{}-{}".format(*dr)
+            rng = "{}-{}".format(*(int(i) for i in dr))
     if not has_PMT(basename):
         if info.get('pmt'):
             rng = "{}V_{}".format(info['pmt'], rng)
 
     if not args.get('convertgelto'):
         args['convertgelto'] = 'png'
-    ext = args['convertgelto']
+    ext = '.'+args['convertgelto']
 
     # basename is gelfile minus extension but with directory:
     if not args.get('overwrite', True):
-        N_existing = len(glob.glob(basename+'*.'+ext))
-        pngfilename = u"{}_{}_{}.{}".format(basename, rng, N_existing, ext)
+        N_existing = "_{}".format(len(glob.glob(basename+'*.'+ext)))
     else:
-        pngfilename = u"{}_{}.{}".format(basename, rng, ext)
+        N_existing = ""
+    pngfnfmt = args.get('pngfnfmt', u'{gelfnroot}_{dr_rng}{N_existing}{ext}')
+    pngfilename = pngfnfmt.format(gelfnroot=basename, dr_rng=rng, N_existing=N_existing, ext=ext)
+    #pngfilename = u"{}_{}{}.{}".format(basename, rng, N_existing, ext)
+
 
     # Make sure you save relative to the gelfile:
     pngfilename_relative = getrelfilepath(gelfile, pngfilename)
