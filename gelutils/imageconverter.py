@@ -53,6 +53,8 @@ So...
 
 """
 
+from __future__ import print_function
+from six import string_types # python 2*3 compatability
 import os
 import sys
 from subprocess import Popen, PIPE, STDOUT
@@ -106,7 +108,7 @@ def svg2png(svgfilepath, target='png', tool=None, removeExt=True, **kwargs):
     if tool is None:
         # cairo renders the text annotations much better:
         tool = ('cairo', 'imagemagick')
-    if isinstance(tool, basestring):
+    if isinstance(tool, string_types):
         tool = (tool, )
 
     methods = {'cairo': cairo_convert,
@@ -226,7 +228,9 @@ def imagemagick_available():
                     stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                     close_fds=CLOSE_FDS)
     res = process.stdout.read()
-    if 'imagemagick' in res.lower():
+    # On Windows, there is a 'convert' command, which is used to convert FAT to NTFS.
+    logger.debug("Imagemagick check: %s", res)
+    if 'imagemagick' in res.decode().lower():
         return True
     else:
         logger.warn("ImageMagick NOT FOUND: ")
@@ -274,24 +278,24 @@ def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', 
 
 
     if resize:
-        if isinstance(resize, basestring):
+        if isinstance(resize, string_types):
             resize = '-resize ' + resize
         elif len(resize) == 2:
             resize = "-resize {}x{}".format(*resize)
         else:
             raise ValueError("Format for argument resize '%s' not recognized." % (resize, ))
     elif scale:
-        if isinstance(scale, basestring):
+        if isinstance(scale, string_types):
             scale = '-scale ' + scale
         else:
             scale = '-scale {}'.format(scale)
     if rotate:
-        if isinstance(rotate, basestring):
+        if isinstance(rotate, string_types):
             scale = '-rotate ' + rotate
         else:
             scale = '-rotate {}'.format(rotate)
     if crop:
-        if isinstance(rotate, basestring):
+        if isinstance(rotate, string_types):
             scale = '-crop ' + rotate
         else:
             scale = '-crop {}'.format(rotate)       # Not really sure this would work...
