@@ -25,6 +25,7 @@ Most of these originate from RsEnvironment module.
 """
 
 import os
+from six import string_types
 import logging
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,66 @@ def open_utf(fp, mode='r'):
     Not required for python3.
     """
     return codecs.open(fp, mode, encoding='utf-8')
+
+
+def ensure_numeric(inval, scalefactor=None, sf_lim=2, converter=None):
+    """
+    Takes a string value or iterable with string values and converts them to absolute values.
+    Args:
+        :inval:     Input to convert to a numeric value. String or iterable.
+        :scalefactor: Scale inval by this factor
+        :sf_lim:    Only scale if inval is less than this value (or contains '%').
+                    Default sf_lim=2.
+        :converter: Apply this function before returning.
+                    Default is int(float(val)) IF scalefactor is an integer,
+                    ELSE float(val)
+    Specialities:
+        Both inval and scalefactor can be lists.
+        inval can even be a "list-like string":  "0.146, 0.16, 177.8%"  -> [0.146, 0.16, '177.8%']
+        If scalefactor is a sequence, it is applied with zip(inval, scalefactor).
+    Usage:
+        >>> ensure_numeric('33%')
+        0.33    (float)
+        >>> ensure_numeric('33%', 100)
+        33      (int)
+        >>> ensure_numeric('1.115', 100, converter=float)
+        111.5   (float)
+        >>> ensure_numeric('5.12', 5.0, sf_lim=10)
+        25.6    (float)
+        >>> ensure_numeric(0.33, 100)
+        33      (int)
+        >>> ensure_numeric(5.12, 5, sf_lim=10)
+        51    (int)
+        >>> ensure_numeric("0.146, 0.16, 177.8%", [100, 200, 300.0]) # scalefactor as a sequence
+        [15, 32, 533.4]   # mixed types
+    """
+    if converter is None:
+        if not (isinstance(scalefactor, (list, tuple)) or hasattr(scalefactor, '__iter__')):
+            # Do not infer converter if scalefactor is a sequence:
+            converter = (lambda x: int(round(x))) if isinstance(scalefactor, int) else float
+    if isinstance(inval, (float, int)):
+        outval = scalefactor*inval if scalefactor and inval < sf_lim else inval
+        return converter(outval) if converter else outval
+    if isinstance(inval, string_types):
+        if ', ' in inval:
+            # Maybe the user provided inval as a string of values: "left, top, right, lower"
+            inval = [item.strip() for item in inval.split(', ')]
+            return ensure_numeric(inval, scalefactor, sf_lim, converter)
+        outval = float(inval.strip('%'))/100 if '%' in inval else float(inval)
+        # Apply scalefactor:
+        if scalefactor and (outval < sf_lim or '%' in inval):
+            outval = scalefactor*outval
+        return converter(outval) if converter else outval
+    else:
+        # We might have a list/tuple:
+        try:
+            if isinstance(scalefactor, (list, tuple)) or hasattr(scalefactor, '__iter__'):
+                return [ensure_numeric(item, sf, sf_lim, converter) for item, sf in zip(inval, scalefactor)]
+            else:
+                return [ensure_numeric(item, scalefactor, sf_lim, converter) for item in inval]
+        except TypeError:
+            logger.warning("Value '%s' not (float, int) and not string_type and not iterable, returning as-is.", inval)
+            return inval
 
 
 def getfilepath(gelfilepath, otherfilepath):

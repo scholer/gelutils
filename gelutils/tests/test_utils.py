@@ -32,6 +32,48 @@ import pytest
 import logging
 logger = logging.getLogger(__name__)
 
+from utils import ensure_numeric
+
+def test_ensure_numeric():
+
+
+    res = ensure_numeric('33%')
+    assert res == 0.33
+    assert isinstance(res, float)
+
+    res = ensure_numeric('33%', 100)
+    assert res == 33
+    assert isinstance(res, int)
+
+    res = ensure_numeric('1.115', 100, converter=float)
+    assert res == 111.5
+    assert isinstance(res, float)
+
+    res = ensure_numeric('5.12', 5.0, sf_lim=10)
+    assert res == 25.6
+    assert isinstance(res, float)
+
+    res = ensure_numeric(0.33, 100)
+    assert res == 33
+    assert isinstance(res, int)
+
+    res = ensure_numeric(5.12, 5, sf_lim=10)
+    assert 26 == res # int(round(5.12*5)), 5.12*5=25.6
+    assert isinstance(res, int)
+
+    res = ensure_numeric([0.146, '0.16', '177.8%'], 100)
+    assert res == [15, 16, 178] # int(round(5.12*5)), 5.12*5=25.6
+    assert all(isinstance(i, int) for i in res)
+
+    # Maybe the user provided inval as a string of values: "left, top, right, lower"
+    res = ensure_numeric("0.146, 0.16, 177.8%", 100)
+    assert res == [15, 16, 178]
+    assert all(isinstance(i, int) for i in res)
+
+    # What if scale factor is an iterable:
+    res = ensure_numeric("0.146, 0.16, 177.8%", [100, 200, 300.0])
+    assert res == [15, 2*16, 533.4]
+
 
 
 @pytest.mark.skipif(True, reason="Not ready yet")

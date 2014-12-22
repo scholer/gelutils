@@ -24,7 +24,7 @@ Module for annotating gels.
 Annotates a gel image with lane descriptions from annotaitons file,
 saves as svg (maybe add pdf ability?).
 
-Note: Consider adding support for using PIL.PSDraw or PIL.ImageDraw
+TODO: Consider adding support for using PIL.PSDraw or PIL.ImageDraw
 as a fallback to using svgwrite + convert?
 See:
     https://pillow.readthedocs.org/reference/ImageDraw.html
@@ -57,7 +57,8 @@ logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
 from clipboard import get_clipboard
-from utils import gen_trimmed_lines, trimmed_lines_from_file, init_logging, getabsfilepath, printdict
+from utils import gen_trimmed_lines, trimmed_lines_from_file, init_logging, \
+                  getabsfilepath, printdict, ensure_numeric
 from argutils import mergedicts, parseargs #, make_parser
 from geltransformer import convert
 from imageconverter import svg2png
@@ -247,22 +248,27 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     # use gelfp_wo_ext or pngfp_wo_ext as basis?
 
     # Convert any relative values (fractions, percentage):
-    ypad, yoff = (args['ypadding'], args['yoffset'])
-    # If we have percentage: convert to fraction
-    ypad, yoff = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in (ypad, yoff))
-    # If we have fraction: convert to absolute pixel value
-    ypad, yoff = (imgheight*y if y < 1 else y for y in (ypad, yoff))
-    ypad, yoff = (int(round(y)) for y in (ypad, yoff)) # Ensure integer
+    #ypad, yoff = (args['ypadding'], args['yoffset'])
+    ## If we have percentage: convert to fraction
+    #ypad, yoff = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in (ypad, yoff))
+    ## If we have fraction: convert to absolute pixel value
+    #ypad, yoff = (imgheight*y if y < 1 else y for y in (ypad, yoff))
+    #ypad, yoff = (int(round(y)) for y in (ypad, yoff)) # Ensure integer
+    ## With new ensure_numeric:
+    ypad, yoff = ensure_numeric([args['ypadding'], args['yoffset']], imgheight)
 
     # convert '5%' to 0.05 if string:
-    xmargin = (float(x.strip('%'))/100 if isinstance(x, string_types) else x for x in args['xmargin'])
-    # convert 0.05 to absolute pixels:
-    xmargin = [int(round(imgwidth*x)) if x < 1 else x for x in xmargin] # Do I have to round this?
-    xtra_right, = (args['xtraspaceright'], )
-    xtra_right, = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in (xtra_right, ))
-    xtra_right, = (imgwidth*x if x < 1 else x for x in (xtra_right, ))
-    xtra_right, = (int(round(y)) for y in (xtra_right, )) # Ensure integer
+    #xmargin = (float(x.strip('%'))/100 if isinstance(x, string_types) else x for x in args['xmargin'])
+    ## convert 0.05 to absolute pixels:
+    #xmargin = [int(round(imgwidth*x)) if x < 1 else x for x in xmargin] # Do I have to round this?
+    xmargin = ensure_numeric(args['xmargin'], imgwidth)
 
+
+    #xtra_right, = (args['xtraspaceright'], )
+    #xtra_right, = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in (xtra_right, ))
+    #xtra_right, = (imgwidth*x if x < 1 else x for x in (xtra_right, ))
+    #xtra_right, = (int(round(y)) for y in (xtra_right, )) # Ensure integer
+    xtra_right = ensure_numeric(args['xtraspaceright'], imgwidth)
 
     ext = '.svg'
     svgfnfmt = args.get('svgfnfmt', "{pngfnroot}_annotated{ext}")
@@ -278,7 +284,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     dwg.attribs.update(size)
     g1 = dwg.add(dwg.g(id='Gel'))   # elements group with gel file
 
-    # Add image:
+    ### Add png image data to svg drawing object: ###
     # xlink:href is first argument 'href'.
     # width="100%" height="100%" or  width="524" height="437" ?
     # additional image attribs: overflow, width, height, transform
@@ -300,18 +306,15 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     img = g1.add(dwg.image(imghref, width=imgwidth, height=imgheight))  # Using size in percentage doesn't work.
     img.translate(tx=0, ty=yoff)
 
-    # Add annotations:
-    g2 = dwg.add(dwg.g(id='Annotations'))
+    ### Add annotations to svg drawing object: ###
+    g2 = dwg.add(dwg.g(id='Annotations'))   # Make annotations group
 
     Nlanes = len(laneannotations)
     # Consider deprechating xspacing argument; I only ever use xmargin.
-    if not args['xspacing']:
-        xspacing = (imgwidth-sum(xmargin))/(Nlanes-1)    # Number of spaces is 1 less than number of lanes.
+    # Number of spaces is 1 less than number of lanes.
+    xspacing = (imgwidth-sum(xmargin))/(Nlanes-1) if not args.get('xspacing') else args['xspacing']
 
-    #print "xmargin=", xmargin, ", xspacing=", xspacing, "sum(xmargin)+xspacing:", sum(xmargin)+xspacing
-    #print "imgwidth:", imgwidth, ", imgwidth-sum(xmargin):", imgwidth-sum(xmargin), ", N:", N
-    #print "sum(xmargin)+(N-1)*xspacing:", sum(xmargin)+(N-1)*xspacing
-
+    # laneannotations,
 
     for idx, annotation in enumerate(laneannotations):
         text = g2.add(dwg.text(args['textfmt'].format(idx=idx+args['laneidxstart'], name=annotation)))
@@ -426,9 +429,12 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
 
     ensurePNG(gelfile, args)
 
+    ## MAKE SVG FILE WITH ANNOTATIONS: ##
     # annotationsfile is relative to gelfile; makeSVG takes care of it.
     dwg, svgfilename = makeSVG(gelfile, args, annotationsfile=annotationsfile)
 
+
+    ## POST PROCESSING: ##
     if args.get('svgtopng'):
         # svg's base64 encoding is not as optimal as a native file but about 40-50% larger.
         # Thus, it might be nice to be able to export

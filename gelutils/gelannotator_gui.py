@@ -319,6 +319,9 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
                                    title="Please select yaml settings file"
                                    )
         logger.debug("User selected yamlfile: %s", filename)
+        if not filename:
+            logger.debug("User did not select a yamlfile (is '%s'), aborting...", filename)
+            return
         gelfile = self.get_gelfilepath()
         filename = getrelfilepath(gelfile, filename)
         logger.debug("Setting yamlfile to: %s", filename)
@@ -340,6 +343,9 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
                                    title="Please select annotations file"
                                    )
         logger.debug("User selected annotationsfile: %s", filename)
+        if not filename:
+            logger.debug("User did not select an annotationsfile (is '%s'), aborting...", filename)
+            return
         gelfile = self.get_gelfilepath()
         filename = getrelfilepath(gelfile, filename)
         logger.debug("Setting annotationsfile to: %s", filename)

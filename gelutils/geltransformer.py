@@ -121,6 +121,7 @@ from six import string_types # python 2*3 compatability
 import os
 import glob
 import re
+from itertools import cycle
 
 #from functools import partial
 import numpy
@@ -134,7 +135,7 @@ import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
-from utils import init_logging, printdict, getrelfilepath, setIfNone
+from utils import init_logging, printdict, getrelfilepath, getabsfilepath, setIfNone, ensure_numeric
 from argutils import parseargs, mergedicts
 
 # PIL.Image.Image.convert has a little info on image modes.
@@ -239,7 +240,7 @@ def has_PMT(filename):
     return prog.match(filename)
 
 
-def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None):
+def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None, converter='auto'):
     """
     Try to determine the range given the numpy data, so that the
     values within the cutoff fraction is within the dynamic range,
@@ -262,9 +263,15 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None):
         logger.debug("Could not find any bins, setting cutoffbin to %s", cutoffmax)
     logger.debug("(cutoffmin, cutoffmax): %s", (cutoffmin, cutoffmax))
     dr = [cutoffmin, cutoffmax]
-    if roundtonearest:
-        dr = [round(float(x)/roundtonearest)*roundtonearest for x in dr]
-    return dr
+    if converter in ('auto', None):
+        if dr[1] > 10:
+            if roundtonearest:
+                converter = lambda x: int(round(float(x)/roundtonearest)*roundtonearest)
+            else:
+                converter = int
+        else:
+            converter = lambda x: x
+    return converter(dr)
 
 
 def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=None,
@@ -325,15 +332,15 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     if args['crop']:
         # crop is 4-tuple of (left, upper, right, lower)
-        crop = args['crop']
-        if isinstance(crop, string_types) and ',' in crop:
-            # Maybe the user provided crop as a string: "left, top, right, lower"
-            crop = [item.strip() for item in crop.split(',')]
-            logger.debug("Converted input crop arg '%s' to: %s", args['crop'], crop)
-        crop = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in crop)
-        # convert fraction values ("0.05") to absolute pixels:
-        crop = [int(widthheight[i % 2]*x) if x < 1 else x for i, x in enumerate(crop)]
-        left, upper, right, lower = crop
+        #crop = args['crop']
+        #if isinstance(crop, string_types) and ',' in crop:
+        #    # Maybe the user provided crop as a string: "left, top, right, lower"
+        #    crop = [item.strip() for item in crop.split(',')]
+        #    logger.debug("Converted input crop arg '%s' to: %s", args['crop'], crop)
+        #crop = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in crop)
+        ## convert fraction values ("0.05") to absolute pixels:
+        #crop = [int(widthheight[i % 2]*x) if x < 1 else x for i, x in enumerate(crop)]
+        left, upper, right, lower = crop = ensure_numeric(args['crop'], cycle([width, height]))
         if args.get('cropfromedges'):
             logger.debug("Cropping image to: %s", (left, upper, width-right, height-lower))
             gelimg = gelimg.crop((left, upper, width-right, height-lower))
@@ -346,12 +353,14 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
     # Rotate first, because we need as much information as possible, and if rotateexpands=True then we might get some white areas we want to trim with crop.
     # scale before or after crop?
     # - If using relative values, this shouldn't matter much...
-    if args.get('scale'):
+    scale = args.get('scale')
+    if scale:
         # convert percentage values to fractional, if relevant:
-        scale = float(args['scale'].strip('%'))/100 if isinstance(args['scale'], string_types) and '%' in args['scale'] \
-                else args['scale']
+        #scale = ensure_numeric(args['scale'])
+        #scale = float(args['scale'].strip('%'))/100 if isinstance(args['scale'], string_types) and '%' in args['scale'] \
+        #        else args['scale']
         # convert fractional values (e.g. 0.05) to absolute pixels, if relevant:
-        newsize = (int(scale*width), int(scale*height))
+        newsize = [ensure_numeric(scale, width), ensure_numeric(scale, height)]
         logger.info("Resizing image by a factor of %s (%s) to %s using resample=%s", scale, args['scale'], newsize, ANTIALIAS)
         gelimg = gelimg.resize(newsize, resample=ANTIALIAS)
         width, height = widthheight = gelimg.size
@@ -433,31 +442,35 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
     ### ADJUST DYNAMIC RANGE ###
 
     dr = args.get('dynamicrange')
-    if dr == 'auto' or (args['invert'] and not dr):
+    ## Do automatic calculation of dynaic range if requested or needed:
+    if dr == 'auto' or (args['invert'] and not dr) or args.get('dr_auto_cutoff'):
         # If we want to invert, we need to have a range. If it is not specified, we need to find it.
         logger.debug("Dynamic range is %s (args['invert']=%s)", dr, args['invert'])
-        dr = args['dynamicrange'] = [int(val) for val in find_dynamicrange(npimg)] # Ensure you receive ints.
+        cutoff = ensure_numeric(args.get('dr_auto_cutoff', [0, 0.99]))
+        dr = args['dynamicrange'] = find_dynamicrange(npimg, cutoff=cutoff)
         logger.debug("--- determined dynamic range: %s", dr)
 
     if dr:
+        dr = ensure_numeric(dr)
         if isinstance(args['dynamicrange'], (int, float, string_types)):
             # If we have only provided a single argument, assume it is dr_high and set low to 0.
             dr = args['dynamicrange'] = [0, args['dynamicrange']]
         if len(args['dynamicrange']) == 1:
             dr = args['dynamicrange'] = [0, args['dynamicrange'][0]]
 
-        # Dynamic range can be given as absolute values or relative "cutoff";
-        # The cutoff is the percentage of pixels below/above the dynamic range.
-        # Convert relative values: First, convert % to fraction:
-        dr = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in dr) # pylint: disable=E1103
-        # convert (0.05, 0.95) to absolute range:
-        # Note: What if you have floating-point pixel values between 0 and 1? (E.g. for HDR images).
-        # In that case, the dynamic range might not be distribution ranges but actual min/max pixel values.
-        # Adding new argument 'dynamicrange_is_absolute' which can be used to force interpreting dynamicrange as absolute rather than relative cutoff.
-        if all(x < 1 for x in dr) and not args.get('dynamicrange_is_absolute'):
-            logger.debug("Finding dynamic range for cutoff %s (args['dynamicrange']=%s)", dr, args['dynamicrange'])
-            dr = map(int, find_dynamicrange(npimg, cutoff=dr, roundtonearest=args.get('dynamicrange_round')))
-            logger.debug("--- determined dynamic range: %s", dr)
+        ## Dynamic range can be given as absolute values or relative "cutoff";
+        ## The cutoff is the percentage of pixels below/above the dynamic range.
+        ## Convert relative values: First, convert % to fraction:
+        #dr = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in dr) # pylint: disable=E1103
+        ## convert (0.05, 0.95) to absolute range:
+        ## Note: What if you have floating-point pixel values between 0 and 1? (E.g. for HDR images).
+        ## In that case, the dynamic range might not be distribution ranges but actual min/max pixel values.
+        ## Adding new argument 'dynamicrange_is_absolute' which can be used to force interpreting dynamicrange as absolute rather than relative cutoff.
+        ## Edit: It might be better to have args: dr_autocalc_cutoff!!
+        #if all(x < 1 for x in dr) and not args.get('dynamicrange_is_absolute'):
+        #    logger.debug("Finding dynamic range for cutoff %s (args['dynamicrange']=%s)", dr, args['dynamicrange'])
+        #    dr = map(int, find_dynamicrange(npimg, cutoff=dr, roundtonearest=args.get('dynamicrange_round')))
+        #    logger.debug("--- determined dynamic range: %s", dr)
 
 
         # Transform image so all values < dynamicrange[0] is set to 0,
@@ -580,7 +593,7 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
     gelext = gelext.lower()
 
     if gelext == '.gel':
-        logger.debug("Gel file input ('%s') -> enabling linearize and invert if not specified.", gelext)
+        logger.debug("Gel file input detected (extension '%s') -> enabling linearize and invert if not specified.", gelext)
         if args.get('linearize') is None:
             args['linearize'] = True
         if args.get('invert') is None:
@@ -601,6 +614,7 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
     logger.debug("getting image file...")
     gelimg, info = get_gel(gelfile, args)
     # Use orgimg for info, e.g. orgimg.info and orgimg.tag
+    #logger.debug("get_gel returned with ")
     logger.debug("gelimg extrema: %s", gelimg.getextrema())
     dr = info.get('dynamicrange')
     logger.debug("dynamic range: %s", dr)
@@ -635,12 +649,14 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
     pngfilename = pngfnfmt.format(gelfnroot=basename, dr_rng=rng, N_existing=N_existing, ext=ext)
     #pngfilename = u"{}_{}{}.{}".format(basename, rng, N_existing, ext)
 
+    pngfilename = getabsfilepath(gelfile, pngfilename)
 
-    # Make sure you save relative to the gelfile:
+    # Make sure that the 'pngfile' in args is relative to the gelfile,
+    # But when you save, it should be absolute:
     pngfilename_relative = getrelfilepath(gelfile, pngfilename)
     logger.debug("pngfilename: %s", pngfilename)
     logger.debug("pngfilename_relative: %s", pngfilename_relative)
-    logger.debug("Saving gelfile to: %s", pngfilename)
+    logger.debug("Saving converted gel image to: %s", pngfilename)
     # Note: gelimg may be in 16-bit; saving would produce a 16-bit grayscale PNG.
     # Image size can possibly be reduced by 50% by saving as 8-bit grayscale.
     gelimg.save(pngfilename)

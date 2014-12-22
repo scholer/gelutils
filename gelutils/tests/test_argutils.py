@@ -53,7 +53,7 @@ def test_mergeargs():
     assert test1 == testns.__dict__
     # test, with defaults: testdict take precedence for non-None values.
     test2 = mergeargs(testns, testdict)
-    assert all(k in test2 for k in testdict.keys()+testns.__dict__.keys())
+    assert all(k in test2 for k in list(testdict.keys())+list(testns.__dict__.keys()))
     assert test2['hej'] == 'der'
     assert test2['my'] == 'god'
     assert test2['word'] == 'down'
@@ -64,7 +64,7 @@ def test_mergeargs():
     assert test2['nonetestc'] == None
     # test, with precedence = 'argsns':
     test2 = mergeargs(testns, testdict, precedence='argsns')
-    assert all(k in test2 for k in testdict.keys()+testns.__dict__.keys())
+    assert all(k in test2 for k in list(testdict.keys())+list(testns.__dict__.keys()))
     assert test2['hej'] == 'der'            # constant
     assert test2['my'] == 'god'             # constant
     assert test2['word'] == 'up'            # variable
@@ -75,7 +75,7 @@ def test_mergeargs():
     assert test2['nonetestc'] == None       # variable
     # test, with excludeNone=False: argsdict[nonetesta]=None will override argsns.nonetesta
     test2 = mergeargs(testns, testdict, excludeNone=False)
-    assert all(k in test2 for k in testdict.keys()+testns.__dict__.keys())
+    assert all(k in test2 for k in list(testdict.keys())+list(testns.__dict__.keys()))
     assert test2['hej'] == 'der'            # constant
     assert test2['my'] == 'god'             # constant
     assert test2['word'] == 'down'            # variable
@@ -86,7 +86,7 @@ def test_mergeargs():
     assert test2['nonetestc'] == None       # variable
     # test, with precedence = 'argsns' and excludeNone=False: argsns.nonetestb will override argsdict[nonetestb]=None
     test2 = mergeargs(testns, testdict, precedence='argsns', excludeNone=False)
-    assert all(k in test2 for k in testdict.keys()+testns.__dict__.keys())
+    assert all(k in test2 for k in list(testdict.keys())+list(testns.__dict__.keys()))
     assert test2['hej'] == 'der'            # constant
     assert test2['my'] == 'god'             # constant
     assert test2['word'] == 'up'            # variable, depending on precedence
