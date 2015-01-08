@@ -212,7 +212,7 @@ def get_bits_mode_dtype(mode):
     return bits, pil_mode, dtype
 
 
-
+from itertools import chain
 
 def get_PMT(img):
     """
@@ -224,12 +224,18 @@ def get_PMT(img):
         try:
             scaninfo = img.tag[33449]
         except (KeyError, AttributeError):
+            logger.info("Could not extract scaninfo (tag 33449) from image.")
             return
-    prog = re.compile(r'(\d{3})\sV')
-    for line in scaninfo.split('\n'):
-        match = prog.match(line)
-        if match:
-            return match.groups()[0]
+    prog = re.compile(r'(\d{3})\s?V')
+    alllines = scaninfo.split('\n')
+    pmtlines = [line for line in alllines if 'PMT=' in line]
+    matches = (prog.search(line) for line in chain(pmtlines, alllines))
+    matches = (match.group(0) for match in matches if match)
+    return next(matches, None)
+    #for line in pmtlines+alllines:
+    #    match = prog.match(line)
+    #    if match:
+    #        return match.groups()[0]
 
 def has_PMT(filename):
     """
@@ -248,7 +254,7 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None, converter='
     I.e. for a cutoff of (0.02, 0.95), this function will return a dynamic range
     that will quench the lowest 2% and the top 5%.
     """
-    if roundtonearest is None:
+    if roundtonearest in (None, True):
         roundtonearest = 1000
     counts, bins = numpy.histogram(npdata, bins=100)        # pylint: disable=E1101
     total = sum(counts)
@@ -264,6 +270,7 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None, converter='
     logger.debug("(cutoffmin, cutoffmax): %s", (cutoffmin, cutoffmax))
     dr = [cutoffmin, cutoffmax]
     if converter in ('auto', None):
+        # If converter is not specified, find a suitable converter function
         if dr[1] > 10:
             if roundtonearest:
                 converter = lambda x: int(round(float(x)/roundtonearest)*roundtonearest)
@@ -271,7 +278,7 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None, converter='
                 converter = int
         else:
             converter = lambda x: x
-    return converter(dr)
+    return [converter(x) for x in dr]
 
 
 def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=None,
@@ -300,7 +307,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     ## unpack essentials (that are not changed):
     info = gelimg.info
-    width, height = widthheight = gelimg.size
+    width, height = gelimg.size
     info['extrema_ante'] = gelimg.getextrema()
     tifftags = {33445: 'MD_FileTag', 33446: 'MD_ScalePixel', 33447: 'unknown', 33448: 'user'}
     for tifnum, desc in tifftags.items():
@@ -312,6 +319,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
             # gelimg does not have a tag property, e.g. if png file:
             break
     try:
+        # Extract scaninfo and scalefactors:
         scaninfo = gelimg.tag[33449]
         scalefactor = gelimg.tag.getscalar(33446) # or tifimg.tag.tags[33446][0]
     except (AttributeError, KeyError):
@@ -321,7 +329,8 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         scalefactor = None
     pmt = get_PMT(scaninfo)
     info.update(dict(width=width, height=height, pmt=pmt, scalefactor=scalefactor))
-    logger.debug("Image info: %s", info)
+    logger.debug("Gel scaninfo: %s", scaninfo)
+    logger.debug("Image info dict: %s", info)
 
     if args['rotate']:
         # PIL resample filters:: NONE = NEAREST = 0; ANTIALIAS = 1; LINEAR = BILINEAR = 2; CUBIC = BICUBIC = 3
@@ -452,11 +461,9 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
     if dr:
         dr = ensure_numeric(dr)
-        if isinstance(args['dynamicrange'], (int, float, string_types)):
+        if isinstance(dr, (int, float)):
             # If we have only provided a single argument, assume it is dr_high and set low to 0.
-            dr = args['dynamicrange'] = [0, args['dynamicrange']]
-        if len(args['dynamicrange']) == 1:
-            dr = args['dynamicrange'] = [0, args['dynamicrange'][0]]
+            dr = args['dynamicrange'] = [0, dr]
 
         ## Dynamic range can be given as absolute values or relative "cutoff";
         ## The cutoff is the percentage of pixels below/above the dynamic range.
@@ -476,12 +483,12 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         # Transform image so all values < dynamicrange[0] is set to 0,
         # all values > dynamicrange[1] is set to the imagemode's max value,
         # and all values in between are scaled accordingly.
-        logger.debug("(a) dynamicrange: %s", args['dynamicrange'])
+        logger.debug("args['dynamicrange']: %s; derived dr: %s", args['dynamicrange'], dr)
         logger.debug('npimg min, max before adjusting dynamic range: %s, %s', npimg.min(), npimg.max())
         # When we adjust the dynamic range, the minimum and maximum depends on the output image mode:
         # For 16-bit unsigned output, maxval is 2**16-1; for 8-bit unsigned output, it is 2**8-1:
         minval, maxval = get_mode_minmax(output_mode)
-        dr_low, dr_high = info['dynamicrange'] = args['dynamicrange']
+        dr_low, dr_high = info['dynamicrange'] = dr
         logger.debug("Output minval, maxval: %s, %s", minval, maxval)
         logger.debug("Dynamic range (dr_low, dr_high): %s, %s", dr_low, dr_high)
         # Define closure to adjust the values, depending on whether to invert the image:
@@ -632,9 +639,6 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
                 rng = "{}-{}k".format(int(dr[0]), int(dr[1]/1000))
         else:
             rng = "{}-{}".format(*(int(i) for i in dr))
-    if not has_PMT(basename):
-        if info.get('pmt'):
-            rng = "{}V_{}".format(info['pmt'], rng)
 
     if not args.get('convertgelto'):
         args['convertgelto'] = 'png'
@@ -645,14 +649,17 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
         N_existing = "_{}".format(len(glob.glob(basename+'*.'+ext)))
     else:
         N_existing = ""
-    pngfnfmt = args.get('pngfnfmt', u'{gelfnroot}_{dr_rng}{N_existing}{ext}')
-    pngfilename = pngfnfmt.format(gelfnroot=basename, dr_rng=rng, N_existing=N_existing, ext=ext)
-    #pngfilename = u"{}_{}{}.{}".format(basename, rng, N_existing, ext)
+    pngfnfmt_default = u'{gelfnroot}_{dr_rng}{N_existing}{ext}'
+    if not has_PMT(basename) and info.get('pmt'):
+        pngfnfmt_default = u'{gelfnroot}_{pmt}V_{dr_rng}{N_existing}{ext}'
+    pngfnfmt = args.get('pngfnfmt', pngfnfmt_default)
+    pngfilename = pngfnfmt.format(gelfnroot=basename, pmt=info['pmt'], dr_rng=rng,
+                                  lanefile=args.get('lanefile', ''), yamlfile=args.get('yamlfile', ''),
+                                  N_existing=N_existing, ext=ext)
 
-    pngfilename = getabsfilepath(gelfile, pngfilename)
-
-    # Make sure that the 'pngfile' in args is relative to the gelfile,
+    # The 'pngfile' in args is relative to the gelfile,
     # But when you save, it should be absolute:
+    pngfilename = getabsfilepath(gelfile, pngfilename)
     pngfilename_relative = getrelfilepath(gelfile, pngfilename)
     logger.debug("pngfilename: %s", pngfilename)
     logger.debug("pngfilename_relative: %s", pngfilename_relative)
@@ -660,7 +667,7 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
     # Note: gelimg may be in 16-bit; saving would produce a 16-bit grayscale PNG.
     # Image size can possibly be reduced by 50% by saving as 8-bit grayscale.
     gelimg.save(pngfilename)
-    # Note: 'pngfile' may also be a jpeg file, if the user specified convertgelto jpg
+    # Note: 'pngfile' may also be a jpeg file, if the user specified convertgelto: jpg
     args['pngfile'] = info['pngfile'] = pngfilename_relative
 
     return gelimg, info

@@ -14,7 +14,7 @@
 ##
 ##    You should have received a copy of the GNU General Public License
 ##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# pylint: disable=W0142,C0103
+# pylint: disable=C0103
 
 """
 
@@ -35,10 +35,6 @@ import codecs
 # from utils import open_utf as open
 # or open = open_utf
 def open_utf(fp, mode='r'):
-    """
-    Provides unicode-capable opening of files using codecs.open.
-    Not required for python3.
-    """
     return codecs.open(fp, mode, encoding='utf-8')
 
 
@@ -305,6 +301,12 @@ def trimmed_lines_from_file(filepath, args=None):
     if args is None:
         args = {}
     with open(filepath) as fd:
+        # Auto detect line input style:
+        if args.get('lineinputstyle') in (None, 'auto'):
+            lines = [line for line in [line.strip() for line in fd] if line]
+            fd.seek(0)
+            if all(line[0] in "*#" for line in lines):
+                args['lineinputstyle'] = 'wikilist'
         args.setdefault('commentmidchar', None) # Same for all...
         if args.get('lineinputstyle', None) in ('wikilist', 'wiki', 'list'):
             # Add arguments to args for convenience to the user:

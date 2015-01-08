@@ -122,7 +122,6 @@ def get_annotation_fn_by_gel_fn(gelfn, rel=False, fallback=True):
 #    """
 #    pass
 
-
 def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_asterix='first_only'):
     """
     Returns annotations given gel filename.
@@ -186,7 +185,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     """
     if args is None:
         args = {}
-    defaultargs = dict(xmargin=[40, 40], xspacing=None, yoffset=150, ypadding=5,
+    defaultargs = dict(xmargin=[50, 50], xspacing=None, yoffset=150, ypadding=5,
             textfmt="{name}", laneidxstart=0, embed=None,
             xtraspaceright=0, textrotation=60,
             fontsize=None, fontfamily='sans-serif', fontweight='bold')
@@ -314,7 +313,8 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     # Number of spaces is 1 less than number of lanes.
     xspacing = (imgwidth-sum(xmargin))/(Nlanes-1) if not args.get('xspacing') else args['xspacing']
 
-    # laneannotations,
+    logger.debug("xmargin: %s", xmargin)
+    logger.debug("xspacing: %s", xspacing)
 
     for idx, annotation in enumerate(laneannotations):
         text = g2.add(dwg.text(args['textfmt'].format(idx=idx+args['laneidxstart'], name=annotation)))
@@ -456,8 +456,10 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
 
     if yamlfile and args.get('updateyaml', True):
         # Not sure if this should be done here or in gelannotator:
-        logger.debug("Saving/updating yaml file: ")
-        with open(yamlfile, 'wb') as fd:
+        logger.debug("Saving/updating args to yaml file: %s", yamlfile)
+        # For Python3 it is important that the file mode is correct: binary vs str
+        # yaml safe_dump produces a str output, so the file must be opened in str mode:
+        with open(yamlfile, 'w') as fd:
             # yaml.dump_all(documents, stream=None, Dumper=<class 'yaml.dumper.Dumper'>,
             # default_style=None, default_flow_style=None, canonical=None, indent=None, width=None,
             # allow_unicode=None, line_break=None, encoding='utf-8', explicit_start=None, explicit_end=None,

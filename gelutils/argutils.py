@@ -70,7 +70,7 @@ def make_parser(prog='gelannotator'):
 
     ap.add_argument('--convertgelto', default='png', help="Convert gel to this format.")
     #ap.add_argument('--png', action='store_true', help="Save as png.")
-    ap.add_argument('--overwrite', action='store_true', default=None, help="Overwrite existing png.")
+    ap.add_argument('--overwrite', action='store_true', default=True, help="Overwrite existing png.")
     ap.add_argument('--no-overwrite', action='store_false', dest='overwrite', help="Do not overwrite existing png.")
     # Format for png file: Note that {ext} includes the dot in '.png'
     ap.add_argument('--pngfnfmt', default="{gelfnroot}_{dr_rng}{N_existing}{ext}", help="How to format the png filename (if created).")
@@ -92,11 +92,11 @@ def make_parser(prog='gelannotator'):
         ap.add_argument('--reusepng', action='store_true', default=None, help="Prefer png file over the specified gelfile.")
         ap.add_argument('--no-reusepng', action='store_false', dest='reusepng', help="Do not use pngfile, even if it is specified.")
 
-        ap.add_argument('--yoffset', type=int, help="Y offset (how far down the gel image should be).") #, default=100
-        ap.add_argument('--ypadding', type=int, help="Vertical space between gel image and annotations.") #, default=100
-        ap.add_argument('--xmargin', nargs=2, type=int, help="Margin (right and left).") # , default=(30, 40)
-        ap.add_argument('--xspacing', type=int, help="Force a certain x spacing.")
-        ap.add_argument('--xtraspaceright', type=int, help="Add additional padding/whitespace to the right (if the gel is not wide enought for the last annotation).")
+        ap.add_argument('--yoffset', help="Y offset (how far down the gel image should be).") #, default=100
+        ap.add_argument('--ypadding', help="Vertical space between gel image and annotations.") #, default=100
+        ap.add_argument('--xmargin', nargs=2, help="Margin (right and left).") # , default=(30, 40)
+        ap.add_argument('--xspacing', help="Force a certain x spacing.")
+        ap.add_argument('--xtraspaceright', help="Add additional padding/whitespace to the right (if the gel is not wide enought for the last annotation).")
 
         ap.add_argument('--textrotation', type=int, dest='textrotation', help="Angle to rotate text (counter-clockwise).")
         ap.add_argument('--fontsize', type=int, help="Specify default font size.")
@@ -111,7 +111,7 @@ def make_parser(prog='gelannotator'):
         ap.add_argument('--no-update-yaml', dest='updateyaml', action='store_false', default=None, help="Do not update yaml settings after run to reflect the settings used.")
         ap.add_argument('--update-yaml', dest='updateyaml', action='store_true', help="Update yaml settings after run to reflect the settings used.")
 
-        ap.add_argument('--embed', action='store_true', default=None, help="Embed image data in svg file. (default)")
+        ap.add_argument('--embed', action='store_true', default=True, help="Embed image data in svg file. (default)")
         ap.add_argument('--no-embed', dest='embed', action='store_false', help="Do not embed image data in svg file, link to the file instead. (default is to embed)")
 
         ap.add_argument('--annotationsfile', help="Load lane annotations from this file. If not specified, will try to guess the right file.")
