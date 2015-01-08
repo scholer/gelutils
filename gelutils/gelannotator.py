@@ -159,7 +159,7 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
 
 
 
-def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kwargs):
+def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yamlfile=None, **kwargs):
     """
     Creates SVG file with lane annotations overlayed over the gel.
 
@@ -186,9 +186,9 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     if args is None:
         args = {}
     defaultargs = dict(xmargin=[50, 50], xspacing=None, yoffset=150, ypadding=5,
-            textfmt="{name}", laneidxstart=0, embed=None,
-            xtraspaceright=0, textrotation=60,
-            fontsize=None, fontfamily='sans-serif', fontweight='bold')
+                       textfmt="{name}", laneidxstart=0, embed=None,
+                       xtraspaceright=0, textrotation=60,
+                       fontsize=None, fontfamily='sans-serif', fontweight='bold')
     if isinstance(args, argparse.Namespace):
         args = args.__dict__
     # Update in place?
@@ -208,6 +208,8 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     gelfp_wo_ext, gelext = os.path.splitext(gelfile)
     gelfnroot = os.path.basename(gelfp_wo_ext)
     gelext = gelext.lower()
+    yamlfnroot = os.path.splitext(os.path.basename(yamlfile))[0] if yamlfile else args.get('yamlfile', '')
+    lanefnroot = os.path.splitext(os.path.basename(yamlfile))[0] if lanefile else args.get('lanefile', '')
 
     # Load annotations:
     # locals().update(args) # I could have the args to the local namespace. However, it is better to keep the args in the args dict, so we can return an updated version of that. Also, changing locals() is not supported by pylint...
@@ -273,7 +275,8 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     svgfnfmt = args.get('svgfnfmt', "{pngfnroot}_annotated{ext}")
     folderpath = os.path.dirname(pngfile_actual)
     pngfnroot = os.path.basename(pngfp_wo_ext)
-    svgfilename = svgfnfmt.format(pngfnroot=pngfnroot, gelfnroot=gelfnroot, ext=ext)
+    svgfilename = svgfnfmt.format(pngfnroot=pngfnroot, gelfnroot=gelfnroot, ext=ext,
+                                  lanefnroot=lanefnroot, yamlfnroot=yamlfnroot)
     svgfilename = os.path.join(folderpath, svgfilename)
     #svgfilename = pngfp_wo_ext + '_annotated.svg'
     size = dict(width="{}px".format(imgwidth+xtra_right),
@@ -338,7 +341,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, **kw
     #
 
 
-def ensurePNG(gelfile, args):
+def ensurePNG(gelfile, args, yamlfile=None, lanefile=None):
     """
     Ensures that we have a png file to work with.
     If args['gelfile'] already is a png, then just skip.
@@ -346,6 +349,8 @@ def ensurePNG(gelfile, args):
     If gelfile is a .GEL file:
     Make PNG from GEL file and update args to reflect that change.
     """
+    if args is None:
+        args = {}
     if gelfile is None:
         gelfile = args['gelfile']
     _, gelext = os.path.splitext(gelfile)
@@ -354,7 +359,7 @@ def ensurePNG(gelfile, args):
         # Hmm... it might be nicer to allow rotation of an existing png image, not only .gel files?
         if any(args.get(k) for k in ('invert', 'crop', 'rotate')):
             logger.debug("invert, crop or rotate requested; performing conversion even if gelfile is PNG...")
-            convert(gelfile, args)
+            convert(gelfile, args, yamlfile, lanefile)
         elif not args.get('reusepng', True):
             pass    #
         return
@@ -366,13 +371,13 @@ def ensurePNG(gelfile, args):
         # convert gel to png:
         args.setdefault('convertgelto', 'png')
         logger.info("ensurePNG: Converting %s to png...", gelfile)
-        convert(gelfile, args)   # convert will update args['pngfile']
+        convert(gelfile, args, yamlfile, lanefile)   # convert will update args['pngfile']
     elif gelext.lower() in ('.tif', '.tiff'):
         # convert tif to png:
         if args.get('linearize') is None: # set sane default
             args['linearize'] = False
         args.setdefault('convertgelto', 'png')
-        convert(gelfile, args)
+        convert(gelfile, args, yamlfile, lanefile)
     else:
         raise ValueError("gelfile extension not recognized. Recognized extensions are: .gel, .png, .jpg.")
 
@@ -427,11 +432,11 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
     # update no
     #args = mergeargs(argsns=args, argsdict=yamlsettings, excludeNone=True, precedence='argns')
 
-    ensurePNG(gelfile, args)
+    ensurePNG(gelfile, args, yamlfile=yamlfile, lanefile=annotationsfile)
 
     ## MAKE SVG FILE WITH ANNOTATIONS: ##
     # annotationsfile is relative to gelfile; makeSVG takes care of it.
-    dwg, svgfilename = makeSVG(gelfile, args, annotationsfile=annotationsfile)
+    dwg, svgfilename = makeSVG(gelfile, args, annotationsfile=annotationsfile, yamlfile=yamlfile)
 
 
     ## POST PROCESSING: ##

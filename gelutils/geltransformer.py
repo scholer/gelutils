@@ -575,7 +575,7 @@ def get_gel(filepath, args):
 
 
 
-def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah) pylint: disable=R0912,R0915
+def convert(gelfile, args, yamlfile=None, lanefile=None, **kwargs):   # (too many branches and statements, bah) pylint: disable=R0912,R0915
     """
     Converts gel file to png given the info in args.
 
@@ -644,7 +644,7 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
         args['convertgelto'] = 'png'
     ext = '.'+args['convertgelto']
 
-    # basename is gelfile minus extension but with directory:
+    # Calculate existing. basename is gelfile minus extension but with directory:
     if not args.get('overwrite', True):
         N_existing = "_{}".format(len(glob.glob(basename+'*.'+ext)))
     else:
@@ -652,9 +652,13 @@ def convert(gelfile, args, **kwargs):   # (too many branches and statements, bah
     pngfnfmt_default = u'{gelfnroot}_{dr_rng}{N_existing}{ext}'
     if not has_PMT(basename) and info.get('pmt'):
         pngfnfmt_default = u'{gelfnroot}_{pmt}V_{dr_rng}{N_existing}{ext}'
+
+    ## Make pngfilename ##
     pngfnfmt = args.get('pngfnfmt', pngfnfmt_default)
+    yamlfnroot = os.path.splitext(os.path.basename(yamlfile))[0] if yamlfile else args.get('yamlfile', '')
+    lanefnroot = os.path.splitext(os.path.basename(yamlfile))[0] if lanefile else args.get('lanefile', '')
     pngfilename = pngfnfmt.format(gelfnroot=basename, pmt=info['pmt'], dr_rng=rng,
-                                  lanefile=args.get('lanefile', ''), yamlfile=args.get('yamlfile', ''),
+                                  lanefnroot=lanefnroot, yamlfnroot=yamlfnroot,
                                   N_existing=N_existing, ext=ext)
 
     # The 'pngfile' in args is relative to the gelfile,
