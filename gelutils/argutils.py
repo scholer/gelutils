@@ -22,6 +22,7 @@ Common module for parsing and handling arguments.
 
 
 """
+import os
 import argparse
 from itertools import chain
 
@@ -47,6 +48,13 @@ def make_parser(prog='gelannotator'):
     else:
         ap.add_argument('gelfile')
 
+
+    # testing and logging config:
+    #parser.add_argument('--dryrun', '-n', action="store_true", help="Dry-run. Do not actually do anything.")
+    ap.add_argument('--verbose', '-v', action='count', help="Logging level.")
+    ap.add_argument('--loglevel', default='INFO', help="Logging level.")
+    ap.add_argument('--logtofile', help="Write log output to file rather than console.")
+    ap.add_argument('--disable-logging', dest='disable_logging', action='store_true', help="Disable logging system.")
 
     ## For geltransformer -- also nice for gel annotator
 
@@ -75,6 +83,8 @@ def make_parser(prog='gelannotator'):
     # Format for png file: Note that {ext} includes the dot in '.png'
     ap.add_argument('--pngfnfmt', default="{gelfnroot}_{dr_rng}{N_existing}{ext}", help="How to format the png filename (if created).")
     ap.add_argument('--pngmode', default='L', help="PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit.")
+
+    ap.add_argument('--filename_substitution', nargs=2, help="Substitute x with y in output filename.")
 
     ap.add_argument('--rotate', type=float, help="Angle to rotate gel (counter-clockwise).")
     ap.add_argument('--rotateexpands', action='store_true', default=None,
@@ -106,6 +116,9 @@ def make_parser(prog='gelannotator'):
         ap.add_argument('--textfmt', help="How to format the lane annotations, e.g. '{idx} {name}'. Format keys include: idx, name")
         ap.add_argument('--laneidxstart', help="Change the start number of the {idx} value of lane annotations.")
 
+        default_config = os.path.normpath(os.path.expanduser("~/.config/gelutils/gelannotator.yaml"))
+        ap.add_argument('--default_config', default=default_config,
+                        help="Load default config from this file. Can be considered a kind of yamlfile template.")
         ap.add_argument('--yamlfile', help="Load options from YAML file, update and save.")
         ap.add_argument('--saveyamlto', help="Force saving yaml to this file when complete.")
         ap.add_argument('--no-update-yaml', dest='updateyaml', action='store_false', default=None, help="Do not update yaml settings after run to reflect the settings used.")

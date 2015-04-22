@@ -196,8 +196,29 @@ def printdict(d):
     except AttributeError:
         return d
 
+def getLoglevelInt(loglevel, defaultlevel=None):
+    """
+    Used to ensure that a value is a valid loglevel integer.
+    If loglevel is already an integer, or a string representation of an interger, this integer is returned.
+    If loglevel is a registrered level NAME (e.g. DEBUG, INFO, WARNING, ERROR), the correspoinding integer value is returned.
+    If anything fails, falls back to defaultlevel (if provided), or else logging.WARNING.
+    """
+    if defaultlevel is None:
+        defaultlevel = logging.WARNING
+    if loglevel is None:
+        return defaultlevel
+    try:
+        loglevel = int(loglevel)
+    except ValueError:
+        loglevel = getattr(logging, loglevel.upper(), defaultlevel)
+    except AttributeError:
+        # no loglevel argument defined by argparse
+        print("WARNING: Could not interpret loglevel '%s'" % loglevel)
+        loglevel = defaultlevel
+    return loglevel
 
-def init_logging(argsns=None, prefix="gelutils"):
+
+def init_logging(args=None, prefix="gelutils"):
     """
     Set up standard Labfluence logging system based on values provided by argsns, namely:
     - loglevel
@@ -206,6 +227,12 @@ def init_logging(argsns=None, prefix="gelutils"):
 
     """
 
+    if args is None:
+        args = {}
+    elif not isinstance(args, dict):
+        args = args.__dict__
+
+    loglevel = getLoglevelInt(args.get('loglevel'))
     # Examples of different log formats:
     #logfmt = "%(levelname)s: %(filename)s:%(lineno)s %(funcName)s() > %(message)s"
     #logfmt = "%(levelname)s %(name)s:%(lineno)s %(funcName)s() > %(message)s"
@@ -223,12 +250,19 @@ def init_logging(argsns=None, prefix="gelutils"):
     #    logfilenameformat = '{}_testing.log' if getattr(argsns, 'testing', False) else '{}_debug.log'
     #    logfilename = logfilenameformat.format(prefix)
     #    logfilepath = os.path.join(logfiledir, logfilename)
-    #logging.root.setLevel(logging.DEBUG)
+
+    #logging.root.setLevel(loglevel)
     #logstreamhandler = logging.StreamHandler()
     #logging.root.addHandler(logstreamhandler)
     #logstreamformatter = logging.Formatter(loguserfmt, logtimefmt)
     #logstreamhandler.setFormatter(logstreamformatter)
-    logging.basicConfig(level=logging.DEBUG, format=loguserfmt, datefmt=logtimefmt)    # filename='example.log',
+
+    logging.basicConfig(level=loglevel,         # Note: Python 2.7 forward, level can also be a e.g. 'DEBUG'.
+                        format=loguserfmt,
+                        datefmt=logtimefmt,
+                        #filename=args.get('logtofile'),
+                       )
+    logger.info("Logging system initialized with loglevel %s, logfile filename=%s", loglevel, args.get('logtofile'))
 
 
 

@@ -66,7 +66,7 @@ Text annotation options:
         You can use laneidxstart to change the idx start number (default: 0)
 
     * yoffset and ypadding are used to control the vertical position of the
-        lane annotations: Increasing yoffset will add more whitespace above the 
+        lane annotations: Increasing yoffset will add more whitespace above the
         gel, making more room for the annotations. ypadding controls the
         vertical space between the top of the gel and the annotations.
 
@@ -76,9 +76,9 @@ Text annotation options:
         and last annotation.
     * extraspacingright can be used to add a bit of extra space to the right,
         to avoid the rightmost annotations to be cropped.
-    * xspacing can be used to manually override the horizontal distance 
+    * xspacing can be used to manually override the horizontal distance
         between annotations.
-        
+
 
 
 Files and workflow options:
@@ -124,17 +124,36 @@ The primary dependencies are:
     * numpy  (to linearize GEL data)
     * svgwrite (to create svg file with annotations)
     * cairo, cairosvg and cairocffi  -- or alternatively just imagemagick  (to generate the last, annotated PNG image)
+    * six (for python 2 & 3 compatability)
 
 You should be able to generate most of these through your distribution's package manager.
 If it is not available through the package manager, use pip:
-    >>> pip search <package>        - to search for packages.       
+    >>> pip search <package>        - to search for packages.
     >>> pip install <package>       - to install a package.
 
 For generating the last PNG image with annotations, the best results are produced
 with cairosvg+cairocffi, and the Cairo toolkit.
 However, these can be a bit tricky to install, especially on windows.
 
-If you already have ImageMagick installed you might want to just use this.
-(ImageMagick  is one of the best and ubiquitous tools for converting and 
-transforming images - highly recommended.)
+Here are some useful links to get Cairo installed on Windows:
+* http://gtk-win.sourceforge.net/home/index.php/Main/Downloads
+* https://pythonhosted.org/cairocffi/overview.html
 
+Steps:
+# Download and install Alexander Shaduri’s GTK+ installer from above. (Make sure to let the installer set PATH variable.)
+# pip install cairocffi cairosvg
+
+If you get "OSError: cannot load library libcairo.so.2: error 0x7e":
+# Tried to install with compatability DLLs, tried to install in folder without spaces (C:\runtimes\),
+    tried to install in lib\ dir rather than bin\, nothing helps...
+    It could be an issue with compiler (VS 2007 vs 2010, for python 2 vs 3)
+# Try to edit all cairocffi\__init__.py so it only has the .dll name.
+# OSError: cannot load library C:\runtimes\GTK2-Runtime\lib\libcairo-2.dll: error 0xc1
+# Install pycairo from http://www.lfd.uci.edu/~gohlke/pythonlibs/#pycairo ?
+# Or tutorial: http://digitalpbk.blogspot.com.au/2012/03/installing-pygtk-pypango-and-pycairo-on.html
+# Download from http://www.gtk.org/download/win64.php  -- downloading the "all-in-one" zip did the job,
+## http://win32builder.gnome.org/gtk+-bundle_3.6.4-20131201_win64.zip - extract and add the \bin\ folder to your path.
+
+If you already have ImageMagick installed you might want to just use this.
+(ImageMagick  is one of the best and ubiquitous tools for converting and
+transforming images - highly recommended.)

@@ -291,7 +291,11 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         (x1, y1, x2, y2)
         (1230, 100, 2230, 800)
 
-    Returns processed image
+    Returns
+        linimg, info
+    where <linimg> is the processed image (linearized, cropped, rotated,
+    scaled, adjusted dynamic range, etc), and <info> is a dict with various
+    image information, e.g.
     """
     stdargs = dict(linearize=linearize, dynamicrange=dynamicrange, invert=invert, crop=crop, rotate=rotate, scale=scale)
     logger.debug("processimage() invoked with gelimg %s, args %s, stdargs %s and kwargs %s",
@@ -328,7 +332,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         scaninfo = ""
         scalefactor = None
     pmt = get_PMT(scaninfo)
-    info.update(dict(width=width, height=height, pmt=pmt, scalefactor=scalefactor))
+    info.update({'width': width, 'height': height, 'pmt': pmt, 'scalefactor': scalefactor, 'scaninfo': scaninfo})
     logger.debug("Gel scaninfo: %s", scaninfo)
     logger.debug("Image info dict: %s", info)
 
@@ -369,9 +373,10 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         #scale = float(args['scale'].strip('%'))/100 if isinstance(args['scale'], string_types) and '%' in args['scale'] \
         #        else args['scale']
         # convert fractional values (e.g. 0.05) to absolute pixels, if relevant:
+        ## TODO: There seems to be an issue with resize, similar to rotate. Changed ANTIALIAS to BILINEAR
         newsize = [ensure_numeric(scale, width), ensure_numeric(scale, height)]
         logger.info("Resizing image by a factor of %s (%s) to %s using resample=%s", scale, args['scale'], newsize, ANTIALIAS)
-        gelimg = gelimg.resize(newsize, resample=ANTIALIAS)
+        gelimg = gelimg.resize(newsize, resample=BILINEAR)
         width, height = widthheight = gelimg.size
 
 
@@ -620,6 +625,8 @@ def convert(gelfile, args, yamlfile=None, lanefile=None, **kwargs):   # (too man
     # Good to have gel info even if args is locked for updates:
     logger.debug("getting image file...")
     gelimg, info = get_gel(gelfile, args)
+    print("Loaded gelfile:", gelfile)
+    print("Gel info: ", ", ".join("{}: {}".format(k, v) for k, v in info.items()))
     # Use orgimg for info, e.g. orgimg.info and orgimg.tag
     #logger.debug("get_gel returned with ")
     logger.debug("gelimg extrema: %s", gelimg.getextrema())
@@ -660,6 +667,17 @@ def convert(gelfile, args, yamlfile=None, lanefile=None, **kwargs):   # (too man
     pngfilename = pngfnfmt.format(gelfnroot=basename, pmt=info['pmt'], dr_rng=rng,
                                   lanefnroot=lanefnroot, yamlfnroot=yamlfnroot,
                                   N_existing=N_existing, ext=ext)
+
+    if args.get('filename_substitution'):
+        try:
+            find, replace = args.get('filename_substitution')
+        except ValueError:
+            print("ERROR: filename_substitution must be a list of length 2. Will not perform filename_substitution.")
+        else:
+            if find in pngfilename:
+                logger.info("filename_substitution: replacing '%s' with '%s' in %s", find, replace, pngfilename)
+                pngfilename = pngfilename.replace(*args.get('filename_substitution'))
+                logger.debug("New pngfilename: %s", pngfilename)
 
     # The 'pngfile' in args is relative to the gelfile,
     # But when you save, it should be absolute:

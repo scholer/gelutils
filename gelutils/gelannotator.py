@@ -209,7 +209,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yaml
     gelfnroot = os.path.basename(gelfp_wo_ext)
     gelext = gelext.lower()
     yamlfnroot = os.path.splitext(os.path.basename(yamlfile))[0] if yamlfile else args.get('yamlfile', '')
-    lanefnroot = os.path.splitext(os.path.basename(yamlfile))[0] if lanefile else args.get('lanefile', '')
+    lanefnroot = os.path.splitext(os.path.basename(annotationsfile))[0] if annotationsfile else args.get('lanefile', '')
 
     # Load annotations:
     # locals().update(args) # I could have the args to the local namespace. However, it is better to keep the args in the args dict, so we can return an updated version of that. Also, changing locals() is not supported by pylint...

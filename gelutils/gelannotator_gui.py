@@ -56,6 +56,17 @@ from tkui.gelannotator_tkroot import GelAnnotatorTkRoot
 from utils import open_utf  # unicode writer.
 open = open_utf     # overwrite built-in, yes that's the point: pylint: disable=W0622
 
+def yaml_get(filepath, default=None):
+    """ Load yaml from filepath. Return default if file could not be loaded. """
+    try:
+        with open(filepath) as fd:
+            data = yaml.safe_load(fd)
+            logger.debug("yaml file loaded: %s", filepath)
+    except IOError:
+        logger.debug("Could not find/load yaml file %s", filepath)
+        data = default
+    return data
+
 
 class GelAnnotatorApp(object):   # pylint: disable=R0904
     """
@@ -108,6 +119,10 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.Args = args                # only saved to make init easier.
         logger.debug("GelAnnotatorApp initializing with args=%s", printdict(args))
         self.Root = tkroot = GelAnnotatorTkRoot(self, title="Gel Annotator GUI")
+        # self.AnnotationsText, self.YamlText
+        self.Root.bind_all("<Control-Return>", self.annotate)
+        self.Root.AnnotationsText.bind("<Control-Return>", self.annotate)
+        self.Root.YamlText.bind("<Control-Return>", self.annotate)
 
         ## We generally do not want gelfile to be in args after this point:
         gelfilepath = args.pop('gelfile', '')
@@ -196,6 +211,10 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         gelfile = self.get_gelfilepath()
         yamlfile_relative = self.get_yamlfilepath()
         fn = filepath or getabsfilepath(gelfile, yamlfile_relative)
+        default_config_file = args.pop('default_config', None)
+        default_config = yaml_get(default_config_file, {}) \
+                            if default_config_file else {}
+        yamlconfig = yaml_get(fn, default_config)
         try:
             with open(fn) as fd:
                 yamlconfig = yaml.safe_load(fd)
@@ -267,7 +286,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         if filepath_is_relative_to_gelfile:
             # Obtain absolute path if given path is relative to gelfile:
             gelfile = self.get_gelfilepath()
-            logger.debug("gelfile is: %s")
+            logger.debug("gelfile is: %s", gelfile)
             filepath = getabsfilepath(gelfile, filepath)
             logger.debug("Converted relative filepath to absolute using gelfile: %s", filepath)
         with open(filepath) as fd:
@@ -389,8 +408,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         # yaml and annotationsfile are relative to gelfile.
         self.save_yaml()
         self.save_annotations()
-        logger.debug("Annotating gel, using annotationsfile '%s' and yamlfile '%s'",
-                     annotationsfile, yamlfile)
+        logger.debug("Annotating gel '%s', using annotationsfile '%s' and yamlfile '%s'",
+                     gelfile, annotationsfile, yamlfile)
         dwg, svgfilename, args = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)  # pylint: disable=W0612
         self.update_status("SVG file generated: " + ("...." + svgfilename[-75:] if len(svgfilename) > 80 else svgfilename))
         # updated args are returned.
@@ -400,6 +419,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             self.load_yaml()
         logger.debug("Gel annotation complete!")
         # I wouldn't expect the annotations file to have changed.
+        # prevent Tkinter from propagating the event by returning the string "break"
+        return "break"
 
 
 
@@ -438,8 +459,7 @@ def set_workdir(args):
 
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
-    init_logging()
+
     # test:
     testing = False
     if testing:
@@ -449,4 +469,16 @@ if __name__ == '__main__':
         argns = parseargs('gui')
     cmdlineargs = argns.__dict__
     # set_workdir(args) Not needed, done by app during set_gelfilepath
+    # If you need to have debug log output for arg parsing, put this above parseargs:
+    logger.setLevel(logging.DEBUG)      # Set special, log loglevel for this main module
+    print("before init_logging...")
+    # Initializing logging doesn't cause immediate halt, nor does logging a debug msg.
+    # Yet, if I do init_logging, my exe will hang.
+    # Manual logging rather than basicConfig - issue persists...
+    logging_disabled = cmdlineargs.pop('disable_logging', False)
+    if not logging_disabled:
+        init_logging(cmdlineargs)
+    print("after init_logging...")
+    logger.debug("hejsa")
+    print("after first debug log msg...")
     main(cmdlineargs)

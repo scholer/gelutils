@@ -35,14 +35,15 @@ and png and svg files are saved, the omnipresent args is also saved.
 from __future__ import print_function
 
 try:
-    import Tkinter as tk
-    import ttk
-    #from tkFileDialog import askopenfilename
-except ImportError:
     # python 3:
     import tkinter as tk                                # pylint: disable=F0401
     from tkinter import ttk                             # pylint: disable=F0401
     #from tkinter.filedialog import askopenfilename      # pylint: disable=F0401
+except ImportError:
+    # python 2:
+    import Tkinter as tk        # pylint: disable=F0401
+    import ttk                  # pylint: disable=F0401
+    #from tkFileDialog import askopenfilename
 
 import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
@@ -180,6 +181,15 @@ Non-used:
         textinput.rowconfigure(0, weight=1)           # Make sure it expands vertically
         textinput.columnconfigure((0, 1), weight=1)
 
+        def loose_focus(event=None):
+            self.AnnotateBtn.focus_set()
+
+        def dont_propagate(event=None):
+            # prevent Tkinter from propagating the event by returning the string "break"
+            print("dont_propagate called...")
+            return "break"
+
+        self.bind_all("<Escape>", loose_focus)
         ### ANNOTATIONS FRAME ##
         annotationsframe = ttk.Frame(textinput)
         annotationsframe.grid(sticky='news', column=0, row=0)
@@ -187,9 +197,13 @@ Non-used:
         annotationsframe.columnconfigure(0, weight=1)
         lbl = ttk.Label(annotationsframe, text="Lane annotations file:")
         lbl.grid(sticky='w', column=0, row=0)
-        text = self.AnnotationsText = tk.Text(annotationsframe, width=40, height=20) # default: width=80, height=24   # pylint: disable=W0201
+        # undo ref: http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/text-undo-stack.html
+        # http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/text.html
+        text = self.AnnotationsText = tk.Text(annotationsframe, width=40, height=20, undo=True, maxundo=-1) # default: width=80, height=24   # pylint: disable=W0201
         text.grid(sticky='news', column=0, row=1)
         text.bind(sequence='<Control-s>', func=self.App.save_annotations)
+        # text.bind("<Control-Return>", dont_propagate)
+        # More cheat-sheet: http://stackoverflow.com/questions/16082243/how-to-bind-ctrl-in-python-tkinter
 
         ### YAML FRAME ##
         yamlframe = ttk.Frame(textinput)
@@ -198,9 +212,10 @@ Non-used:
         yamlframe.columnconfigure(0, weight=1)
         lbl = ttk.Label(yamlframe, text="Yaml (config) file:")
         lbl.grid(sticky='w', column=0, row=0)
-        text = self.YamlText = tk.Text(yamlframe, width=40, height=30) # pylint: disable=W0201
+        text = self.YamlText = tk.Text(yamlframe, width=40, height=30, undo=True, maxundo=-1) # pylint: disable=W0201
         text.grid(sticky='news', column=0, row=1)
         text.bind(sequence='<Control-s>', func=self.App.save_yaml)
+        #text.bind("<Control-Return>", dont_propagate)
 
         ### INFO FRAME  - displays some help to the user. ##
         infoframe = tk.Frame(mainframe, bd=1, relief='sunken')     # Specify starting width and height
@@ -217,7 +232,7 @@ Non-used:
         #infoframe.rowconfigure(0, weight=1)           # Make sure it expands vertically
         #infoframe.columnconfigure(0, weight=1)
 
-        self.bind(sequence='<Control-Return>', func=self.App.annotate)
+        #self.bind(sequence='<Control-Return>', func=self.App.annotate) # Binding at app-level instead with bind_all
 
         logger.debug("Init ui done.")
 

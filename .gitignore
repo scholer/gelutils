@@ -5,12 +5,6 @@
 __pycache__/
 *.py[cod]
 
-# Exclude plugins which are not part of the main/official repository:
-plugins/
-!plugins/test.py
-!plugins/autobreak/*.py[!c]
-!plugins/autobreak
-
 # C extensions
 *.so
 
@@ -60,4 +54,12 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Extra images
+res/icons/*.jpg
+res/icons/*.png
+res/icons/*.ai
+res/icons/*.svg
+res/icons/*/*
 
+
+res/icons/Version1

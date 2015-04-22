@@ -14,7 +14,8 @@
 ##
 ##    You should have received a copy of the GNU General Public License
 ##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# pylint: disable=W0142
+
+# pylint: disable=W0142,C0103
 
 """
 
@@ -77,7 +78,9 @@ def gel2png(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None,
     Returns filename of the saved png file.
     """
     #gelbasename, gelext = os.path.split(filepath)
-    img, args = convert(filepath, linearize=linearize, dynamicrange=dynamicrange, crop=crop, rotate=rotate, **kwargs) # pylint: disable=W0612
+    img, args = convert(filepath, None,
+                        linearize=linearize, dynamicrange=dynamicrange, crop=crop, rotate=rotate,
+                        **kwargs) # pylint: disable=W0612
     return args['pngfile']
 
 
@@ -139,16 +142,19 @@ def target2outputfilepath(inputfilepath, target, removeExt=True):
     """
     if os.path.splitext(target)[1]:
         # target is a filename with extension:
-        # above yields '' for 'png' and '.png', but not 'output.png'
+        # above yields '' for 'png' and '.png', but '.png' for 'output.png'
         outputfilepath = target
     else:
         # target is assumed to be a fileext:
         if not target[0] == '.':
+            # Ensure that target (file ext) starts with '.', e.g. '.png':
             target = '.' + target
         if removeExt:
+            # If input is 'myfile.bmp' and target is '.png', make outputfilepath 'myfile.png':
             outputfilepath = os.path.splitext(inputfilepath)[0] + target
         else:
-            outputfilepath + target
+            # Make outputfilepath myfile.bmp.png
+            outputfilepath = inputfilepath + target
     return outputfilepath
 
 
@@ -208,10 +214,12 @@ def cairo_convert(inputfilepath, target='png', removeExt=True, **kwargs):   # I 
     converters = {'.png': svg2png,
                   '.pdf': svg2pdf,
                   '.ps' : svg2ps
-                  }
+                 }
     convert_method = converters[ext]
+    logger.info("Converting %s to %s using method %s", inputfilepath,
+                 outputfilepath, convert_method)
     ret = convert_method(url=inputfilepath, write_to=outputfilepath)
-    logger.debug("%s(url=%s, write_to=%s) returned '%s'",
+    logger.info("%s(url=%s, write_to=%s) returned '%s'",
                  convert_method, inputfilepath, outputfilepath, ret)
     return outputfilepath
 
@@ -327,7 +335,8 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('function')
     ap.add_argument('inputfile')
-    ap.add_argument('--target', default='png')
+    ap.add_argument('--target', default='png', help="Target file/filetype.")
+    ap.add_argument('--loglevel', default=logging.WARNING, help="Logging level.")
 
     argns = ap.parse_args()
 
