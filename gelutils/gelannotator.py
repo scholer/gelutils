@@ -47,10 +47,10 @@ import argparse
 import webbrowser
 
 try:
-    import svgwrite     # pylint: disable=F0401
+    import svgwrite
 except ImportError:
     sys.path.append(os.path.normpath(r"C:\Users\scholer\Dev\src-repos\my-forked-repos\svgwrite"))
-    import svgwrite     # pylint: disable=F0401
+    import svgwrite
 
 import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.

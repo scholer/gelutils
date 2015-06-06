@@ -81,7 +81,7 @@ def make_parser(prog='gelannotator'):
     ap.add_argument('--overwrite', action='store_true', default=True, help="Overwrite existing png.")
     ap.add_argument('--no-overwrite', action='store_false', dest='overwrite', help="Do not overwrite existing png.")
     # Format for png file: Note that {ext} includes the dot in '.png'
-    ap.add_argument('--pngfnfmt', default="{gelfnroot}_{dr_rng}{N_existing}{ext}", help="How to format the png filename (if created).")
+    ap.add_argument('--pngfnfmt', default="{yamlfnroot}_{dr_rng}{N_existing}{ext}", help="How to format the png filename (if created).")
     ap.add_argument('--pngmode', default='L', help="PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit.")
 
     ap.add_argument('--filename_substitution', nargs=2, help="Substitute x with y in output filename.")
