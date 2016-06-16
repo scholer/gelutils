@@ -69,9 +69,6 @@ def make_parser(prog='gelannotator'):
                     If only one integer argument is given if is assumed to be the max, and min is set to 0.
                     If specifying 'auto', the software automatically try to determine a suitable contrast range.""")
     #ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
-    ap.add_argument('--crop', nargs=4, type=int, metavar=('left', 'upper', 'right', 'lower'), help="Crop image to this box (left upper right lower) aka (x1 y1 x2 y2), e.g. 500 100 1200 400.")
-    ap.add_argument('--cropfromedges', action='store_true', default=None,
-                    help="Crop <right> and <lower> specifies pixels from their respective edges instead of absolute coordinates from the upper left corner.")
 
     ap.add_argument('--invert', action='store_true', default=None, help="Invert gel data, so zero is white, high intensity black.")
     ap.add_argument('--no-invert', action='store_false', dest='invert', help="Do not invert image data. Zero will be black, high intensity white.")
@@ -86,11 +83,18 @@ def make_parser(prog='gelannotator'):
 
     ap.add_argument('--filename_substitution', nargs=2, help="Substitute x with y in output filename.")
 
+    ap.add_argument('--crop', nargs=4, type=int, metavar=('left', 'upper', 'right', 'lower'), help="Crop image to this box (left upper right lower) aka (x1 y1 x2 y2), e.g. 500 100 1200 400.")
+    ap.add_argument('--cropfromedges', action='store_true', default=None,
+                    help="Crop <right> and <lower> specifies pixels from their respective edges instead of absolute coordinates from the upper left corner.")
+
+    ap.add_argument('--scale', help="Scale the gel by this amount. Can be given as float (0.1, 2.5) or percentage (10%, 250%).")
+
     ap.add_argument('--rotate', type=float, help="Angle to rotate gel (counter-clockwise).")
     ap.add_argument('--rotateexpands', action='store_true', default=None,
                     help="When rotating, the image size expands to make room. False (default) means that the gel will keep its original size.")
 
-    ap.add_argument('--scale', help="Scale the gel by this amount. Can be given as float (0.1, 2.5) or percentage (10%, 250%).")
+    ap.add_argument('--flip_h', action='store_true', default=None, help="Flip image left-to-right.")
+    ap.add_argument('--flip_v', action='store_true', default=None, help="Flip image top-to-bottom.")
 
 
     if prog in ('gelannotator', 'gui'):

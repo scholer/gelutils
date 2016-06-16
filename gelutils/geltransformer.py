@@ -20,6 +20,9 @@
 
 Module for transforming gel images: converting, mapping, cropping, etc.
 
+Requires Pillow version 2.7 (NOT version 3.0 or above!)
+
+
 = CURRENT STATUS =
 
 It works, but I'm having problems linearizing the data because PIL wants
@@ -53,7 +56,11 @@ Options:
 == USING PIL ==
 
 To open with PIL:
-from PIL.TiffImagePlugin import OPEN_INFO
+    from PIL.TiffImagePlugin import OPEN_INFO, II
+    OPEN_INFO[(II, 0, 1, 1, (16,), ())] = ("I", "I;16")
+Then:
+    from PIL import Image
+    Image.open(fp)
 
 See tags with:
 >>> sorted(tifimg.tag.items())
@@ -121,12 +128,14 @@ from six import string_types # python 2*3 compatability
 import os
 import glob
 import re
-from itertools import cycle
+from itertools import cycle, chain
 
 #from functools import partial
 import numpy
+import PIL
 from PIL import Image#, TiffImagePlugin
-from PIL.Image import NEAREST, ANTIALIAS, BICUBIC, BILINEAR  # pylint: disable=W0611
+from PIL.Image import NEAREST, ANTIALIAS, BICUBIC, BILINEAR # pylint: disable=W0611
+from PIL.Image import FLIP_LEFT_RIGHT, FLIP_TOP_BOTTOM, ROTATE_90, ROTATE_180, ROTATE_270 # pylint: disable=W0611
 from PIL import ImageOps
 from PIL.TiffImagePlugin import OPEN_INFO, II
 # from PIL.TiffImagePlugin import BITSPERSAMPLE, SAMPLEFORMAT, EXTRASAMPLES, PHOTOMETRIC_INTERPRETATION, FILLORDER, OPEN_INFO
@@ -212,7 +221,6 @@ def get_bits_mode_dtype(mode):
     return bits, pil_mode, dtype
 
 
-from itertools import chain
 
 def get_PMT(img):
     """
@@ -291,6 +299,22 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         (x1, y1, x2, y2)
         (1230, 100, 2230, 800)
 
+    Args:
+        :gelimg: PIL Image file - not just a path.
+        :args:  Config dict with default args, overwritten by kwargs
+        :linearize: If True, will apply GEL-to-TIFF linearization (for e.g. Typhoon gel files)
+        :dynamicrange: Cut the data at these thresholds. Tuple of (lower, upper).
+        :invert: Invert data such that low data values appear whiter (high image values), i.e. "dark bands on white background".
+        :crop:  4-tuple of (left, top, right, bottom) used to crop the image.
+        :rotate: rotate image by this amount (degrees).
+        :scale: scale the image by this factor.
+        :kwargs: Further kwargs used to alter behaviour, e.g.:
+            :cropfromedges: Instead of crop <right> and <bottom> being absolute values (from upper left corner),
+                            crop the amount from the right and bottom edge.
+            :flip_h: Flip image horizontally left-to-right using Image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+            :flip_v: Flip image vertically top-to-bottom using Image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+            :transpose: (advanced) Transpose image using Image.transpose(:transpose:)
+
     Returns
         linimg, info
     where <linimg> is the processed image (linearized, cropped, rotated,
@@ -340,8 +364,23 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         # PIL resample filters:: NONE = NEAREST = 0; ANTIALIAS = 1; LINEAR = BILINEAR = 2; CUBIC = BICUBIC = 3
         # PIL/Pillow rotate only supports NEAREST, BILINEAR, BICUBIC resample filters.
         # Using BICUBIC resampling produces white/squashed pixels for saturated areas, so only using bilinear resampling.
+        logger.info("Rotating image by angle=%s degrees (resample=BILINEAR, expand=%s)",
+                    args['rotate'], args.get('rotateexpands'))
         gelimg = gelimg.rotate(angle=args['rotate'], resample=BILINEAR, expand=args.get('rotateexpands'))
-        width, height = widthheight = gelimg.size # Update, in case rotateexpands is True.
+        width, height = gelimg.size # Update, in case rotateexpands is True. # = widthheight 
+
+    if args.get('flip_h'):
+        # :flip_h: Flip image horizontally left-to-right using Image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+        logger.info("Flipping image horizontally using gelimg.transpose(FLIP_LEFT_RIGHT)")
+        gelimg = gelimg.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+    if args.get('flip_v'):
+        # :flip_v: Flip image vertically top-to-bottom using Image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+        logger.info("Flipping image vertically using gelimg.transpose(FLIP_TOP_BOTTOM)")
+        gelimg = gelimg.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+    if args.get('transpose'):
+        # :transpose: (advanced) Transpose image using Image.transpose(:transpose:)
+        logger.info("Transposing image using gelimg.transpose(%s)", args['transpose'])
+        gelimg = gelimg.transpose(args['transpose'])
 
     if args['crop']:
         # crop is 4-tuple of (left, upper, right, lower)
@@ -360,7 +399,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         else:
             logger.debug("Cropping image to: %s", (left, upper, right, lower))
             gelimg = gelimg.crop(crop)
-        width, height = widthheight = gelimg.size # Update
+        width, height = widthheight = gelimg.size # Update (for use with e.g. scale/resize)
 
     # Which order to do operations:
     # Rotate first, because we need as much information as possible, and if rotateexpands=True then we might get some white areas we want to trim with crop.
@@ -582,7 +621,10 @@ def get_gel(filepath, args):
 
 def convert(gelfile, args, yamlfile=None, lanefile=None, **kwargs):   # (too many branches and statements, bah) pylint: disable=R0912,R0915
     """
-    Converts gel file to png given the info in args.
+    Converts gel file to png given the info in args (using processimage to apply transformations).
+    Args:
+    :gelfile: <str> file path pointing to a gel file.
+    :args: forwarded to get_gel/processimage together with gelfile to load gelfile data and apply image transformations.
 
     Returns (image, info) tuple.
     Image is a PIL.Image.Image object of the gel after processing as specified by args.

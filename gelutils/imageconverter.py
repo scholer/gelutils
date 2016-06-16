@@ -22,7 +22,7 @@
 Module for converting images.
 
 
-How to convert svg to png?
+## How to convert svg to png?
 
 Use cairo / cairosvg / rsvg:
 * http://stackoverflow.com/questions/6589358/convert-svg-to-png-in-python
@@ -51,6 +51,30 @@ So...
 * http://stackoverflow.com/questions/8704407/how-do-you-install-pycairo-cairo-for-python-on-windows
 * http://www.lfd.uci.edu/~gohlke/pythonlibs/#pygtk
 * Installers unable to find my anaconda installation...
+
+On Windows, MSYS2 can be used to installing cairo (as well as GTK).
+
+As always, there is also Christian Gohlke's windows build at http://www.lfd.uci.edu/~gohlke/pythonlibs/
+ - yes, there is a pycairo wheel, which you as always can install with
+    pip install pycairo-1.10.0-cp34-none-win_amd64.whl
+ - Note: "The pycairo module was moved to gtk.cairo." ??
+
+
+## In conclusion:
+The best way to get cairo up and running on Windows is:
+    1. Find a libcairo-2.dll from *somewhere*,
+    2. make sure this dll is available on your path (PATH, not PYTHONPATH = sys.path),
+    3. then use this via cairocffi library.
+
+Note that if you have e.g. graphviz installed and available on your path, this could include
+libcairo-2.dll files that are NOT compatible with cairocffi.
+In this case, if the graphviz library occours BEFORE the library directory with the "good" libcairo-2.dll file,
+then cairocffi will try to load the bad dll. It will fail, without finding the "good" dll.
+To fix this, make sure the "good" libcairo-2.dll occours before the bad in your PATH environment variable.
+
+CairoSVG will preferably use cairocffi, but will fall back to regular pycairo cairo bindings, which may or may not work.
+
+Of course, on Linux getting cairo to work should not be as much of an issue...
 
 """
 
@@ -167,6 +191,75 @@ def cairosvg_available():
         logger.debug("Could not import cairosvg.")
         return False
 
+
+def debug_cairo():
+    """
+    Where to find libcairo-2.dll (or equivalent) for cairocffi:
+    * https://pythonhosted.org/cairocffi/overview.html#installing-cairo-on-windows
+    * http://www.gtk.org/download/ (Windows binaries are not currently available - but you can compile the source)
+    ** https://blogs.gnome.org/nacho/2015/02/19/building-gtk-3-with-msvc-2013/
+    ** https://blogs.gnome.org/nacho/2014/08/01/how-to-build-your-gtk-application-on-windows/
+    * http://gtk-win.sourceforge.net/home/
+    * https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer
+    * http://cairographics.org/releases/
+
+    Where to find original (but old) pycairo builds:
+    * http://cairographics.org/pycairo/
+
+    Alternatives:
+    * asmeurer has r-cairo bindings: anaconda.org/asmeurer/r-cairo
+    ** Requires R binding, goes Python -> R -> r-cairo -> cairo, and back.
+
+    """
+    # Test for cairocffi:
+    import cffi
+    import ctypes.util
+    import os, sys
+    from fnmatch import fnmatch
+    try:
+        import cairocffi
+        print("cairocffi library available (version %s / cairo version: %s)" %
+              (cairocffi.version, cairocffi.cairo_version_string()))
+    except ImportError as e:
+        print("Failed to import cairocffi library (cffi-based cairo binding):", e)
+        # cairocffi relies on the presence of a proper cairo library,
+        # e.g. libcairo-2.dll on Windows.
+        # This may be provided by GTK+ bundle (gtk_bundle_3.6.4-20131201_win64)
+        # All you have to do is to make sure this is on your PATH (os.environ['PATH'], not PYTHONPATH = sys.path)
+        from cffi import FFI
+        ffi = FFI()
+        # It may be convenient to patch cffi.dlopen() to include
+        # print("OSError during dlopen(%s): %s" % (path, e))
+        # instead of just pass after OSError.
+        # ["%scairo%s" % (prefix, postfix) for prefix in ("", "lib") for postfix in ('', '-2')]
+        suitable_lib_found = False
+        libname_alternatives = ['cairo', 'cairo-2', 'libcairo', 'libcairo-2']
+        for libname in libname_alternatives:
+            path = ctypes.util.find_library(libname)
+            if path:
+                try:
+                    lib = ffi.dlopen(path)
+                    print("%s: %s --> WORKS! (%s)" % (libname, path, lib))
+                    suitable_lib_found = True
+                except OSError as e:
+                    print("%s: %s --> FAIL! (%s)" % (libname, path, e))
+            else:
+                print("%s: (Not found)" % (libname,))
+        if not suitable_lib_found:
+            print("\nManually looking for cairo .dll for cffi binding:")
+            paths = [os.path.abspath(pth) for pth in sys.path if os.path.isdir(pth)] # Nope, not sys.path, but PATH
+            paths = [os.path.abspath(pth) for pth in os.environ['path'].split(";") if os.path.isdir(pth)]
+            print("\n".join("%s <- %s" % (p, elem)
+                            for p in paths for elem in os.listdir(p)
+                            #if any(fnmatch(elem, "*%s*.dll" % alt) for alt in libname_alternatives)))
+                            if any(elem == ("%s.dll" % alt) for alt in libname_alternatives)))
+    try:
+        import cairo
+        print("Original pycairo bindings available for cairo (version %s)" % cairo.version)
+    except ImportError as e:
+        print("Could not import pycairo library (original cairo binding):", e)
+
+
 def cairo_available():
     """ Probes which 'cairo' modules is available. Obsolete. """
     available = []
@@ -203,6 +296,8 @@ def cairo_convert(inputfilepath, target='png', removeExt=True, **kwargs):   # I 
     Raises RuntimeError if no cairo library is available.
     """
     if not cairosvg_available():
+        print("Cairosvg not available... debugging cairo...")
+        debug_cairo()
         raise RuntimeError("Cairo library not available.")
 
     from cairosvg import svg2png, svg2pdf, svg2ps       # pylint: disable=E0611,W0621
@@ -334,7 +429,7 @@ if __name__ == '__main__':
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument('function')
-    ap.add_argument('inputfile')
+    ap.add_argument('inputfiles', nargs="+")
     ap.add_argument('--target', default='png', help="Target file/filetype.")
     ap.add_argument('--loglevel', default=logging.WARNING, help="Logging level.")
 
@@ -343,4 +438,5 @@ if __name__ == '__main__':
     functions = {'svg2png' : svg2png,
                  'convertgel': gel2png}
 
-    functions[argns.function](argns.inputfile, target=argns.target)
+    for input_fn in argns.inputfiles:
+        functions[argns.function](input_fn, target=argns.target)

@@ -1,5 +1,6 @@
 six
 PIL
+Pillow=2.7
 yaml
 swgwrite
 numpy

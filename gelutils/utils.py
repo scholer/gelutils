@@ -220,7 +220,7 @@ def getLoglevelInt(loglevel, defaultlevel=None):
 
 def init_logging(args=None, prefix="gelutils"):
     """
-    Set up standard Labfluence logging system based on values provided by argsns, namely:
+    Set up standard logging system based on values provided by argsns, namely:
     - loglevel
     - logtofile
     - testing
@@ -260,7 +260,7 @@ def init_logging(args=None, prefix="gelutils"):
     logging.basicConfig(level=loglevel,         # Note: Python 2.7 forward, level can also be a e.g. 'DEBUG'.
                         format=loguserfmt,
                         datefmt=logtimefmt,
-                        #filename=args.get('logtofile'),
+                        filename=args.get('logtofile'),
                        )
     logger.info("Logging system initialized with loglevel %s, logfile filename=%s", loglevel, args.get('logtofile'))
 
