@@ -367,7 +367,7 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         logger.info("Rotating image by angle=%s degrees (resample=BILINEAR, expand=%s)",
                     args['rotate'], args.get('rotateexpands'))
         gelimg = gelimg.rotate(angle=args['rotate'], resample=BILINEAR, expand=args.get('rotateexpands'))
-        width, height = gelimg.size # Update, in case rotateexpands is True. # = widthheight 
+        width, height = gelimg.size # Update, in case rotateexpands is True. # = widthheight
 
     if args.get('flip_h'):
         # :flip_h: Flip image horizontally left-to-right using Image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
@@ -394,9 +394,15 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         #crop = [int(widthheight[i % 2]*x) if x < 1 else x for i, x in enumerate(crop)]
         left, upper, right, lower = crop = ensure_numeric(args['crop'], cycle([width, height]))
         if args.get('cropfromedges'):
+            if width-right <= left or height-lower <= upper:
+                raise ValueError("Wrong cropping values: width-right <= left or height-lower <= upper: "\
+                                 "%s-%s <= %s or %s-%s <= %s", width, right, left, height, lower, upper)
             logger.debug("Cropping image to: %s", (left, upper, width-right, height-lower))
             gelimg = gelimg.crop((left, upper, width-right, height-lower))
         else:
+            if right <= left or height-lower < upper:
+                raise ValueError("Wrong cropping values: right <= left or lower <= upper: "\
+                                 "%s <= %s or %s <= %s", right, left, lower, upper)
             logger.debug("Cropping image to: %s", (left, upper, right, lower))
             gelimg = gelimg.crop(crop)
         width, height = widthheight = gelimg.size # Update (for use with e.g. scale/resize)

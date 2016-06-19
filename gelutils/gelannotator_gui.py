@@ -410,8 +410,15 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.save_annotations()
         logger.debug("Annotating gel '%s', using annotationsfile '%s' and yamlfile '%s'",
                      gelfile, annotationsfile, yamlfile)
-        dwg, svgfilename, args = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)  # pylint: disable=W0612
-        self.update_status("SVG file generated: " + ("...." + svgfilename[-75:] if len(svgfilename) > 80 else svgfilename))
+        self.update_status("Converting and annotating gel...")
+        try:
+            dwg, svgfilename, args = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)  # pylint: disable=W0612
+        except Exception as e:
+            logger.info("Error annotate_gel:", e)
+            self.update_status("Error: %s" % e)
+            return
+        else:
+            self.update_status("SVG file generated: " + ("...." + svgfilename[-75:] if len(svgfilename) > 80 else svgfilename))
         # updated args are returned.
         if args.get('updateyaml', True):
             # Not sure if this should be done here or in gelannotator:
