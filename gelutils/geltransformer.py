@@ -123,7 +123,7 @@ SciPy alone:
 
 """
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 from six import string_types # python 2*3 compatability
 import os
 import glob
@@ -144,8 +144,9 @@ import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
-from utils import init_logging, printdict, getrelfilepath, getabsfilepath, setIfNone, ensure_numeric
-from argutils import parseargs, mergedicts
+# Local imports
+from .utils import init_logging, printdict, getrelfilepath, getabsfilepath, setIfNone, ensure_numeric
+from .argutils import parseargs, mergedicts
 
 # PIL.Image.Image.convert has a little info on image modes.
 # Adjust PIL so that it will open .GEL files:

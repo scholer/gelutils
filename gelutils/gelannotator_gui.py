@@ -32,7 +32,10 @@ and png and svg files are saved, the omnipresent args is also saved.
 
 """
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
+import os
+import yaml
+import webbrowser
 
 try:
     from tkFileDialog import askopenfilename
@@ -40,20 +43,16 @@ except ImportError:
     # python 3:
     from tkinter.filedialog import askopenfilename      # pylint: disable=F0401
 
-import os
-import yaml
-import webbrowser
-
 import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
-from gelannotator import annotate_gel, find_yamlfilepath, find_annotationsfilepath
-from argutils import parseargs, make_parser, mergedicts
-from utils import init_logging, getrelfilepath, getabsfilepath, printdict
-from tkui.gelannotator_tkroot import GelAnnotatorTkRoot
-
-from utils import open_utf  # unicode writer.
+# Local imports:
+from .gelannotator import annotate_gel, find_yamlfilepath, find_annotationsfilepath
+from .argutils import parseargs, make_parser, mergedicts
+from .utils import init_logging, getrelfilepath, getabsfilepath, printdict
+from .tkui.gelannotator_tkroot import GelAnnotatorTkRoot
+from .utils import open_utf  # unicode writer. # TODO: Is this only needed for python2?
 open = open_utf     # overwrite built-in, yes that's the point: pylint: disable=W0622
 
 def yaml_get(filepath, default=None):

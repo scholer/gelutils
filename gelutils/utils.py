@@ -26,15 +26,16 @@ Most of these originate from RsEnvironment module.
 
 import os
 from six import string_types
+import codecs
 import logging
 logger = logging.getLogger(__name__)
 
-import codecs
 
 # To override default open method to provide UTF support:
 # from utils import open_utf as open
 # or open = open_utf
 def open_utf(fp, mode='r'):
+    # TODO: Is this only needed for python2?
     return codecs.open(fp, mode, encoding='utf-8')
 
 

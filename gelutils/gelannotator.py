@@ -34,7 +34,7 @@ See:
 
 """
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 from six import string_types # python 2*3 compatability
 import os
 import sys
@@ -49,6 +49,7 @@ import webbrowser
 try:
     import svgwrite
 except ImportError:
+    # TODO: Determine why I made my own fork and what the difference is if any.
     sys.path.append(os.path.normpath(r"C:\Users\scholer\Dev\src-repos\my-forked-repos\svgwrite"))
     import svgwrite
 
@@ -56,12 +57,13 @@ import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
-from clipboard import get_clipboard
-from utils import gen_trimmed_lines, trimmed_lines_from_file, init_logging, \
+# Local imports:
+from .clipboard import get_clipboard
+from .utils import gen_trimmed_lines, trimmed_lines_from_file, init_logging, \
                   getabsfilepath, printdict, ensure_numeric
-from argutils import mergedicts, parseargs #, make_parser
-from geltransformer import convert
-from imageconverter import svg2png
+from .argutils import mergedicts, parseargs #, make_parser
+from .geltransformer import convert
+from .imageconverter import svg2png
 
 #from utils import open_utf  # not required for
 

@@ -78,7 +78,7 @@ Of course, on Linux getting cairo to work should not be as much of an issue...
 
 """
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 from six import string_types # python 2*3 compatability
 import os
 import sys
@@ -91,7 +91,8 @@ import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
-from geltransformer import convert
+# Local imports:
+from .geltransformer import convert
 
 
 

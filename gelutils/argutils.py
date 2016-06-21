@@ -27,7 +27,7 @@ import argparse
 from itertools import chain
 
 
-def make_parser(prog='gelannotator'):
+def make_parser(prog='gelannotator', defaults=None):
     """
 
     Default values if not specified are None for most arguments,
@@ -40,10 +40,13 @@ def make_parser(prog='gelannotator'):
     Because linearize is defined first, the default value of linearize will be False.
 
     """
+    if defaults is None:
+        defaults = {}
     ap = argparse.ArgumentParser()
 
 
     if prog == 'gui':
+        # For GUI app the user can browse for gel file so it is not mandatory
         ap.add_argument('gelfile', nargs='?')
     else:
         ap.add_argument('gelfile')
@@ -52,9 +55,14 @@ def make_parser(prog='gelannotator'):
     # testing and logging config:
     #parser.add_argument('--dryrun', '-n', action="store_true", help="Dry-run. Do not actually do anything.")
     ap.add_argument('--verbose', '-v', action='count', help="Logging level.")
-    ap.add_argument('--loglevel', default='INFO', help="Logging level.")
-    ap.add_argument('--logtofile', help="Write log output to file rather than console.")
-    ap.add_argument('--disable-logging', dest='disable_logging', action='store_true', help="Disable logging system.")
+    ap.add_argument('--loglevel', default=defaults.get('loglevel', 'INFO'), help="Logging level.")
+    ap.add_argument('--logtofile', default=defaults.get('logtofile'), help="Write log output to file rather than console.")
+
+    # If action='store_true', then default is False not None.
+    # Using default=None so None can be used to indicate a value that has not been specified.
+    ap.add_argument('--disable-logging', dest='disable_logging', action='store_true', default=None, help="Disable logging system.")
+    # When adding a dest already in place, the default is not overwritten.
+    ap.add_argument('--enable-logging', dest='disable_logging', action='store_false', help="Enable logging system.")
 
     ## For geltransformer -- also nice for gel annotator
 
@@ -151,16 +159,16 @@ def make_parser(prog='gelannotator'):
 
     return ap
 
-def parseargs(prog='gelannotator'):#, partial=False, mockstring=None):
+def parseargs(prog='gelannotator', argv=None, defaults=None):#, partial=False, mockstring=None):
     """
     Perform parsing.
     """
-    ap = make_parser(prog=prog)
+    ap = make_parser(prog=prog, defaults=defaults)
     #if partial:
     #    # parse_known_args will not raise errors if sys.argv arguments not recognized by this parser.
     #    # This is useful if you have several parts of the program parsing the arguments.
     #    return ap.parse_known_args()
-    argns = ap.parse_args()
+    argns = ap.parse_args(argv)
     if getattr(argns, 'dynamicrange'):
         if argns.dynamicrange[0] == 'auto':
             argns.dynamicrange = 'auto'
