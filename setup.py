@@ -1,4 +1,4 @@
-from distutils.core import setup, find_packages
+from distutils.core import setup
 
 
 long_description = """
