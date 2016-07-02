@@ -46,6 +46,7 @@ coverage.xml
 .pydevproject
 .ropeproject
 .projectfiles/
+.idea/
 
 # Django stuff:
 *.log

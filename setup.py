@@ -1,4 +1,4 @@
-from distutils.core import setup
+from distutils.core import setup, find_packages
 
 
 long_description = """
@@ -15,7 +15,9 @@ The application will export a SVG file with the cropped/rotated gel image, overl
 The SVG file can be automatically converted to a PNG, which is sometimes more convenient for presentation usage.
 
 
+
 FAQ: What are GEL images and who cares?
+---------------------------------------
 
 Gels are widely used in molecular biology and biotechnology for analyzing the size of biological molecules, e.g. DNA or
 proteins.
@@ -31,6 +33,9 @@ Bands from the a sample in one well will form a vertical "lane" as they travel t
 
 # setup.py example files and guides:
 # https://github.com/pypa/sampleproject/blob/master/setup.py
+# To release: (use pypitest instead of pypi to test the release on testpypi.python.org)
+# >>> python setup.py register -r pypi
+# >>> python setup.py sdist upload -r pypi
 
 
 setup(
@@ -38,12 +43,16 @@ setup(
     description="Annotate and convert GEL images (PAGE, agarose gels, etc.) acquired from e.g. Typhoon scanners, GelDocs or similar.",
     long_description=long_description,
     # long_description=open('README.txt').read(),
-    version='0.5.0',
-    packages=['gelutils',],
+    version='0.5.1',  # update: version, gelutils.__init__.__version__, and download_url.
+    packages=['gelutils', 'gelutils.tkui'], # List all packages (directories) to include in the source dist.
     url="https://github.com/scholer/gelutils",
+    download_url = 'https://github.com/scholer/gelutils/tarball/0.5.1',
     author="Rasmus S. Sorensen",
     author_email="rasmusscholer@gmail.com",
     license='GNU General Public License v3 (GPLv3)',
+    keywords=["GEL", "Image", "Annotation", "PAGE", "Agarose", "DNA", "Protein",
+              "SDS", "Gel electrophoresis", "Typhoon", "GelDoc",
+              "Molecular biology", "Biotechnology"],
 
     # scripts or entry points..
     # scripts=['bin/annotate_gel.py'],
@@ -67,7 +76,10 @@ setup(
         'svgwrite',
         'six',
         'pillow==2.7',
-        'numpy'
+        'numpy',
+        'cffi',      # Cairo is only required to convert SVG files to PNG
+        'cairocffi',
+        'cairosvg'
     ],
     classifiers=[
         # How mature is this project? Common values are

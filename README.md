@@ -63,8 +63,8 @@ Installation:
 Manual installation from source:
 * Download / git clone, go to the root directory. If you type ```ls``` (or ```dir``` on Windows) you should see README.md and REQUIREMENTS.txt files.
 * If you are using Python environments, activate the environment you want to use for gelutils.
-** To create new conda environment for gelutils, type: ```conda create -n gelutils --file REQUIREMENTS.txt```
-** If the packages are not all available from Anaconda, type: ```conda create -n gelutils six numpy pillow=2.7 pyyaml```, and use pip to install the rest.
+    * To create new conda environment for gelutils, type: ```conda create -n gelutils --file REQUIREMENTS.txt```
+    * If the packages are not all available from Anaconda, type: ```conda create -n gelutils six numpy pillow=2.7 pyyaml```, and use pip to install the rest.
 * Make sure you have all required dependencies, e.g. using ```pip install -r REQUIREMENTS.txt```.
 * Install using ```pip install -e .``` (the period at the end means "the current directory").
 
@@ -72,7 +72,8 @@ Manual installation from source:
 Command-line installation using pip:
 * This may be the easiest way to get and install gelutils.
 * First, if you are using environments, create a new environment for gelutils -- or activate an existing environment you want to install gelutils into.
-** If using Anaconda, create a conda environment that includes ```numpy, pyyaml, six, pillow=2.7```.
+    * If using Anaconda, create a conda environment that includes ```numpy, pyyaml, six, pillow=2.7```.
+    * Example: ```conda create -n gelutils six numpy pillow=2.7 pyyaml```
 * Then install gelutils using ```pip install gelutils```.
 
 
@@ -86,18 +87,18 @@ Tips and Tricks:
 ----------------
 
 
-**View/Open images after annotation:**
+### View/Open images after annotation: ###
 
 * If you set ```open_webbrowser=true``` in the AnnotateGel app, it will use the webbrowser module to view the annotated SVG images.
 * This works really well if e.g. Google Chrome is your default app for viewing SVG files.
 * If, however, you have Adobe Illustrator (or similar) installed, this might be the default App for SVG files.
 * This is not always optimal, since you will automatically see the latest version of the SVG file.
 * To change the default app for viewing SVG files:
-** OSX: Right-click an SVG file, select ```Get Info``` in the context menu, then under ```Open with``` select the proper app, then ''make sure you click the "Change All..." button to make the change apply for all SVG files (otherwise it will only apply to that one file).
-** Windows: Shift + right-click an SVG file, select ```Open with```, then "Select file / other...", then select the proper app. This will generally apply to all files of the same filetype.
+    * OSX: Right-click an SVG file, select ```Get Info``` in the context menu, then under ```Open with``` select the proper app, then ''make sure you click the "Change All..." button to make the change apply for all SVG files (otherwise it will only apply to that one file).
+    * Windows: Shift + right-click an SVG file, select ```Open with```, then "Select file / other...", then select the proper app. This will generally apply to all files of the same filetype.
 
 
-__Making AnnotateGel the default app for GEL and GAML files:__
+### Making AnnotateGel the default app for GEL and GAML files: ###
 
 Using AnnotateGel as the default app for opening GEL or GAML files is fairly easy on Windows. However, on OS X, it requires a little bit of work.
 * Before you proceed, determine where AnnotateGel was installed when you did ```pip install``` as the final installation step above. See the section below to determine where AnnotateGel is located.
