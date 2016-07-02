@@ -25,6 +25,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Make sure to use os.path.dirname(__file__) not just "." (current working directory)
+# Edit: It is better to install the dev package into your python environment using ```pip install -e /
+# https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs,
+# https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 print(sys.path)

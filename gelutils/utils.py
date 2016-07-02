@@ -231,17 +231,26 @@ def init_logging(args=None, prefix="gelutils"):
     if args is None:
         args = {}
     elif not isinstance(args, dict):
+        # Assume it is a NameSpace object returned by argparse.ArgumentParser.parse_args()
         args = args.__dict__
 
-    loglevel = getLoglevelInt(args.get('loglevel'))
+    loglevel = getLoglevelInt(args.pop('loglevel', None))
+    logtofile = args.pop('logtofile', None)
+    if logtofile:
+        logtofile = os.path.expanduser(logtofile)
+
     # Examples of different log formats:
     #logfmt = "%(levelname)s: %(filename)s:%(lineno)s %(funcName)s() > %(message)s"
     #logfmt = "%(levelname)s %(name)s:%(lineno)s %(funcName)s() > %(message)s"
     # loguserfmt = format of log displayed to the user; logfilefmt = format of log messages written to logfile.
-    loguserfmt = "%(asctime)s %(levelname)-5s %(name)20s:%(lineno)-4s%(funcName)20s() %(message)s"
-    #logfilefmt = '%(asctime)s %(levelname)-6s - %(name)s:%(lineno)s - %(funcName)s() - %(message)s'
+    logconsolefmt = "%(asctime)s %(levelname)-15s %(name)20s:%(lineno)-4s%(funcName)20s() %(message)s"
+    logfilefmt = '%(asctime)s %(levelname)-6s - %(name)s:%(lineno)s - %(funcName)s() - %(message)s'
     logdatefmt = "%Y%m%d-%H:%M:%S" # "%Y%m%d-%Hh%Mm%Ss"
     logtimefmt = "%H:%M:%S" # Output to user in console
+    logformat = args.pop('logformat', logfilefmt if logtofile else logconsolefmt)
+    logdatefmt = args.pop('logdatefmt', logdatefmt if logtofile else logtimefmt)
+
+
     #logfiledir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'logs')
     #if not os.path.exists(logfiledir):
     #    os.mkdir(logfiledir)
@@ -258,12 +267,11 @@ def init_logging(args=None, prefix="gelutils"):
     #logstreamformatter = logging.Formatter(loguserfmt, logtimefmt)
     #logstreamhandler.setFormatter(logstreamformatter)
 
-    logging.basicConfig(level=loglevel,         # Note: Python 2.7 forward, level can also be a e.g. 'DEBUG'.
-                        format=loguserfmt,
-                        datefmt=logtimefmt,
-                        filename=args.get('logtofile'),
-                       )
-    logger.info("Logging system initialized with loglevel %s, logfile filename=%s", loglevel, args.get('logtofile'))
+    logging.basicConfig(level=loglevel,
+                        format=logformat,
+                        datefmt=logdatefmt,
+                        filename=logtofile)
+    logger.info("Logging system initialized with loglevel %s, logfile filename=%s", loglevel, logtofile)
 
 
 

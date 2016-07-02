@@ -47,7 +47,8 @@ def make_parser(prog='gelannotator', defaults=None):
 
     if prog == 'gui':
         # For GUI app the user can browse for gel file so it is not mandatory
-        ap.add_argument('gelfile', nargs='?')
+        ap.add_argument('file', nargs='?')
+        ap.add_argument('--gelfile', help="If file is a YAML file, you can specify gelfile explicitly with --gelfile.")
     else:
         ap.add_argument('gelfile')
 
@@ -55,7 +56,7 @@ def make_parser(prog='gelannotator', defaults=None):
     # testing and logging config:
     #parser.add_argument('--dryrun', '-n', action="store_true", help="Dry-run. Do not actually do anything.")
     ap.add_argument('--verbose', '-v', action='count', help="Logging level.")
-    ap.add_argument('--loglevel', default=defaults.get('loglevel', 'INFO'), help="Logging level.")
+    ap.add_argument('--loglevel', default=defaults.get('loglevel'), help="Logging level.")
     ap.add_argument('--logtofile', default=defaults.get('logtofile'), help="Write log output to file rather than console.")
 
     # If action='store_true', then default is False not None.
@@ -77,6 +78,8 @@ def make_parser(prog='gelannotator', defaults=None):
                     If only one integer argument is given if is assumed to be the max, and min is set to 0.
                     If specifying 'auto', the software automatically try to determine a suitable contrast range.""")
     #ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
+
+    ap.add_argument('--remember-gelfile', action='store_true', default=None, help="Save gelfile in config for later use.")
 
     ap.add_argument('--invert', action='store_true', default=None, help="Invert gel data, so zero is white, high intensity black.")
     ap.add_argument('--no-invert', action='store_false', dest='invert', help="Do not invert image data. Zero will be black, high intensity white.")
@@ -128,9 +131,13 @@ def make_parser(prog='gelannotator', defaults=None):
         ap.add_argument('--textfmt', help="How to format the lane annotations, e.g. '{idx} {name}'. Format keys include: idx, name")
         ap.add_argument('--laneidxstart', help="Change the start number of the {idx} value of lane annotations.")
 
-        default_config = os.path.normpath(os.path.expanduser("~/.config/gelutils/gelannotator.yaml"))
-        ap.add_argument('--default_config', default=default_config,
-                        help="Load default config from this file. Can be considered a kind of yamlfile template.")
+        #default_config = os.path.normpath(os.path.expanduser("~/.config/gelutils/gelannotator.yaml"))
+        ap.add_argument('--config_template', #default=default_config,
+                        help="Use this yaml-formatted file as config template.")
+
+        ap.add_argument('--no-load-system-config', action="store_false", dest="load_system_config", help="Load standard system/user config.")
+        ap.add_argument('--load-system-config', action="store_true", help="Load standard system/user config.")
+
         ap.add_argument('--yamlfile', help="Load options from YAML file, update and save.")
         ap.add_argument('--saveyamlto', help="Force saving yaml to this file when complete.")
         ap.add_argument('--no-update-yaml', dest='updateyaml', action='store_false', default=None, help="Do not update yaml settings after run to reflect the settings used.")

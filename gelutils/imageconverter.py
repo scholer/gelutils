@@ -39,7 +39,7 @@ Using PIL?
     >>> from PIL import PSDraw
     See https://pillow.readthedocs.org/handbook/tutorial.html#postscript-printing
 
-So...
+So... Trying to get it working on Windows...
 * Installed cairosvg
 * Installed Pycairo     (http://cairographics.org/pycairo/)
 * Looking at cairocffi, https://pythonhosted.org/cairocffi/overview.html
@@ -58,6 +58,16 @@ As always, there is also Christian Gohlke's windows build at http://www.lfd.uci.
  - yes, there is a pycairo wheel, which you as always can install with
     pip install pycairo-1.10.0-cp34-none-win_amd64.whl
  - Note: "The pycairo module was moved to gtk.cairo." ??
+
+
+## Mac OS X
+
+* Install cairo using homebrew or similar
+* Install cffi in your python environment using pip (or conda if available)
+* Install cairocffi using pip (or conda if available)
+* Install cairosvg using pip (or conda if available)
+
+/usr/local/opt/libffi/lib
 
 
 ## In conclusion:
@@ -219,8 +229,9 @@ def debug_cairo():
     from fnmatch import fnmatch
     try:
         import cairocffi
-        print("cairocffi library available (version %s / cairo version: %s)" %
-              (cairocffi.version, cairocffi.cairo_version_string()))
+        print("cairocffi library available (version %s / VERSION %s / cairo version: %s)" %
+              (cairocffi.version, cairocffi.VERSION, cairocffi.cairo_version_string()))
+        print("cairocffi module:", cairocffi.__file__)
     except ImportError as e:
         print("Failed to import cairocffi library (cffi-based cairo binding):", e)
         # cairocffi relies on the presence of a proper cairo library,
@@ -247,13 +258,14 @@ def debug_cairo():
             else:
                 print("%s: (Not found)" % (libname,))
         if not suitable_lib_found:
-            print("\nManually looking for cairo .dll for cffi binding:")
+            print("\nManually looking for cairo .dll/.so for cffi binding:")
+            # TODO: You should add implicit paths, e.g. /usr/local/lib/ etc, on unix/OSX
             paths = [os.path.abspath(pth) for pth in sys.path if os.path.isdir(pth)] # Nope, not sys.path, but PATH
-            paths = [os.path.abspath(pth) for pth in os.environ['path'].split(";") if os.path.isdir(pth)]
+            paths = [os.path.abspath(pth) for pth in os.environ['PATH'].split(os.pathsep) if os.path.isdir(pth)] # path or PATH env var?
             print("\n".join("%s <- %s" % (p, elem)
                             for p in paths for elem in os.listdir(p)
                             #if any(fnmatch(elem, "*%s*.dll" % alt) for alt in libname_alternatives)))
-                            if any(elem == ("%s.dll" % alt) for alt in libname_alternatives)))
+                            if any(elem in ("%s.dll" % alt, "%s.so" % alt) for alt in libname_alternatives)))
     try:
         import cairo
         print("Original pycairo bindings available for cairo (version %s)" % cairo.version)
@@ -298,7 +310,7 @@ def cairo_convert(inputfilepath, target='png', removeExt=True, **kwargs):   # I 
     """
     if not cairosvg_available():
         print("Cairosvg not available... debugging cairo...")
-        debug_cairo()
+        # debug_cairo()  # Uncomment to do rudimentary path debugging of cairo installation.
         raise RuntimeError("Cairo library not available.")
 
     from cairosvg import svg2png, svg2pdf, svg2ps       # pylint: disable=E0611,W0621

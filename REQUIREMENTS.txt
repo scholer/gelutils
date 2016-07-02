@@ -1,7 +1,16 @@
+# python>=3
+# PIL
+Pillow==2.7
 six
-PIL
-Pillow=2.7
-yaml
-swgwrite
-numpy
-base64
+# yaml
+pyyaml
+# svgwrite is available on Anaconda using e.g. the bioconda channel: conda install -c bioconda svgwrite=1.1.6
+svgwrite
+# numpy used for array processing, e.g. during linearization.
+# numpy
+# base64 is included for python3+
+# base64 
+# Cairo/pycairo/cairocffi is required to convert svg images to png:
+cffi
+cairocffi
+cairosvg

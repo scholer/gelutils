@@ -67,8 +67,10 @@ from .imageconverter import svg2png
 
 #from utils import open_utf  # not required for
 
+default_yaml_ext = ".gaml"
 
-def find_yamlfilepath(gelfn, rel=False):
+
+def find_yamlfilepath(gelfn, rel=False, basedir=None):
     """
     Finds a suitable yaml filename depending on gel filename.
     The returned file is absolute;
@@ -77,7 +79,7 @@ def find_yamlfilepath(gelfn, rel=False):
     if rel:
         gelfn = os.path.basename(gelfn)         # "filename", without directory
     basename, _ = os.path.splitext(gelfn)
-    return basename+'.yml'
+    return basename + default_yaml_ext
 
 def find_annotationsfilepath(gelfn, rel=False):
     """
@@ -87,9 +89,9 @@ def find_annotationsfilepath(gelfn, rel=False):
 
     Update: modified get_annotation_fn_by_gel_fn to not raise StopIteration.
     """
-    fp = get_annotation_fn_by_gel_fn(gelfn, rel=rel)
-    logger.debug("Selected annotationsfile: %s", fp)
-    return fp
+    fn = get_annotation_fn_by_gel_fn(gelfn, rel=rel)
+    logger.debug("Selected annotationsfile: %s", fn)
+    return fn
 
 def get_annotation_fn_by_gel_fn(gelfn, rel=False, fallback=True):
     """
@@ -387,7 +389,7 @@ def ensurePNG(gelfile, args, yamlfile=None, lanefile=None):
 
 
 
-def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
+def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     """
     Outer wrapper to annotate gel.
         0) Load yaml and annotations files.
@@ -431,41 +433,60 @@ def annotate_gel(gelfile, args=None, yamlfile=None, annotationsfile=None):
             logger.debug("-- cwd is: %s", os.getcwd())
         except KeyError as e:
             logger.debug("KeyError: %s", e)
-    # update no
-    #args = mergeargs(argsns=args, argsdict=yamlsettings, excludeNone=True, precedence='argns')
+    if gelfile is None:
+        gelfile = args['gelfile']
 
+    if args.get('_primary_file_mode') == 'yaml':
+        args['gelfile'] = gelfile
+
+    #args = mergeargs(argsns=args, argsdict=yamlsettings, excludeNone=True, precedence='argns')
+    logger.debug("Ensuring that we have a PNG file to annotate using ensurePNG(%s, ...). If a PNG file is not available, or if args['reusepng'] is false, "\
+                 "then a PNG file will be generated from the GEL file.", gelfile)
     ensurePNG(gelfile, args, yamlfile=yamlfile, lanefile=annotationsfile)
 
-    ## MAKE SVG FILE WITH ANNOTATIONS: ##
+    # MAKE SVG FILE WITH ANNOTATIONS: #
     # annotationsfile is relative to gelfile; makeSVG takes care of it.
+    logger.debug("Making annotated SVG file using makeSVG(%s, ...)", gelfile)
     dwg, svgfilename = makeSVG(gelfile, args, annotationsfile=annotationsfile, yamlfile=yamlfile)
 
 
-    ## POST PROCESSING: ##
+    # Convert SVG to PNG: #
     if args.get('svgtopng'):
         # svg's base64 encoding is not as optimal as a native file but about 40-50% larger.
         # Thus, it might be nice to be able to export
         #print "PNG export not implemented. Requires Cairo."
         #svg2pngfn = args['svgtopngfile'] = svg2png(svgfilename)
+        logger.debug("Converting svg to png using svg2png(%s)", svgfilename)
         svg2pngfn = svg2png(svgfilename)    # not saving svgtopngfile in args...
     else:
         svg2pngfn = None
 
+    # Open file: #
     if args.get('openwebbrowser'):
-        webbrowser.open(os.path.abspath(svgfilename))
+        # On OS X we need to add "file://" in front of the file path for it to work
+        open_path = "file://" + os.path.abspath(svgfilename)
+        print("Opening annotated svg file %s with default application for that file type." % open_path)
+        logger.info("Opening annotated svg file %s", open_path)
+        webbrowser.open(open_path)
         if svg2pngfn:
-            webbrowser.open(os.path.abspath(svg2pngfn))
+            open_path = "file://" + os.path.abspath(svg2pngfn)
+            print("Opening annotated PNG file %s (converted from svg file) with default application for that file type." % open_path)
+            logger.info("Opening annotated PNG file %s", open_path)
+            webbrowser.open(open_path)
             # webbrowser.open will open with either default browser OR default application.
             # If you want to open with default application, use os.startfile on windows
             # subprocess.call(['open', filename]) on OSX, and
             # subprocess.call(['xdg-open', filename])  on POSIX (or possibly just use open)
             # c.f. http://stackoverflow.com/questions/434597/open-document-with-default-application-in-python
 
+    # Running ensurePNG and makeSVG can update args dict, e.g. with automatic dynamic range.
     if yamlfile and args.get('updateyaml', True):
         # Not sure if this should be done here or in gelannotator:
         logger.debug("Saving/updating args to yaml file: %s", yamlfile)
         # For Python3 it is important that the file mode is correct: binary vs str
         # yaml safe_dump produces a str output, so the file must be opened in str mode:
+        if args.get('remember_gelfile'):
+            args['gelfile'] = gelfile
         with open(yamlfile, 'w') as fd:
             # yaml.dump_all(documents, stream=None, Dumper=<class 'yaml.dumper.Dumper'>,
             # default_style=None, default_flow_style=None, canonical=None, indent=None, width=None,

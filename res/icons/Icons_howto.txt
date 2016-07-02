@@ -1,0 +1,12 @@
+
+
+
+Refs - general:
+
+
+Refs - Windows:
+
+Refs - OS X:
+* http://www.macworld.co.uk/how-to/mac-software/how-change-os-x-yosemites-icons-3597494/
+* http://apple.stackexchange.com/questions/369/can-i-change-the-application-icon-of-an-automator-script
+
