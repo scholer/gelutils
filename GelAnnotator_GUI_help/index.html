@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Rasmus S. Sorensen">
+  
+  <title>GUI User Guide - Gelutils</title>
+  
+
+  <link rel="shortcut icon" href="../img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../css/highlight.css">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "GUI User Guide";
+    var mkdocs_page_input_path = "GelAnnotator_GUI_help.md";
+    var mkdocs_page_url = "/GelAnnotator_GUI_help/";
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js"></script>
+  <script src="../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../js/highlight.pack.js"></script>
+  <script src="../js/theme.js"></script> 
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> Gelutils</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="..">Introduction</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Installation/">Installation</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Tutorial-GUI/">Tutorial - GUI</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Tutorial-Console/">Tutorial - Command line</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href="./">GUI User Guide</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#typical-usage-and-setup">TYPICAL USAGE AND SETUP</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#program-options">PROGRAM OPTIONS</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#dependencies">DEPENDENCIES:</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#download-and-install-alexander-shaduris-gtk-installer-from-above-make-sure-to-let-the-installer-set-path-variable">Download and install Alexander Shaduri�s GTK+ installer from above. (Make sure to let the installer set PATH variable.)</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#pip-install-cairocffi-cairosvg">pip install cairocffi cairosvg</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#tried-to-install-with-compatability-dlls-tried-to-install-in-folder-without-spaces-cruntimes41">Tried to install with compatability DLLs, tried to install in folder without spaces (C:\runtimes),</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#try-to-edit-all-cairocffi95_init__py-so-it-only-has-the-dll-name">Try to edit all cairocffi__init__.py so it only has the .dll name.</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#oserror-cannot-load-library-cruntimesgtk2-runtimeliblibcairo-2dll-error-0xc1">OSError: cannot load library C:\runtimes\GTK2-Runtime\lib\libcairo-2.dll: error 0xc1</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#install-pycairo-from-httpwwwlfduciedugohlkepythonlibspycairo">Install pycairo from http://www.lfd.uci.edu/~gohlke/pythonlibs/#pycairo ?</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#or-tutorial-httpdigitalpbkblogspotcomau201203installing-pygtk-pypango-and-pycairo-onhtml">Or tutorial: http://digitalpbk.blogspot.com.au/2012/03/installing-pygtk-pypango-and-pycairo-on.html</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#download-from-httpwwwgtkorgdownloadwin64php-downloading-the-all-in-one-zip-did-the-job">Download from http://www.gtk.org/download/win64.php  -- downloading the "all-in-one" zip did the job,</a></li>
+                
+                    <li><a class="toctree-l4" href="#httpwin32buildergnomeorggtk-bundle_364-20131201_win64zip-extract-and-add-the-bin-folder-to-your-path">http://win32builder.gnome.org/gtk+-bundle_3.6.4-20131201_win64.zip - extract and add the \bin\ folder to your path.</a></li>
+                
+            
+            </ul>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Config-Ref/">Configuration Reference</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Config-Examples/">Configuration Examples</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../about/">About</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Development_Notes/">Development</a>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">Gelutils</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>GUI User Guide</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github"> Edit on GitHub</a>
+        
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="typical-usage-and-setup">TYPICAL USAGE AND SETUP<a class="headerlink" href="#typical-usage-and-setup" title="Permanent link">&para;</a></h1>
+<p>The easiest way to invoke the Gel Annotator GUI is to create a shortcut
+on your desktop to one of the shell scripts in the bin/ folder,
+and then drag your gel files onto this shortcut.</p>
+<p>For windows you should use the .bat file in bin/, while
+on OS X and Linux you use the file ending with &lsquo;.sh&rsquo;.</p>
+<p>Gel files can be either GEL/TIF files, or PNG/JPG.
+The software will linearize GEL files by default.</p>
+<p>You write the lanes in the text input area to the left.</p>
+<p>The text area to the right shows a long list of options.</p>
+<p>But, before we go through these, it might be informative to go through
+the program&rsquo;s workflow:</p>
+<ol>
+<li>
+<p>First, if you have a GEL or TIF file, or if you have asked
+    the program to perform transformations (crop, rotate, scale, etc),
+    then the program will create a PNG file that it can use for annotation.
+    (If you are starting from a PNG file, this is simply used as-is.)</p>
+</li>
+<li>
+<p>Second, the program create a SVG file with the PNG file and the
+    annotations from the left text area.</p>
+</li>
+<li>
+<p>Third, the program can use the SVG file to create a
+    PNG image with annotations.</p>
+</li>
+</ol>
+<p>The third step is optional; the generated SVG file with annotations
+is perfectly fine for most purposes, except the file size is a little large.</p>
+<h1 id="program-options">PROGRAM OPTIONS<a class="headerlink" href="#program-options" title="Permanent link">&para;</a></h1>
+<p>Image related options:</p>
+<pre><code>* crop: &lt;left&gt;, &lt;top&gt;, &lt;right&gt;, &lt;bottom&gt; to crop the gel.
+    if you set cropfromedges to true, right and bottom are from the edge,
+    otherwise they are absolute coordinates.
+* rotate: &lt;angle&gt; will rotate the gel.
+    if you set rotateexpands to true, the image is expanded to accomodate
+    the full image after rotation.
+* dynamicrange: &lt;min&gt;, &lt;max&gt; will set the minimum and maximum values
+    of the dynamic range. Also known as adjusting the contrast ;-)
+
+* invert: If you set invert to true, the image is inverted. This is the default for GEL files.
+* linearize: perform linearization of GEL data. This is also default for GEL files.
+</code></pre>
+<p>Text annotation options:</p>
+<pre><code>* fontfamily, fontsize, fontweight: used to change the font (duh)
+
+* textrotation: &lt;angle&gt; controls the angle of the lane annotations.
+
+* textfmt: can be used to format the lane annotation string.
+    Default is "{name}", which just adds the annotation.
+    Changing this to e.g. "{idx:02} - {name}" would add the lane
+    number to the annotation: "01 - 10 bp marker".
+    You can use laneidxstart to change the idx start number (default: 0)
+
+* yoffset and ypadding are used to control the vertical position of the
+    lane annotations: Increasing yoffset will add more whitespace above the
+    gel, making more room for the annotations. ypadding controls the
+    vertical space between the top of the gel and the annotations.
+
+* xmargin, xspacing, extraspaceright are used to control the horizontal
+    position of the annotations.
+* xmargin: &lt;left&gt;, &lt;right&gt; controls the horizontal position of the first
+    and last annotation.
+* extraspacingright can be used to add a bit of extra space to the right,
+    to avoid the rightmost annotations to be cropped.
+* xspacing can be used to manually override the horizontal distance
+    between annotations.
+</code></pre>
+<p>Files and workflow options:</p>
+<pre><code>* openwebbrowser : open the generated files when complete.
+
+* pngfile : use this png file for annotations (instead of the GEL file).
+
+* reusepng : if set to true, the program re-uses the previously generated PNG file
+    if available, thus skipping the (somewhat slow) conversion of GEL data.
+
+* svgtopng : convert the annotated SVG file as PNG image.
+
+* annotationsfile : the file to read and write annotations to/from.
+
+* yamlfile : the file to read and write yaml settings to.
+</code></pre>
+<h1 id="dependencies">DEPENDENCIES:<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h1>
+<p>To run the program, you need Python. Python is very widely used and may already be
+present on your system. (Open a terminal and type &lsquo;python&rsquo; to check.)</p>
+<pre><code>* GelUtils have been developed for python 2.7
+* It might work on python 3+, but it is a pain to ensure that it runs on both python 2 and 3.
+</code></pre>
+<p>If it is not present, use your package manager to install it.
+If you are on Windows, you can either download the default python distribution
+or one of the &ldquo;fully featured&rdquo; distributions:
+    * <a href="http://python.org/download">python.org/download</a>       - The &ldquo;official&rdquo; distribution.
+    * <a href="http://continuum.io/downloads">continuum.io/downloads</a>    - Anaconda, my favorite distribution.
+    * <a href="http://enthought.com/downloads">enthought.com/downloads</a>   - Enthought Canopy, another good distribution.
+    * <a href="http://winpython.sourceforge.net">winpython.sourceforge.net</a> - WinPython is another, slightly older distribution.</p>
+<p>The primary dependencies are:
+    * yaml (pyyaml)
+    * Python Image Library, PIL - or Pillow.
+    * numpy  (to linearize GEL data)
+    * svgwrite (to create svg file with annotations)
+    * cairo, cairosvg and cairocffi  &ndash; or alternatively just imagemagick  (to generate the last, annotated PNG image)
+    * six (for python 2 &amp; 3 compatability)</p>
+<p>You should be able to generate most of these through your distribution&rsquo;s package manager.
+If it is not available through the package manager, use pip:
+    &gt;&gt;&gt; pip search <package>        - to search for packages.
+    &gt;&gt;&gt; pip install <package>       - to install a package.</p>
+<p>For generating the last PNG image with annotations, the best results are produced
+with cairosvg+cairocffi, and the Cairo toolkit.
+However, these can be a bit tricky to install, especially on windows.</p>
+<p>Here are some useful links to get Cairo installed on Windows:
+<em> <a href="http://gtk-win.sourceforge.net/home/index.php/Main/Downloads">http://gtk-win.sourceforge.net/home/index.php/Main/Downloads</a>
+</em> <a href="https://pythonhosted.org/cairocffi/overview.html">https://pythonhosted.org/cairocffi/overview.html</a></p>
+<p>Steps:</p>
+<h1 id="download-and-install-alexander-shaduris-gtk-installer-from-above-make-sure-to-let-the-installer-set-path-variable">Download and install Alexander Shaduri�s GTK+ installer from above. (Make sure to let the installer set PATH variable.)<a class="headerlink" href="#download-and-install-alexander-shaduris-gtk-installer-from-above-make-sure-to-let-the-installer-set-path-variable" title="Permanent link">&para;</a></h1>
+<h1 id="pip-install-cairocffi-cairosvg">pip install cairocffi cairosvg<a class="headerlink" href="#pip-install-cairocffi-cairosvg" title="Permanent link">&para;</a></h1>
+<p>If you get &ldquo;OSError: cannot load library libcairo.so.2: error 0x7e&rdquo;:</p>
+<h1 id="tried-to-install-with-compatability-dlls-tried-to-install-in-folder-without-spaces-cruntimes41">Tried to install with compatability DLLs, tried to install in folder without spaces (C:\runtimes),<a class="headerlink" href="#tried-to-install-with-compatability-dlls-tried-to-install-in-folder-without-spaces-cruntimes41" title="Permanent link">&para;</a></h1>
+<pre><code>tried to install in lib\ dir rather than bin\, nothing helps...
+It could be an issue with compiler (VS 2007 vs 2010, for python 2 vs 3)
+</code></pre>
+<h1 id="try-to-edit-all-cairocffi95_init__py-so-it-only-has-the-dll-name">Try to edit all cairocffi_<a href="http://_init__.py">_init__.py</a> so it only has the .dll name.<a class="headerlink" href="#try-to-edit-all-cairocffi95_init__py-so-it-only-has-the-dll-name" title="Permanent link">&para;</a></h1>
+<h1 id="oserror-cannot-load-library-cruntimesgtk2-runtimeliblibcairo-2dll-error-0xc1">OSError: cannot load library C:\runtimes\GTK2-Runtime\lib\libcairo-2.dll: error 0xc1<a class="headerlink" href="#oserror-cannot-load-library-cruntimesgtk2-runtimeliblibcairo-2dll-error-0xc1" title="Permanent link">&para;</a></h1>
+<h1 id="install-pycairo-from-httpwwwlfduciedugohlkepythonlibspycairo">Install pycairo from <a href="http://www.lfd.uci.edu/~gohlke/pythonlibs/#pycairo">http://www.lfd.uci.edu/~gohlke/pythonlibs/#pycairo</a> ?<a class="headerlink" href="#install-pycairo-from-httpwwwlfduciedugohlkepythonlibspycairo" title="Permanent link">&para;</a></h1>
+<h1 id="or-tutorial-httpdigitalpbkblogspotcomau201203installing-pygtk-pypango-and-pycairo-onhtml">Or tutorial: <a href="http://digitalpbk.blogspot.com.au/2012/03/installing-pygtk-pypango-and-pycairo-on.html">http://digitalpbk.blogspot.com.au/2012/03/installing-pygtk-pypango-and-pycairo-on.html</a><a class="headerlink" href="#or-tutorial-httpdigitalpbkblogspotcomau201203installing-pygtk-pypango-and-pycairo-onhtml" title="Permanent link">&para;</a></h1>
+<h1 id="download-from-httpwwwgtkorgdownloadwin64php-downloading-the-all-in-one-zip-did-the-job">Download from <a href="http://www.gtk.org/download/win64.php">http://www.gtk.org/download/win64.php</a>  &ndash; downloading the &ldquo;all-in-one&rdquo; zip did the job,<a class="headerlink" href="#download-from-httpwwwgtkorgdownloadwin64php-downloading-the-all-in-one-zip-did-the-job" title="Permanent link">&para;</a></h1>
+<h2 id="httpwin32buildergnomeorggtk-bundle_364-20131201_win64zip-extract-and-add-the-bin-folder-to-your-path"><a href="http://win32builder.gnome.org/gtk+-bundle_3.6.4-20131201_win64.zip">http://win32builder.gnome.org/gtk+-bundle_3.6.4-20131201_win64.zip</a> - extract and add the \bin\ folder to your path.<a class="headerlink" href="#httpwin32buildergnomeorggtk-bundle_364-20131201_win64zip-extract-and-add-the-bin-folder-to-your-path" title="Permanent link">&para;</a></h2>
+<p>If you already have ImageMagick installed you might want to just use this.
+(ImageMagick  is one of the best and ubiquitous tools for converting and
+transforming images - highly recommended.)</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../Config-Ref/" class="btn btn-neutral float-right" title="Configuration Reference">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../Tutorial-Console/" class="btn btn-neutral" title="Tutorial - Command line"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+      <p>GPLv3</p>
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../Tutorial-Console/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../Config-Ref/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+
+</body>
+</html>

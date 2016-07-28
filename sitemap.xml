@@ -35,7 +35,23 @@
 
     
     <url>
+     <loc>None/GelAnnotator_GUI_help/</loc>
+     <lastmod>2016-07-28</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
      <loc>None/Config-Ref/</loc>
+     <lastmod>2016-07-28</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>None/Config-Examples/</loc>
      <lastmod>2016-07-28</lastmod>
      <changefreq>daily</changefreq>
     </url>
