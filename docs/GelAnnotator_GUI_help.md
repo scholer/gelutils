@@ -1,7 +1,6 @@
 
-###########################
-# TYPICAL USAGE AND SETUP #
-###########################
+TYPICAL USAGE AND SETUP
+========================
 
 The easiest way to invoke the Gel Annotator GUI is to create a shortcut
 on your desktop to one of the shell scripts in the bin/ folder,
@@ -20,24 +19,24 @@ The text area to the right shows a long list of options.
 But, before we go through these, it might be informative to go through
 the program's workflow:
 
-    (1) First, if you have a GEL or TIF file, or if you have asked
-        the program to perform transformations (crop, rotate, scale, etc),
-        then the program will create a PNG file that it can use for annotation.
-        (If you are starting from a PNG file, this is simply used as-is.)
+ 1. First, if you have a GEL or TIF file, or if you have asked
+    the program to perform transformations (crop, rotate, scale, etc),
+    then the program will create a PNG file that it can use for annotation.
+    (If you are starting from a PNG file, this is simply used as-is.)
 
-    (2) Second, the program create a SVG file with the PNG file and the
-        annotations from the left text area.
+ 2. Second, the program create a SVG file with the PNG file and the
+    annotations from the left text area.
 
-    (3) Third, the program can use the SVG file to create a
-        PNG image with annotations.
+ 3. Third, the program can use the SVG file to create a
+    PNG image with annotations.
 
 The third step is optional; the generated SVG file with annotations
 is perfectly fine for most purposes, except the file size is a little large.
 
 
-#######################
-### PROGRAM OPTIONS ###
-#######################
+
+ PROGRAM OPTIONS
+====================
 
 Image related options:
 
@@ -99,9 +98,9 @@ Files and workflow options:
 
 
 
-######################
-#### DEPENDENCIES ####
-######################
+
+DEPENDENCIES:
+===============
 
 To run the program, you need Python. Python is very widely used and may already be
 present on your system. (Open a terminal and type 'python' to check.)
@@ -140,7 +139,7 @@ Here are some useful links to get Cairo installed on Windows:
 * https://pythonhosted.org/cairocffi/overview.html
 
 Steps:
-# Download and install Alexander Shaduri’s GTK+ installer from above. (Make sure to let the installer set PATH variable.)
+# Download and install Alexander Shaduriï¿½s GTK+ installer from above. (Make sure to let the installer set PATH variable.)
 # pip install cairocffi cairosvg
 
 If you get "OSError: cannot load library libcairo.so.2: error 0x7e":

@@ -27,7 +27,9 @@ import argparse
 from itertools import chain
 
 
-def make_parser(prog='gelannotator', defaults=None):
+def make_parser(prog='gelannotator', defaults=None,
+                description='Gelutils - Convert and Annotate scientific .GEL/TIFF files.',
+                **argparser_kwargs):
     """
 
     Default values if not specified are None for most arguments,
@@ -42,8 +44,10 @@ def make_parser(prog='gelannotator', defaults=None):
     """
     if defaults is None:
         defaults = {}
-    ap = argparse.ArgumentParser()
 
+    ap = argparse.ArgumentParser(prog="AnnotateGel" if prog.lower == 'gui' else prog,
+                                 description=description,
+                                 **argparser_kwargs)
 
     if prog == 'gui':
         # For GUI app the user can browse for gel file so it is not mandatory
@@ -52,113 +56,181 @@ def make_parser(prog='gelannotator', defaults=None):
     else:
         ap.add_argument('gelfile')
 
-
-    # testing and logging config:
-    #parser.add_argument('--dryrun', '-n', action="store_true", help="Dry-run. Do not actually do anything.")
-    ap.add_argument('--verbose', '-v', action='count', help="Logging level.")
-    ap.add_argument('--loglevel', default=defaults.get('loglevel'), help="Logging level.")
-    ap.add_argument('--logtofile', default=defaults.get('logtofile'), help="Write log output to file rather than console.")
+    # Testing and logging config:
+    # parser.add_argument('--dryrun', '-n', action="store_true", help="Dry-run. Do not actually do anything.")
+    ap.add_argument('--verbose', '-v', action='count', help="Verbosity.")
+    ap.add_argument('--loglevel', default=defaults.get('loglevel'),
+                    help="Logging level, e.g. 10, 30, or 'DEBUG', 'INFO.")
+    ap.add_argument('--logtofile', default=defaults.get('logtofile'),
+                    help="Write log output to file rather than console.")
 
     # If action='store_true', then default is False not None.
     # Using default=None so None can be used to indicate a value that has not been specified.
-    ap.add_argument('--disable-logging', dest='disable_logging', action='store_true', default=None, help="Disable logging system.")
+    ap.add_argument('--disable-logging', dest='disable_logging', action='store_true', default=None,
+                    help="Disable logging system.")
     # When adding a dest already in place, the default is not overwritten.
-    ap.add_argument('--enable-logging', dest='disable_logging', action='store_false', help="Enable logging system.")
+    ap.add_argument('--enable-logging', dest='disable_logging', action='store_false',
+                    help="Enable logging system.")
 
-    ## For geltransformer -- also nice for gel annotator
+    # For geltransformer -- also nice for gel annotator
 
-    ap.add_argument('--linearize', action='store_true', default=None, help="Linearize gel (if e.g. typhoon).")
-    ap.add_argument('--no-linearize', action='store_false', dest='linearize', help="Linearize gel (if e.g. typhoon).")
-    ap.add_argument('--dynamicrange', nargs='+', metavar=("minima", "maxima"), help="""
-                    Specify dynamic range (contrast). Valid argumets are '<min> <max>', '<max>' and 'auto'.
-                    <min> and <max> can be provided as absolute values e.g. '300 5000',
-                    or as percentage values, e.g. '0.1% 99%'.
-                    If percentage values are given, the dynamic range are set so the <min> of the pixels are below the range
-                    and 100%-<max> of the pixels are above the dynamic range.
+    ap.add_argument('--linearize', action='store_true', default=None,
+                    help="Linearize gel (if e.g. typhoon).")
+    ap.add_argument('--no-linearize', action='store_false', dest='linearize',
+                    help="Linearize gel (if e.g. typhoon).")
+    ap.add_argument('--dynamicrange', nargs='+', metavar=("MIN", "MAX"),
+                    help="""Specify dynamic range (contrast). Valid argumets are 'MIN MAX', 'MAX' and 'auto',
+                    e.g. '1000, 20000' to set range from 1000 to 20000,
+                    '20000' to set range from zero to 20000, and 'auto' to determine range automatically.
+                    MIN and MAX are usually provided as absolute values e.g. '300 5000',
+                    but can also be specified as percentage values, e.g. '0.1%% 99%%'.
+                    If percentage or decimal values are given, the dynamic range is set such that
+                    MIN %% of the pixels are below the lower range
+                    and (1.0 - MAX) of the pixels are above the dynamic range.
                     If only one integer argument is given if is assumed to be the max, and min is set to 0.
-                    If specifying 'auto', the software automatically try to determine a suitable contrast range.""")
-    #ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
+                    If specifying 'auto', the software will try to determine
+                    a suitable contrast range automatically.""".strip())
+    # ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
 
-    ap.add_argument('--remember-gelfile', action='store_true', default=None, help="Save gelfile in config for later use.")
+    ap.add_argument('--remember-gelfile', action='store_true', default=None,
+                    help="Save gelfile in config for later use.")
 
-    ap.add_argument('--invert', action='store_true', default=None, help="Invert gel data, so zero is white, high intensity black.")
-    ap.add_argument('--no-invert', action='store_false', dest='invert', help="Do not invert image data. Zero will be black, high intensity white.")
+    ap.add_argument('--invert', action='store_true', default=None,
+                    help="Invert gel data, so zero is white, high intensity black.")
+    ap.add_argument('--no-invert', action='store_false', dest='invert',
+                    help="Do not invert image data. Zero will be black, high intensity white.")
 
-    ap.add_argument('--convertgelto', default='png', help="Convert gel to this format.")
+    ap.add_argument('--convertgelto', default='png', metavar="png/jpg/etc",
+                    help="Convert gel to this format.")
     #ap.add_argument('--png', action='store_true', help="Save as png.")
-    ap.add_argument('--overwrite', action='store_true', default=True, help="Overwrite existing png.")
-    ap.add_argument('--no-overwrite', action='store_false', dest='overwrite', help="Do not overwrite existing png.")
+    ap.add_argument('--overwrite', action='store_true', default=True,
+                    help=""""Overwrite existing png file. If set to false, the program will
+                    re-use the any old PNG it finds instead of re-generating the PNG from the .GEL file.
+                    If you are playing around with e.g. the annotations, this can save a bit of computation.""")
+    ap.add_argument('--no-overwrite', action='store_false', dest='overwrite',
+                    help="Do not overwrite existing png file.")
     # Format for png file: Note that {ext} includes the dot in '.png'
-    ap.add_argument('--pngfnfmt', default="{yamlfnroot}_{dr_rng}{N_existing}{ext}", help="How to format the png filename (if created).")
-    ap.add_argument('--pngmode', default='L', help="PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit.")
+    ap.add_argument('--pngfnfmt', default="{yamlfnroot}_{dr_rng}{N_existing}{ext}", metavar="format_string",
+                    help="Customize the png filename using python string formatting.")
+    ap.add_argument('--pngmode', default='L',
+                    help="PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit.")
 
-    ap.add_argument('--filename_substitution', nargs=2, help="Substitute x with y in output filename.")
+    ap.add_argument('--fn_substitution', nargs=2, metavar=("FIND", "REPLACE"),
+                    help="Substitute x with y in output filename.")
 
-    ap.add_argument('--crop', nargs=4, type=int, metavar=('left', 'upper', 'right', 'lower'), help="Crop image to this box (left upper right lower) aka (x1 y1 x2 y2), e.g. 500 100 1200 400.")
+    ap.add_argument('--crop', nargs=4, type=int, metavar=('LEFT', 'UPPER', 'RIGHT', 'LOWER'),
+                    help="""Crop image to this box (left upper right lower) aka (x1 y1 x2 y2),
+                    Values can be either pixel values [500, 100, 1200, 400],
+                    or fractional/percentage values [5%%, 3%%, 95%%, 0.9].
+                    Note: Yes, 0.9 is 90%%. If gel image is 1000 pixels wide, 0.9 or 90%% are equivalent to 900 pixels.
+                    OBS! Note that by default the values are interpreted as <strong>ABSOLUTE COORDINATE VALUES</strong>
+                    from the top, left pixel. If you want to change this behaviour such that the
+                    RIGHT and LOWER values are interpreted as the amount to crop away, e.g.
+                    'crop 12%% from the right edge', set ```cropfromedges``` to true. """)
     ap.add_argument('--cropfromedges', action='store_true', default=None,
-                    help="Crop <right> and <lower> specifies pixels from their respective edges instead of absolute coordinates from the upper left corner.")
+                    help="""If true, the crop values RIGHT and LOWER defined above
+                    specifies pixels from their respective edges
+                    instead of absolute coordinates from the upper left corner.
+                    Default: false.""")
 
-    ap.add_argument('--scale', help="Scale the gel by this amount. Can be given as float (0.1, 2.5) or percentage (10%, 250%).")
+    ap.add_argument('--scale', metavar="scalefactor",
+                    help=""""Scale the gel by this amount.
+                    Can be a single value for uniform scaling, or two values for different scaling in x vs y.
+                    Can be given as float (0.1, 2.5) or percentage (10%%, 250%%).""")
 
-    ap.add_argument('--rotate', type=float, help="Angle to rotate gel (counter-clockwise).")
+    ap.add_argument('--rotate', metavar="angle", type=float,
+                    help="Rotate gel image by this angle (counter-clockwise). Default: 0.")
     ap.add_argument('--rotateexpands', action='store_true', default=None,
-                    help="When rotating, the image size expands to make room. False (default) means that the gel will keep its original size.")
+                    help="""When rotating, the image size expands to make room.
+                    False (default) means that the gel will keep its original size.""")
 
-    ap.add_argument('--flip_h', action='store_true', default=None, help="Flip image left-to-right.")
-    ap.add_argument('--flip_v', action='store_true', default=None, help="Flip image top-to-bottom.")
+    ap.add_argument('--flip_h', action='store_true', default=None,
+                    help="Flip image horizontally left-to-right.")
+    ap.add_argument('--flip_v', action='store_true', default=None,
+                    help="Flip image vertically top-to-bottom.")
 
-
-    if prog in ('gelannotator', 'gui'):
+    if prog.lower() in ('gelannotator', 'gui'):
         # How to format svg filename:
         # Valid placeholders are: {pngfnroot}, {gelfnroot}, {ext}
         # Note that {ext} includes the dot in '.svg'
-        ap.add_argument('--svgfnfmt', default="{pngfnroot}_annotated{ext}", help="How to format the png filename (if created).")
-        ap.add_argument('--pngfile', help="Use this pngfile instead of the specified gelfile.")
-        ap.add_argument('--reusepng', action='store_true', default=None, help="Prefer png file over the specified gelfile.")
-        ap.add_argument('--no-reusepng', action='store_false', dest='reusepng', help="Do not use pngfile, even if it is specified.")
+        ap.add_argument('--svgfnfmt', default="{pngfnroot}_annotated{ext}", metavar="format_string",
+                        help="How to format the png filename (if created).")
+        ap.add_argument('--pngfile', metavar="filename",
+                        help="Use this pngfile instead of the specified gelfile.")
+        ap.add_argument('--reusepng', action='store_true', default=None,
+                        help="Prefer png file over the specified gelfile.")
+        ap.add_argument('--no-reusepng', action='store_false', dest='reusepng',
+                        help="Do not use pngfile, even if it is specified.")
 
-        ap.add_argument('--yoffset', help="Y offset (how far down the gel image should be).") #, default=100
-        ap.add_argument('--ypadding', help="Vertical space between gel image and annotations.") #, default=100
-        ap.add_argument('--xmargin', nargs=2, help="Margin (right and left).") # , default=(30, 40)
-        ap.add_argument('--xspacing', help="Force a certain x spacing.")
-        ap.add_argument('--xtraspaceright', help="Add additional padding/whitespace to the right (if the gel is not wide enought for the last annotation).")
+        ap.add_argument('--yoffset', metavar="int-or-fraction",
+                        help="Y offset (how far down the gel image should be).") #, default=100
+        ap.add_argument('--ypadding', metavar="int-or-fraction",
+                        help="Vertical space between gel image and annotations.") #, default=100
+        ap.add_argument('--xmargin', nargs=2, metavar=("left", "right"),
+                        help="Margin to the right and left of lane annotations to the outer edge of GEL image.") # , default=(30, 40)
+        ap.add_argument('--xspacing', metavar="int-or-fraction",
+                        help="Force a certain x spacing between lanes.")
+        ap.add_argument('--xtraspaceright', metavar="int-or-fraction",
+                        help="""Add additional padding/whitespace to the right side of the gel image.
+                        This is sometimes needed if the gel is not wide enough for the last lane annotation.""")
 
-        ap.add_argument('--textrotation', type=int, dest='textrotation', help="Angle to rotate text (counter-clockwise).")
-        ap.add_argument('--fontsize', type=int, help="Specify default font size.")
-        ap.add_argument('--fontfamily', help="Specify default font family, e.g. arial or MyriadPro.")
-        ap.add_argument('--fontweight', help="Font weight: normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | inherit.")
+        ap.add_argument('--textrotation', type=int, dest='textrotation', metavar="angle",
+                        help="Rotate lane annotations by this angle (counter-clockwise). Default: 70.")
+        ap.add_argument('--fontsize', type=int, metavar="SIZE (int)",
+                        help="Specify default font size, e.g. 12 or 16.")
+        ap.add_argument('--fontfamily',
+                        help="Specify default font family, e.g. arial or MyriadPro.")
+        ap.add_argument('--fontweight',
+                        help="""Font weight: normal | bold | bolder | lighter |
+                        100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | inherit.""")
 
-        ap.add_argument('--textfmt', help="How to format the lane annotations, e.g. '{idx} {name}'. Format keys include: idx, name")
-        ap.add_argument('--laneidxstart', help="Change the start number of the {idx} value of lane annotations.")
+        ap.add_argument('--textfmt', metavar="format_string",
+                        help="""How to format the lane annotations, e.g. '{idx} {name}'.
+                        Format keys include: idx, name. Default: '{name}'.""")
+        ap.add_argument('--laneidxstart', type=int,
+                        help="Change the start number of the {idx} format parameter of lane annotations.")
 
-        #default_config = os.path.normpath(os.path.expanduser("~/.config/gelutils/gelannotator.yaml"))
-        ap.add_argument('--config_template', #default=default_config,
+        ap.add_argument('--config_template', metavar="filename", #default=default_config,
                         help="Use this yaml-formatted file as config template.")
 
-        ap.add_argument('--no-load-system-config', action="store_false", dest="load_system_config", help="Load standard system/user config.")
-        ap.add_argument('--load-system-config', action="store_true", help="Load standard system/user config.")
+        ap.add_argument('--no-load-system-config', action="store_false", dest="load_system_config",
+                        help="Load standard system/user config.")
+        ap.add_argument('--load-system-config', action="store_true",
+                        help="Load standard system/user config.")
 
-        ap.add_argument('--yamlfile', help="Load options from YAML file, update and save.")
-        ap.add_argument('--saveyamlto', help="Force saving yaml to this file when complete.")
-        ap.add_argument('--no-update-yaml', dest='updateyaml', action='store_false', default=None, help="Do not update yaml settings after run to reflect the settings used.")
-        ap.add_argument('--update-yaml', dest='updateyaml', action='store_true', help="Update yaml settings after run to reflect the settings used.")
+        ap.add_argument('--yamlfile', metavar="filename",
+                        help="Load options from YAML file, update and save.")
+        ap.add_argument('--saveyamlto', metavar="filename",
+                        help="Force saving yaml to this file when complete.")
+        ap.add_argument('--no-update-yaml', dest='updateyaml', action='store_false', default=None,
+                        help="Do not update yaml settings after run to reflect the settings used.")
+        ap.add_argument('--update-yaml', dest='updateyaml', action='store_true',
+                        help="Update yaml settings after run to reflect the settings used.")
 
-        ap.add_argument('--embed', action='store_true', default=True, help="Embed image data in svg file. (default)")
-        ap.add_argument('--no-embed', dest='embed', action='store_false', help="Do not embed image data in svg file, link to the file instead. (default is to embed)")
+        ap.add_argument('--embed', action='store_true', default=True,
+                        help="Embed image data in svg file. (default)")
+        ap.add_argument('--no-embed', dest='embed', action='store_false',
+                        help="Do not embed image data in svg file, link to the file instead. (default is to embed)")
 
-        ap.add_argument('--annotationsfile', help="Load lane annotations from this file. If not specified, will try to guess the right file.")
-        ap.add_argument('--lineinputstyle', help="""This can be used to change how lines in the sample annotation file are interpreted.
+        ap.add_argument('--annotationsfile', metavar="filename",
+                        help="Load lane annotations from this file. If not specified, will try to guess the right file.")
+        ap.add_argument('--lineinputstyle', metavar="string-spec",
+                        help="""This can be used to change how lines in the sample annotation file are interpreted.
                         Default is to use all non-empty lines that does not begin with '#'.
-                        Set this to wikilist to only include lines that starts with either of #, *, -, +.""")
-        ap.add_argument('--lines_includeempty', help="Whether to include empty lines. Not applicable to 'wikilist' lineinputstyle (use blank lines starting with '#' in this case).")
+                        Set this to 'wikilist' to only include lines that starts with either of #, *, -, +.""")
+        ap.add_argument('--lines_includeempty', action="store_true",
+                        help="""Whether to include empty lines.
+                        Not applicable to 'wikilist' lineinputstyle (use blank lines starting with '#' in this case).""")
 
+        ap.add_argument('--openwebbrowser', action='store_true', default=None,
+                        help="Open annotated svg file in default webbrowser. Default: Do not open files.")
+        ap.add_argument('--no-openwebbrowser', action='store_false', dest='openwebbrowser',
+                        help="Do not open file in webbrowser.")
 
-        ap.add_argument('--openwebbrowser', action='store_true', default=None, help="Open annotated svg file in default webbrowser. (Default is not to.)")
-        ap.add_argument('--no-openwebbrowser', action='store_false', dest='openwebbrowser', help="Do not open file in webbrowser.")
-
-
-        ap.add_argument('--svgtopng', action='store_true', default=None, help="Save svg as png (requires cairo package).")
-        ap.add_argument('--no-svgtopng', action='store_false', dest='svgtopng', help="Do not save svg as png (requires cairo package).")
+        ap.add_argument('--svgtopng', action='store_true', default=None,
+                        help="Save svg as png (requires cairo package).")
+        ap.add_argument('--no-svgtopng', action='store_false', dest='svgtopng',
+                        help="Do not save svg as png (requires cairo package).")
 
 
     #xmargin=(40, 30), xspacing=None, yoffset=100

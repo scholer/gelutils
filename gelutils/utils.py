@@ -25,6 +25,7 @@ Most of these originate from RsEnvironment module.
 """
 
 import os
+import sys
 from six import string_types
 import codecs
 import logging
@@ -32,11 +33,14 @@ logger = logging.getLogger(__name__)
 
 
 # To override default open method to provide UTF support:
-# from utils import open_utf as open
-# or open = open_utf
-def open_utf(fp, mode='r'):
-    # TODO: Is this only needed for python2?
-    return codecs.open(fp, mode, encoding='utf-8')
+if sys.version_info.major == 2:
+    # Note: codecs.open, and Python 2 open builtin, doesn't support all kwargs that python3 open does, e.g. newline.
+    def open_utf(fp, mode='r', encoding='utf-8'):
+        return codecs.open(fp, mode, encoding=encoding)
+else:
+    # For python3 use builtin open which natively supports utf-8 and encoding keyword:
+    # Note: python3.open() uses locale.getpreferredencoding(False) to determine default encoding!
+    open_utf = open
 
 
 def ensure_numeric(inval, scalefactor=None, sf_lim=2, converter=None):
@@ -103,6 +107,7 @@ def getfilepath(gelfilepath, otherfilepath):
     logger.warning("Using deprechated getfilepath method!")
     return getabsfilepath(gelfilepath, otherfilepath)
 
+
 def getabsfilepath(gelfilepath, otherfilepath):
     """
     Try to ensure that otherfilepath is a proper file path.
@@ -150,6 +155,7 @@ def getabsfilepath(gelfilepath, otherfilepath):
         return os.path.join(gelfiledir, otherfilepath)
     return os.path.normpath(otherfilepath)
 
+
 def getrelfilepath(gelfilepath, otherfilepath):
     """
     Get otherfilepath relative to gelfilepath.
@@ -186,16 +192,13 @@ def getrelfilepath(gelfilepath, otherfilepath):
     return os.path.relpath(otherfilepath, start=geldirpath)
 
 
-
-
-
-
 def printdict(d):
     """ Returns a string of d with sorted keys. """
     try:
         return "{"+", ".join("{}: {}".format(repr(k), repr(v)) for k, v in sorted(d.items())) +"}"
     except AttributeError:
         return d
+
 
 def getLoglevelInt(loglevel, defaultlevel=None):
     """
@@ -274,7 +277,6 @@ def init_logging(args=None, prefix="gelutils"):
     logger.info("Logging system initialized with loglevel %s, logfile filename=%s", loglevel, logtofile)
 
 
-
 def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None, includeempty=False):
     """
     This is sort of the inverse of gen_trimmed_lines, it returns
@@ -313,6 +315,7 @@ def gen_trimmed_lines(lines, commentchar='#', commentmidchar=None, includeempty=
         return noncommentlines
     return gen_stripped_nonempty_lines(noncommentlines)
 
+
 def gen_stripped_nonempty_lines(lines):
     """
     Returns a generator of stripped, nonempty lines in <lines>.
@@ -322,6 +325,7 @@ def gen_stripped_nonempty_lines(lines):
     stripped = (line.strip() for line in lines)
     nonempty = (line for line in stripped if line)
     return nonempty
+
 
 def gen_noncomments_lines(lines, firstchar='#', midchar=None):
     """
@@ -338,7 +342,7 @@ def trimmed_lines_from_file(filepath, args=None):
     """
     Reads all non-comment parts of non-empty lines from file <filepath>,
     and returns these as a list, closing the file after loading the lines.
-    See textdata_util.gen_trimmed_lines doc for info on commenchar and commentmidchar.
+    See textdata_util.gen_trimmed_lines docs for info on commenchar and commentmidchar.
     Wow, I just realized
     """
     if args is None:
@@ -367,6 +371,7 @@ def setIfNone(targetdict, key, value):
     """ Update an entry in targetdict if either targetdict[key] is None or key not in targetdict. """
     if targetdict.get(key) is None:
         targetdict[key] = value
+
 
 def updateNoneValues(targetdict, updatedict):
     """ With all items in updatedict update targetdict ONLY IF targetdict[key] is None or key not in targetdict."""

@@ -11,6 +11,6 @@ svgwrite
 # base64 is included for python3+
 # base64 
 # Cairo/pycairo/cairocffi is required to convert svg images to png:
-# cffi
-# cairocffi
-# cairosvg
+cffi
+cairocffi
+cairosvg

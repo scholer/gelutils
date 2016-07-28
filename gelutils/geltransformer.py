@@ -120,7 +120,6 @@ SciPy alone:
 #   http://docs.scipy.org/doc/numpy/reference/generated/numpy.dtype.html
 #   http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html
 
-
 """
 
 from __future__ import print_function, absolute_import
@@ -361,6 +360,12 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
     logger.debug("Gel scaninfo: %s", scaninfo)
     logger.debug("Image info dict: %s", info)
 
+    # Which order to do operations:
+    # - rotate before cropping to reduce the white wedges from rotation:
+    # - Then crop, so cropping is relative to original image. But doesn't matter if using relative values...
+    # - Then flip/transpose
+    # - Then scale
+
     if args['rotate']:
         # PIL resample filters:: NONE = NEAREST = 0; ANTIALIAS = 1; LINEAR = BILINEAR = 2; CUBIC = BICUBIC = 3
         # PIL/Pillow rotate only supports NEAREST, BILINEAR, BICUBIC resample filters.
@@ -369,19 +374,6 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
                     args['rotate'], args.get('rotateexpands'))
         gelimg = gelimg.rotate(angle=args['rotate'], resample=BILINEAR, expand=args.get('rotateexpands'))
         width, height = gelimg.size # Update, in case rotateexpands is True. # = widthheight
-
-    if args.get('flip_h'):
-        # :flip_h: Flip image horizontally left-to-right using Image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
-        logger.info("Flipping image horizontally using gelimg.transpose(FLIP_LEFT_RIGHT)")
-        gelimg = gelimg.transpose(PIL.Image.FLIP_LEFT_RIGHT)
-    if args.get('flip_v'):
-        # :flip_v: Flip image vertically top-to-bottom using Image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
-        logger.info("Flipping image vertically using gelimg.transpose(FLIP_TOP_BOTTOM)")
-        gelimg = gelimg.transpose(PIL.Image.FLIP_TOP_BOTTOM)
-    if args.get('transpose'):
-        # :transpose: (advanced) Transpose image using Image.transpose(:transpose:)
-        logger.info("Transposing image using gelimg.transpose(%s)", args['transpose'])
-        gelimg = gelimg.transpose(args['transpose'])
 
     if args['crop']:
         # crop is 4-tuple of (left, upper, right, lower)
@@ -408,10 +400,20 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
             gelimg = gelimg.crop(crop)
         width, height = widthheight = gelimg.size # Update (for use with e.g. scale/resize)
 
-    # Which order to do operations:
-    # Rotate first, because we need as much information as possible, and if rotateexpands=True then we might get some white areas we want to trim with crop.
-    # scale before or after crop?
-    # - If using relative values, this shouldn't matter much...
+    # transform after cropping to make cropping coordinates be relative to original image (albeit after rotation)
+    if args.get('flip_h'):
+        # :flip_h: Flip image horizontally left-to-right using Image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+        logger.info("Flipping image horizontally using gelimg.transpose(FLIP_LEFT_RIGHT)")
+        gelimg = gelimg.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+    if args.get('flip_v'):
+        # :flip_v: Flip image vertically top-to-bottom using Image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+        logger.info("Flipping image vertically using gelimg.transpose(FLIP_TOP_BOTTOM)")
+        gelimg = gelimg.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+    if args.get('transpose'):
+        # :transpose: (advanced) Transpose image using Image.transpose(:transpose:)
+        logger.info("Transposing image using gelimg.transpose(%s)", args['transpose'])
+        gelimg = gelimg.transpose(args['transpose'])
+
     scale = args.get('scale')
     if scale:
         # convert percentage values to fractional, if relevant:

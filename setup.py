@@ -31,13 +31,6 @@ Bands from the a sample in one well will form a vertical "lane" as they travel t
 """
 
 
-# setup.py example files and guides:
-# https://github.com/pypa/sampleproject/blob/master/setup.py
-# To release: (use pypitest instead of pypi to test the release on testpypi.python.org)
-# >>> python setup.py register -r pypi
-# >>> python setup.py sdist upload -r pypi
-
-
 setup(
     name='gelutils',
     description="Annotate and convert GEL images (PAGE, agarose gels, etc.) acquired from e.g. Typhoon scanners, GelDocs or similar.",
@@ -63,8 +56,9 @@ setup(
     # Note: The entry points are stored in ./gelutils.egg-info/entry_points.txt, which is used by pkg_resources.
     entry_points={
         'console_scripts': [
+            # These should all be lower-case, else you may get an error when uninstalling:
             'gelannotator=gelutils.gelannotator:main',
-            'AnnotateGel_console=gelutils.gelannotator_gui:main',  # Run as console script for debugging.
+            'annotategel_debug=gelutils.gelannotator_gui:main',  # Run as console script for debugging.
         ],
         'gui_scripts': [
             'AnnotateGel=gelutils.gelannotator_gui:main',

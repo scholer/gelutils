@@ -45,29 +45,21 @@ from itertools import chain
 from PIL import Image
 import argparse
 import webbrowser
-
-try:
-    import svgwrite
-except ImportError:
-    # TODO: Determine why I made my own fork and what the difference is if any.
-    sys.path.append(os.path.normpath(r"C:\Users\scholer\Dev\src-repos\my-forked-repos\svgwrite"))
-    import svgwrite
-
+import svgwrite
 import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
 # Local imports:
 from .clipboard import get_clipboard
-from .utils import gen_trimmed_lines, trimmed_lines_from_file, init_logging, \
-                  getabsfilepath, printdict, ensure_numeric
+from .utils import (gen_trimmed_lines, trimmed_lines_from_file, init_logging,
+                    getabsfilepath, printdict, ensure_numeric)
 from .argutils import mergedicts, parseargs #, make_parser
 from .geltransformer import convert
 from .imageconverter import svg2png
+from .config import default_yaml_ext
 
-#from utils import open_utf  # not required for
 
-default_yaml_ext = ".gaml"
 
 
 def find_yamlfilepath(gelfn, rel=False, basedir=None):
@@ -81,44 +73,56 @@ def find_yamlfilepath(gelfn, rel=False, basedir=None):
     basename, _ = os.path.splitext(gelfn)
     return basename + default_yaml_ext
 
-def find_annotationsfilepath(gelfn, rel=False):
+
+def find_annotationsfilepath(filenames, rel=False, fallback=True):
     """
     Finds a suitable annotationsfile depending on gel filename.
+
+    Return the first, best candidate for an annotation file for the given gel file.
 
     The filepath is actual, not relative.
 
     Update: modified get_annotation_fn_by_gel_fn to not raise StopIteration.
     """
-    fn = get_annotation_fn_by_gel_fn(gelfn, rel=rel)
-    logger.debug("Selected annotationsfile: %s", fn)
-    return fn
-
-def get_annotation_fn_by_gel_fn(gelfn, rel=False, fallback=True):
-    """
-    Return the first, best candidate for an annotation file for the given gel file.
-    """
-    gelfiledir = os.path.dirname(gelfn)
-    gelfilebasename = os.path.basename(gelfn)       # gelfile, without directory
+    # gelfilebasename = os.path.basename(gelfn)       # gelfile, without directory
     #if gelfiledir:
     #    logger.debug('Changing dir to: %s', gelfiledir)
     #    os.chdir(gelfiledir)
-    annotationsfn = os.path.splitext(gelfn)[0]
+    logger.debug("basenames (before removing Nones and stripping file extensions): %s", filenames)
+    filenames = [os.path.splitext(fn)[0] for fn in filenames if fn is not None]
+    if not filenames:
+        raise ValueError("gelfn and yamlfn are both None; cannot derive annotationsfn")
+    fnroot = filenames[0]
+    # basedir = os.path.dirname(fnroot)
+    if fallback is True:
+        fallback = fnroot + '.annotations.txt'
+        if rel:
+            fallback = os.path.basename(fallback)
     # First search for files with a name similar to the gelfile, then search for standard annotation filenames:
-    search_ext = ("*.annotations.txt", "*.txt", "*.lanes.yml")
-    std_pats = ('samples.txt', 'annotations.txt')
-    search_pats = chain(*((annotationsfn+ext for ext in search_ext),
-                           (os.path.join(gelfiledir, stdfile) for stdfile in std_pats)))
-    search_pats = list(search_pats) # DEBUG
+    # use glob() or direct isfile()?
+    # - glob uses unix style wildcards - these includes bracket groups [1-9], so patterns with [SYBR Gold] won't work!
+    # search_ext = ("*.annotations.txt", "*.txt", "*.lanes.yml")
+    search_ext = [".annotations.txt", ".txt", ".lanes.yml"]
+    std_pats = ['samples.txt', 'annotations.txt']
+    glob_pats = [base+"*"+ext for base in filenames for ext in search_ext]
+    fn_cands = [base+ext for base in filenames for ext in search_ext] + std_pats  # direct fn matches
+    logger.debug("basenames: %s", filenames)
     logger.debug("search_ext: %s", search_ext)
-    logger.debug("search_pats: %s", search_pats)
-    if not fallback:
-        return next(fn for fn in chain(*(glob.glob(pat) for pat in search_pats)))
-    if rel:
-        fallback = os.path.basename(annotationsfn) + '.annotations.txt'
+    logger.debug("fn_pats: %s", fn_cands)
+    logger.debug("glob_pats: %s", glob_pats)
+    for fn_cand in fn_cands:
+        if os.path.isfile(fn_cand):
+            ann_fn = fn_cand
+            break
     else:
-        fallback = annotationsfn + '.annotations.txt'
-    logger.debug("Fallback is: %s", fallback)
-    return next((fn for fn in chain(*(glob.glob(pat) for pat in search_pats))), fallback)
+        try:
+            ann_fn = next(fn for fn in chain(*(glob.glob(pat) for pat in glob_pats)))
+        except StopIteration:
+            logger.debug("None of the file patterns in search_pats matched any file, using fallback: %s", fallback)
+            ann_fn = fallback
+    logger.debug("Selected annotationsfile: %s", ann_fn)
+    return ann_fn
+
 
 #def asterix_line_trimming(annotation_lines, remove_asterix='first_only', require_asterix=False):
 #    """
