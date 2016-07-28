@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Rasmus S. Sorensen">
+  
+  <title>Installation - Gelutils</title>
+  
+
+  <link rel="shortcut icon" href="../img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../css/highlight.css">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Installation";
+    var mkdocs_page_input_path = "Installation.md";
+    var mkdocs_page_url = "/Installation/";
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js"></script>
+  <script src="../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../js/highlight.pack.js"></script>
+  <script src="../js/theme.js"></script> 
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> Gelutils</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="..">Introduction</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href="./">Installation</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#gelutils-installation">Gelutils - Installation:</a></li>
+                
+                    <li><a class="toctree-l4" href="#command-line-installation-using-pip">Command-line installation using pip:</a></li>
+                
+                    <li><a class="toctree-l4" href="#install-gelutils-in-editable-mode">Install gelutils in editable mode:</a></li>
+                
+                    <li><a class="toctree-l4" href="#manual-installation-from-source">Manual installation from source:</a></li>
+                
+                    <li><a class="toctree-l4" href="#upgrading-gelutils">Upgrading Gelutils:</a></li>
+                
+                    <li><a class="toctree-l4" href="#python-installation">Python Installation:</a></li>
+                
+                    <li><a class="toctree-l4" href="#installation-troubleshooting">Installation - Troubleshooting:</a></li>
+                
+            
+            </ul>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Tutorial-GUI/">Tutorial - GUI</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Tutorial-Console/">Tutorial - Command line</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Config-Ref/">Configuration Options</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../about/">About</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Development_Notes/">Development</a>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">Gelutils</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Installation</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github"> Edit on GitHub</a>
+        
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="gelutils-installation">Gelutils - Installation:<a class="headerlink" href="#gelutils-installation" title="Permanent link">&para;</a></h1>
+<h3 id="command-line-installation-using-pip">Command-line installation using pip:<a class="headerlink" href="#command-line-installation-using-pip" title="Permanent link">&para;</a></h3>
+<ul>
+<li>This may be the easiest way to get and install gelutils.</li>
+<li>First, if you are using environments, create a new environment for gelutils &ndash; or activate an existing environment you want to install gelutils into.<ul>
+<li>If using Anaconda, create a conda environment that includes <code>numpy, pyyaml, six, pillow=2.7, cffi</code>.</li>
+<li>Example: <code>conda create -n gelutils six numpy pillow=2.7 pyyaml cffi</code></li>
+</ul>
+</li>
+<li>Then install gelutils using <code>pip install gelutils</code>.</li>
+</ul>
+<h3 id="install-gelutils-in-editable-mode">Install gelutils in editable mode:<a class="headerlink" href="#install-gelutils-in-editable-mode" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Activate/create environment for gelutils.</li>
+<li>Go to the folder where you want to place the gelutils package source.</li>
+<li>Install gelutils using <code>pip install -e git+<a href="https://github.com/scholer/gelutils">https://github.com/scholer/gelutils</a></code></li>
+</ol>
+<h3 id="manual-installation-from-source">Manual installation from source:<a class="headerlink" href="#manual-installation-from-source" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Download / git clone, go to the root directory. If you type <code>ls</code> (or <code>dir</code> on Windows) you should see <a href="http://README.md">README.md</a> and REQUIREMENTS.txt files.</li>
+<li>If you are using Python environments, activate the environment you want to use for gelutils.<ul>
+<li>To create new conda environment for gelutils, type: <code>conda create -n gelutils --file REQUIREMENTS.txt</code></li>
+<li>If the packages are not all available from Anaconda, type:
+<code>conda create -n gelutils six numpy pillow=2.7 pyyaml cffi</code>,
+and use pip to install the rest.</li>
+</ul>
+</li>
+<li>Make sure you have all required dependencies, e.g. using <code>pip install -r REQUIREMENTS.txt</code>.</li>
+<li>Install using <code>pip install -e .</code> (the period at the end means &ldquo;the current directory&rdquo;).</li>
+</ol>
+<h3 id="upgrading-gelutils">Upgrading Gelutils:<a class="headerlink" href="#upgrading-gelutils" title="Permanent link">&para;</a></h3>
+<p>To update gelutils to the newest version, activate the python environment where you installed gelutils (if any),
+then run: </p>
+<pre><code>pip install -U gelutils
+</code></pre>
+
+<h2 id="python-installation">Python Installation:<a class="headerlink" href="#python-installation" title="Permanent link">&para;</a></h2>
+<p>In general, I recommend using either Anaconda or a package manager to install Python and pip.
+Anaconda is available from <a href="https://www.continuum.io/downloads">here</a>.
+If you are already using a package manager (e.g. <a href="https://chocolatey.org/">chocolatey</a> on Windows),
+you may want to use your package manager to install Python.</p>
+<p>Inside your Python distribution you may want to have separate Python <strong>environments</strong>.
+<em>Why do you need &ldquo;environments&rdquo;?</em>
+ *  A: Some Python applications may require a very specific set of dependencies, which can sometimes be incompatible.
+    For example, Gelutils requires a specific version of Pillow, an image processing library.
+    Using the current version of Pillow, or a very old version, will give an error.
+    However, what if you have another Python package or application which requires the newest version of Pillow?
+    How do you make these work together, using the same Python installation?
+    The answer is to have separate Python environments, one for each application.</p>
+<p>Environments can be created and managed in a couple of different ways:
+ * If you are using the Anaconda Python distribution, use <code>conda</code> command line tool
+   to create environments and install packages (using <code>pip</code> when a conda package is not yet available).</p>
+<h2 id="installation-troubleshooting">Installation - Troubleshooting:<a class="headerlink" href="#installation-troubleshooting" title="Permanent link">&para;</a></h2>
+<p>Generally, one cause of troubles during installation is the Cairo dependencies.
+Cairo is used to convert SVG files to PNG, but is not strictly needed if you only need the SVG files.
+It is also possible to use other methods to convert SVG files to PNG, e.g. ImageMagick, Illustrator, Preview, etc.
+If you find that you cannot resolve Cairo-related issues during installation, you can install Gelutils without it using
+<code>pip install --no-deps gelutils svgwrite pyyaml six Pillow==2.7 numpy</code>, then</p>
+<p>The cairocffi dependency uses the C Foreign Function Interface (c ffi) to interact with Cairo C code.
+In order to compile cairocffi, you must have <code>libffi-dev</code> installed.
+* On Linux: <code>sudo apt-get install libffi-dev</code> (sometimes called <em>libffi-devel</em>)</p>
+<p>If you get a &ldquo;compiler&rdquo; error, make sure you have a compiler installed.
+<em> On Linux/Ubuntu, install with <code>sudo apt-get install gcc</code>.
+</em> On OS X, simply typing gcc should allow you to install the Mac developer tools.
+* On Windows, hopefully pip can find a binary wheel for you because building on Windows is still a PITA.
+    * The <code>cffi</code> library is generally available as a binary wheel for Anaconda.
+    If <code>cffi</code> install is your problem and you are using Anaconda, try installing <code>cffi</code> using: <code>conda install cffi</code>.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../Tutorial-GUI/" class="btn btn-neutral float-right" title="Tutorial - GUI">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href=".." class="btn btn-neutral" title="Introduction"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+      <p>GPLv3</p>
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href=".." style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../Tutorial-GUI/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+
+</body>
+</html>

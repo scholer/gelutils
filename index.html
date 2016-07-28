@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Rasmus S. Sorensen">
+  
+  <title>Gelutils</title>
+  
+
+  <link rel="shortcut icon" href="./img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="./css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="./css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="./css/highlight.css">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "None";
+    var mkdocs_page_input_path = "index.md";
+    var mkdocs_page_url = "/";
+  </script>
+  
+  <script src="./js/jquery-2.1.1.min.js"></script>
+  <script src="./js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="./js/highlight.pack.js"></script>
+  <script src="./js/theme.js"></script> 
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="." class="icon icon-home"> Gelutils</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href=".">Introduction</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#gelutils">GELUTILS</a></li>
+                
+                    <li><a class="toctree-l4" href="#faq-what-are-gel-images-and-who-cares">FAQ: What are GEL images and who cares?</a></li>
+                
+                    <li><a class="toctree-l4" href="#features-and-basic-usage">Features and basic usage:</a></li>
+                
+                    <li><a class="toctree-l4" href="#bugs-feature-suggestions-and-pull-requests">Bugs, feature suggestions and pull requests:</a></li>
+                
+                    <li><a class="toctree-l4" href="#tips-and-tricks">Tips and Tricks:</a></li>
+                
+                    <li><a class="toctree-l4" href="#todo">TODO:</a></li>
+                
+                    <li><a class="toctree-l4" href="#documentation">Documentation:</a></li>
+                
+            
+            </ul>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="Installation/">Installation</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="Tutorial-GUI/">Tutorial - GUI</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="Tutorial-Console/">Tutorial - Command line</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="Config-Ref/">Configuration Options</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="about/">About</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="Development_Notes/">Development</a>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href=".">Gelutils</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Introduction</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github"> Edit on GitHub</a>
+        
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="gelutils">GELUTILS<a class="headerlink" href="#gelutils" title="Permanent link">&para;</a></h1>
+<p>Tools and utilities for working with scientific GEL files.
+Makes it easy to convert and annotate .GEL or .TIFF image files from e.g. Typhoon scanners and GelDocs.</p>
+<p>The primary use of this application/package is to add lane annotations to gel images.
+The application can be installed and used as any other application,
+e.g. by simply double-clicking a .GEL file and then selecting the annotate-gel application to annotate the gel.
+It features a simple GUI where you can add the text you want to display above each lane and
+configure how the final gel image appears.
+Gels can be scaled, cropped, rotated, etc.
+The application will export a SVG file with the cropped/rotated gel image, overlayed by the given annotations.
+The SVG file can be automatically converted to a PNG, which is sometimes more convenient for presentation usage.</p>
+<h2 id="faq-what-are-gel-images-and-who-cares">FAQ: What are GEL images and who cares?<a class="headerlink" href="#faq-what-are-gel-images-and-who-cares" title="Permanent link">&para;</a></h2>
+<p>Gels are widely used in molecular biology and biotechnology for analyzing the size of biological molecules, e.g. DNA or
+proteins.
+When analysing samples on gels via gelelectrophoresis, samples are loaded at the top of the gel in well/indentations at
+the top of the gel. Charged molecules are then dragged through the gel by applying an electric field across the gel.
+Larger molecules have more interaction with the gel matrix. This drag reduces the migration rate through the gel.
+Smaller molecules travels faster through the gel.
+This creates a pattern of bands on the gel.
+Bands from the a sample in one well will form a vertical &ldquo;lane&rdquo; as they travel through the gel.</p>
+<h2 id="features-and-basic-usage">Features and basic usage:<a class="headerlink" href="#features-and-basic-usage" title="Permanent link">&para;</a></h2>
+<p>Current features:
+<em> Quickly annotate lanes on gel using sample names from a plain text file.
+</em> Linearize GEL files stored in MD GEL squareroot format (e.g. gel files from Typhoon scanners).
+* A simple GUI to control the program.</p>
+<p>Basic usage:
+<em> Open your gel image with the included AnnotateGel App.
+</em> Type lane annotations in the text box to the left,
+<em> Configure image processing by altering the YAML-formatted dict in the text box to the right.
+</em> Click &ldquo;Annotate Gel&rdquo; to create an SVG file with your gel image and the annotations overlayed at the top of the gel.</p>
+<h2 id="bugs-feature-suggestions-and-pull-requests">Bugs, feature suggestions and pull requests:<a class="headerlink" href="#bugs-feature-suggestions-and-pull-requests" title="Permanent link">&para;</a></h2>
+<p>If you find any bugs, please let me know &ndash; they are usually very easy and fast to fix.</p>
+<p>Also feel free to write me with feature suggestions.
+Or, even better: Fork this repository, fix the bugs and
+implement the features as you want, then send me a pull request :)</p>
+<h2 id="tips-and-tricks">Tips and Tricks:<a class="headerlink" href="#tips-and-tricks" title="Permanent link">&para;</a></h2>
+<h3 id="viewopen-images-after-annotation">View/Open images after annotation:<a class="headerlink" href="#viewopen-images-after-annotation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>If you set <code>open_webbrowser=true</code> in the AnnotateGel app, it will use the webbrowser module to view the annotated SVG images.</li>
+<li>This works really well if e.g. Google Chrome is your default app for viewing SVG files.</li>
+<li>If, however, you have Adobe Illustrator (or similar) installed, this might be the default App for SVG files.</li>
+<li>This is not always optimal, since you will automatically see the latest version of the SVG file.</li>
+<li>To change the default app for viewing SVG files:<ul>
+<li>OSX: Right-click an SVG file, select <code>Get Info</code> in the context menu, then under <code>Open with</code> select the proper app, then &lsquo;&rsquo;make sure you click the &ldquo;Change All&hellip;&rdquo; button to make the change apply for all SVG files (otherwise it will only apply to that one file).</li>
+<li>Windows: Shift + right-click an SVG file, select <code>Open with</code>, then &ldquo;Select file / other&hellip;&rdquo;, then select the proper app. This will generally apply to all files of the same filetype.</li>
+</ul>
+</li>
+</ul>
+<h3 id="making-annotategel-the-default-app-for-gel-and-gaml-files">Making AnnotateGel the default app for GEL and GAML files:<a class="headerlink" href="#making-annotategel-the-default-app-for-gel-and-gaml-files" title="Permanent link">&para;</a></h3>
+<p>Using AnnotateGel as the default app for opening GEL or GAML files is fairly easy on Windows. However, on OS X, it requires a little bit of work.
+* Before you proceed, determine where AnnotateGel was installed when you did <code>pip install</code> as the final installation step above. See the section below to determine where AnnotateGel is located.</p>
+<p>On Windows, to use AnnotateGel as default application:
+* Shift + right-click a .gel file, select &ldquo;Open with&hellip;&rdquo;, then &ldquo;Browse&hellip;&rdquo;, then locate AnnotateGel and select OK.</p>
+<p>On OS X, using AnnotateGel as a default app is a little more involved. I suggest taking a look at these references:
+<a href="https://mborgerson.com/creating-an-executable-from-a-python-script">mborgerson</a>, <a href="http://apple.stackexchange.com/questions/153818/make-a-python-program-an-application/153828#153828">stackexchange</a>.
+But in short, the process looks like this:
+<em> Open Automator (cmd+space, then type Automator).
+</em> Create a new &ldquo;Application&rdquo; document.
+<em> Add a &ldquo;shell script&rdquo; action to your workflow.
+</em> Under <code>Shell:</code> select <code>/bin/bash</code>, and under <code>Pass input:</code> select <code>as arguments</code>.
+<em> In the text box type: <code>/path/to/bin/AnnotateGel "$@"</code> (where <code>/path/to/bin/AnnotateGel</code> is the file location where AnnotateGel was installed, see below).
+</em> Save this workflow as &ldquo;AnnotateGel.app&rdquo; (Menu &ldquo;File -&gt; Save&rdquo; or Cmd+s). You can save it in whatever location you want, e.g. under &ldquo;Applications&rdquo;, where you have your other applications.
+<em> Now right-click a .gel file, select &ldquo;Get Info&rdquo;, then under &ldquo;Open with&rdquo; select &ldquo;Other&hellip;&rdquo;, then browse to select the &ldquo;AnnotateGel.app&rdquo; workflow/file you just saved with Automator. Check &ldquo;Always Open With&rdquo;, and press &ldquo;Add&rdquo;.
+</em> Still in the &ldquo;Get Info&rdquo; window, press the &ldquo;Change All&hellip;&rdquo; button to use AnnotateGel.app to open all files.
+* If you want to use AnnotateGel.app to also open .gaml files (gel annotation config files), simply right-click a .gaml file and repeat the previous two steps.</p>
+<h3 id="where-is-annotategel-and-other-gelutils-apps-installed">Where is AnnotateGel and other gelutils apps installed?<a class="headerlink" href="#where-is-annotategel-and-other-gelutils-apps-installed" title="Permanent link">&para;</a></h3>
+<p>The location where <code>pip install</code> installs the AnnotateGel executable files (aka binaries/scripts/apps) depends on (1) your platform, (2) your python distribution, and (3) whether you are using a python environment.</p>
+<p>The easiest way to find AnnotateGel is to just search for it:
+<em> OS X: Open Spotlight (Cmd + space), then type <code>AnnotateGel</code>.
+</em> Windows: Use Windows Search/Explorer (WindowsKey + F) or your preferred file-finder to find the AnnotateGel file. Note that Windows search sometimes doesn&rsquo;t find new files right away, and may need considerable time to &ldquo;re-index&rdquo; the file before it can be found. Blame Microsoft.
+* Linux: Open terminal and type: <code>find -name AnnotateGel ~/</code>. If it doesn&rsquo;t find anything in your home folder, try <code>find -name AnnotateGel /</code>.</p>
+<p>Lets go though some examples of where AnnotateGel is typically found after installation:
+<em> Example 1: On OS X (platform) using Anaconda python distribution and installing in a python environment called &ldquo;gelutils&rdquo;, the path to the installed AnnotateGel executable is <code>/Users/rasmus/anaconda3/envs/gelutils/bin/AnnotateGel</code>.
+</em> Example 2: On OS X (platform) using Anaconda python distribution and not using environments (aka &ldquo;the default environment&rdquo;), the path to the installed AnnotateGel executable is <code>/Users/rasmus/anaconda3/bin/AnnotateGel</code>.
+* Example 3: On OS X (platform) using the official python distribution from <a href="http://python.org">python.org</a> and not using environments (aka &ldquo;the default environment&rdquo;), the path to the installed AnnotateGel executable is <code>/Library/Frameworks/Python.framework/Versions/3.4/bin/AnnotateGel</code>.</p>
+<h2 id="todo">TODO:<a class="headerlink" href="#todo" title="Permanent link">&para;</a></h2>
+<p>Better icons:
+<em> A better App icon.
+</em> An icon for yaml/gaml files.
+* An icon for gel files.</p>
+<h2 id="documentation">Documentation:<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
+<p>Please refer to the files in the &lsquo;doc/&rsquo; directory for help and documentation.
+And, of course, the source if you are so inclined.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Installation/" class="btn btn-neutral float-right" title="Installation">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+      <p>GPLv3</p>
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+      
+        <span style="margin-left: 15px"><a href="Installation/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 0.15.3
+Build Date UTC : 2016-07-28 23:39:06.392511
+-->

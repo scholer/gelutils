@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Rasmus S. Sorensen">
+  
+  <title>Configuration Options - Gelutils</title>
+  
+
+  <link rel="shortcut icon" href="../img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../css/highlight.css">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Configuration Options";
+    var mkdocs_page_input_path = "Config-Ref.md";
+    var mkdocs_page_url = "/Config-Ref/";
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js"></script>
+  <script src="../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../js/highlight.pack.js"></script>
+  <script src="../js/theme.js"></script> 
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> Gelutils</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="..">Introduction</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Installation/">Installation</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Tutorial-GUI/">Tutorial - GUI</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Tutorial-Console/">Tutorial - Command line</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href="./">Configuration Options</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#config-keywords-reference">Config keywords reference:</a></li>
+                
+                    <li><a class="toctree-l4" href="#see-also">See also:</a></li>
+                
+            
+            </ul>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../about/">About</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Development_Notes/">Development</a>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">Gelutils</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Configuration Options</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github"> Edit on GitHub</a>
+        
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="config-keywords-reference">Config keywords reference:<a class="headerlink" href="#config-keywords-reference" title="Permanent link">&para;</a></h1>
+<p>Click <a href="Config-Examples.md">here</a> to see real-world examples of how to use the configuration keywords.</p>
+<table>
+<tr><th>Keyword</th>  <th>Type and default</th>  <th>Help</th></tr>
+<tr>  <td><pre>gelfile</pre></td> <td>gelfile</td> <td>If file is a YAML file, you can specify gelfile explicitly with --gelfile. </td>  </tr>
+<tr>  <td><pre>loglevel</pre></td> <td>loglevel</td> <td>Logging level, e.g. 10, 30, or 'DEBUG', 'INFO. </td>  </tr>
+<tr>  <td><pre>logtofile</pre></td> <td>logtofile</td> <td>Write log output to file rather than console. </td>  </tr>
+<tr>  <td><pre>disable_logging</pre></td> <td>true/false</td> <td>Disable logging system. </td>  </tr>
+<tr>  <td><pre>linearize</pre></td> <td>true/false</td> <td>Linearize gel (if e.g. typhoon). </td>  </tr>
+<tr>  <td><pre>dynamicrange</pre></td> <td>MIN, MAX</td> <td>Specify dynamic range (contrast). Valid argumets are 'MIN MAX', 'MAX' and 'auto', e.g. '1000, 20000' to set range from 1000 to 20000, '20000' to set range from zero to 20000, and 'auto' to determine range automatically. MIN and MAX are usually provided as absolute values e.g. '300 5000', but can also be specified as percentage values, e.g. '0.1% 99%'. If percentage or decimal values are given, the dynamic range is set such that MIN % of the pixels are below the lower range and (1.0 - MAX) of the pixels are above the dynamic range. If only one integer argument is given if is assumed to be the max, and min is set to 0. If specifying 'auto', the software will try to determine a suitable contrast range automatically. </td>  </tr>
+<tr>  <td><pre>remember_gelfile</pre></td> <td>true/false</td> <td>Save gelfile in config for later use. </td>  </tr>
+<tr>  <td><pre>invert</pre></td> <td>true/false</td> <td>Invert gel data, so zero is white, high intensity black. </td>  </tr>
+<tr>  <td><pre>convertgelto</pre></td> <td>png/jpg/etc</td> <td>Convert gel to this format. (default: png)</td>  </tr>
+<tr>  <td><pre>overwrite</pre></td> <td>true/false</td> <td>"Overwrite existing png file. If set to false, the program will re-use the any old PNG it finds instead of re-generating the PNG from the .GEL file. If you are playing around with e.g. the annotations, this can save a bit of computation. (default: True)</td>  </tr>
+<tr>  <td><pre>pngfnfmt</pre></td> <td>format_string</td> <td>Customize the png filename using python string formatting. (default: {yamlfnroot}_{dr_rng}{N_existing}{ext})</td>  </tr>
+<tr>  <td><pre>pngmode</pre></td> <td>pngmode</td> <td>PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit. (default: L)</td>  </tr>
+<tr>  <td><pre>fn_substitution</pre></td> <td>FIND, REPLACE</td> <td>Substitute x with y in output filename. </td>  </tr>
+<tr>  <td><pre>crop</pre></td> <td>LEFT, UPPER, RIGHT, LOWER</td> <td>Crop image to this box (left upper right lower) aka (x1 y1 x2 y2), Values can be either pixel values [500, 100, 1200, 400], or fractional/percentage values [5%, 3%, 95%, 0.9]. Note: Yes, 0.9 is 90%. If gel image is 1000 pixels wide, 0.9 or 90% are equivalent to 900 pixels. OBS! Note that by default the values are interpreted as &lt;strong&gt;ABSOLUTE COORDINATE VALUES&lt;/strong&gt; from the top, left pixel. If you want to change this behaviour such that the RIGHT and LOWER values are interpreted as the amount to crop away, e.g. 'crop 12% from the right edge', set ```cropfromedges``` to true. </td>  </tr>
+<tr>  <td><pre>cropfromedges</pre></td> <td>true/false</td> <td>If true, the crop values RIGHT and LOWER defined above specifies pixels from their respective edges instead of absolute coordinates from the upper left corner. Default: false. </td>  </tr>
+<tr>  <td><pre>scale</pre></td> <td>scalefactor</td> <td>"Scale the gel by this amount. Can be a single value for uniform scaling, or two values for different scaling in x vs y. Can be given as float (0.1, 2.5) or percentage (10%, 250%). </td>  </tr>
+<tr>  <td><pre>rotate</pre></td> <td>angle</td> <td>Rotate gel image by this angle (counter-clockwise). Default: 0. </td>  </tr>
+<tr>  <td><pre>rotateexpands</pre></td> <td>true/false</td> <td>When rotating, the image size expands to make room. False (default) means that the gel will keep its original size. </td>  </tr>
+<tr>  <td><pre>flip_h</pre></td> <td>true/false</td> <td>Flip image horizontally left-to-right. </td>  </tr>
+<tr>  <td><pre>flip_v</pre></td> <td>true/false</td> <td>Flip image vertically top-to-bottom. </td>  </tr>
+<tr>  <td><pre>svgfnfmt</pre></td> <td>format_string</td> <td>How to format the png filename (if created). (default: {pngfnroot}_annotated{ext})</td>  </tr>
+<tr>  <td><pre>pngfile</pre></td> <td>filename</td> <td>Use this pngfile instead of the specified gelfile. </td>  </tr>
+<tr>  <td><pre>reusepng</pre></td> <td>true/false</td> <td>Prefer png file over the specified gelfile. </td>  </tr>
+<tr>  <td><pre>yoffset</pre></td> <td>int-or-fraction</td> <td>Y offset (how far down the gel image should be). </td>  </tr>
+<tr>  <td><pre>ypadding</pre></td> <td>int-or-fraction</td> <td>Vertical space between gel image and annotations. </td>  </tr>
+<tr>  <td><pre>xmargin</pre></td> <td>left, right</td> <td>Margin to the right and left of lane annotations to the outer edge of GEL image. </td>  </tr>
+<tr>  <td><pre>xspacing</pre></td> <td>int-or-fraction</td> <td>Force a certain x spacing between lanes. </td>  </tr>
+<tr>  <td><pre>xtraspaceright</pre></td> <td>int-or-fraction</td> <td>Add additional padding/whitespace to the right side of the gel image. This is sometimes needed if the gel is not wide enough for the last lane annotation. </td>  </tr>
+<tr>  <td><pre>textrotation</pre></td> <td>angle</td> <td>Rotate lane annotations by this angle (counter-clockwise). Default: 70. </td>  </tr>
+<tr>  <td><pre>fontsize</pre></td> <td>SIZE (int)</td> <td>Specify default font size, e.g. 12 or 16. </td>  </tr>
+<tr>  <td><pre>fontfamily</pre></td> <td>fontfamily</td> <td>Specify default font family, e.g. arial or MyriadPro. </td>  </tr>
+<tr>  <td><pre>fontweight</pre></td> <td>fontweight</td> <td>Font weight: normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | inherit. </td>  </tr>
+<tr>  <td><pre>textfmt</pre></td> <td>format_string</td> <td>How to format the lane annotations, e.g. '{idx} {name}'. Format keys include: idx, name. Default: '{name}'. </td>  </tr>
+<tr>  <td><pre>laneidxstart</pre></td> <td>int</td> <td>Change the start number of the {idx} format parameter of lane annotations. </td>  </tr>
+<tr>  <td><pre>yamlfile</pre></td> <td>filename</td> <td>Load options from YAML file, update and save. </td>  </tr>
+<tr>  <td><pre>saveyamlto</pre></td> <td>filename</td> <td>Force saving yaml to this file when complete. </td>  </tr>
+<tr>  <td><pre>updateyaml</pre></td> <td>true/false</td> <td>Update yaml settings after run to reflect the settings used. (default: False)</td>  </tr>
+<tr>  <td><pre>embed</pre></td> <td>true/false</td> <td>Embed image data in svg file. (default) (default: True)</td>  </tr>
+<tr>  <td><pre>annotationsfile</pre></td> <td>filename</td> <td>Load lane annotations from this file. If not specified, will try to guess the right file. </td>  </tr>
+<tr>  <td><pre>lineinputstyle</pre></td> <td>string-spec</td> <td>This can be used to change how lines in the sample annotation file are interpreted. Default is to use all non-empty lines that does not begin with '#'. Set this to 'wikilist' to only include lines that starts with either of #, *, -, +. </td>  </tr>
+<tr>  <td><pre>lines_includeempty</pre></td> <td>true/false</td> <td>Whether to include empty lines. Not applicable to 'wikilist' lineinputstyle (use blank lines starting with '#' in this case). (default: False)</td>  </tr>
+<tr>  <td><pre>openwebbrowser</pre></td> <td>true/false</td> <td>Open annotated svg file in default webbrowser. Default: Do not open files. </td>  </tr>
+<tr>  <td><pre>svgtopng</pre></td> <td>true/false</td> <td>Save svg as png (requires cairo package). </td>  </tr>
+</table>
+
+<h4 id="see-also">See also:<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h4>
+<ul>
+<li><a href="Config-Examples.md">Config Examples</a></li>
+</ul>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../about/" class="btn btn-neutral float-right" title="About">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../Tutorial-Console/" class="btn btn-neutral" title="Tutorial - Command line"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+      <p>GPLv3</p>
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../Tutorial-Console/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../about/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+
+</body>
+</html>

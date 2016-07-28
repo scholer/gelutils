@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="Rasmus S. Sorensen">
+  
+  <title>Development - Gelutils</title>
+  
+
+  <link rel="shortcut icon" href="../img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../css/highlight.css">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Development";
+    var mkdocs_page_input_path = "Development_Notes.md";
+    var mkdocs_page_url = "/Development_Notes/";
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js"></script>
+  <script src="../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../js/highlight.pack.js"></script>
+  <script src="../js/theme.js"></script> 
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> Gelutils</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="..">Introduction</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Installation/">Installation</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Tutorial-GUI/">Tutorial - GUI</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Tutorial-Console/">Tutorial - Command line</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../Config-Ref/">Configuration Options</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../about/">About</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href="./">Development</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#general-development-notes">General development notes:</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#docs-generation-hostingdeployment">Docs generation &amp; hosting/deployment:</a></li>
+                
+                    <li><a class="toctree-l4" href="#documentation-alternatives">Documentation - alternatives:</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#releasing">RELEASING</a></li>
+                
+                    <li><a class="toctree-l4" href="#readmedocumentation-format-markdown-or-rest">README/Documentation format: Markdown or reST?</a></li>
+                
+                    <li><a class="toctree-l4" href="#about-configuring-setuppy">About configuring setup.py</a></li>
+                
+            
+            </ul>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">Gelutils</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Development</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github"> Edit on GitHub</a>
+        
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="general-development-notes">General development notes:<a class="headerlink" href="#general-development-notes" title="Permanent link">&para;</a></h1>
+<p>Code and issue-tracking at github: <a href="https://github.com/scholer/gelutils">https://github.com/scholer/gelutils</a></p>
+<p>Extra python requirements for development:</p>
+<ul>
+<li><code>mkdocs</code> for docs generation and deployment. MkDocs further requires <code>Markdown, Jinja, Tornado, Click, Livereload, MarkupSafe</code>.</li>
+<li><code>mdx_linkify</code> to auto-recognize links in Markdown files, using <code>extensions=["linkify"]</code>. Requires <code>html5lib, bleach</code>.</li>
+<li><code>pandoc</code> to convert <a href="http://README.md">README.md</a> to README.rst during PyPI deployment.</li>
+<li><code>pytest</code> for testing.</li>
+</ul>
+<h1 id="docs-generation-hostingdeployment">Docs generation &amp; hosting/deployment:<a class="headerlink" href="#docs-generation-hostingdeployment" title="Permanent link">&para;</a></h1>
+<p>Currently using <strong>MkDocs</strong> for doc generation and <strong>GitHub Pages</strong> for hosting, c.f. <a href="../www.mkdocs.org/user-guide/deploying-your-docs/">www.mkdocs.org/user-guide/deploying-your-docs/</a></p>
+<p>To see the current docs locally at <a href="http://127.0.0.1:8000/">127.0.0.1:8000/</a>:</p>
+<pre><code>$ cd &lt;main project directory&gt;
+$ mkdocs serve
+
+</code></pre>
+
+<p>Deploying to GitHub pages:</p>
+<ul>
+<li>Push docs to <code>gh-pages</code> branch, docs available at <a href="https://scholer.github.io/gelutils">scholer.github.io/gelutils</a></li>
+</ul>
+<pre><code>mkdocs gh-deploy --clean
+</code></pre>
+
+<p>Deploying to pythonhosted (PyPI):</p>
+<ul>
+<li>Use setuptools in your <a href="http://setup.py">setup.py</a>, docs available at <a href="http://pythonhosted.org/gelutils/">pythonhosted.org/gelutils/</a></li>
+</ul>
+<pre><code>mkdocs build --clean
+python setup.py upload_docs --upload-dir=site
+</code></pre>
+
+<h2 id="documentation-alternatives">Documentation - alternatives:<a class="headerlink" href="#documentation-alternatives" title="Permanent link">&para;</a></h2>
+<p>Doc generation</p>
+<ul>
+<li>Sphinx</li>
+<li>MkDocs - Generates static docs in your project dir</li>
+</ul>
+<p>Doc hosting:</p>
+<ul>
+<li>Readthedocs - using Sphinx</li>
+<li>Github project pages - using e.g. MkDocs</li>
+<li><a href="http://Pythonhosted.org">Pythonhosted.org</a> - build docs locally and upload using PyPI/setuptools.</li>
+</ul>
+<p><strong>Solution #1: Sphinx + ReadTheDocs</strong></p>
+<ul>
+<li>The &ldquo;traditional&rdquo; approach, widely supported.</li>
+<li>Sphinx has Markdown support (although was originally reST only).</li>
+<li>Docs can be auto-generated from source. Although auto-generated docs are somewhat frowned upon.</li>
+<li>Requires a bit more configuration than MkDocs.</li>
+</ul>
+<p><strong>Soution #2: MkDocs + GitHub project pages (selected)</strong></p>
+<ul>
+<li>Build static docs with MkDocs</li>
+<li>Push branch to your github repository.</li>
+</ul>
+<p>Documentation Refs:</p>
+<ul>
+<li><a href="http://www.mkdocs.org/">http://www.mkdocs.org/</a></li>
+<li><a href="http://www.mkdocs.org/user-guide/configuration">http://www.mkdocs.org/user-guide/configuration</a></li>
+<li><a href="http://www.mkdocs.org/user-guide/deploying-your-docs/">http://www.mkdocs.org/user-guide/deploying-your-docs/</a></li>
+<li><a href="http://www.mkdocs.org/user-guide/writing-your-docs/">http://www.mkdocs.org/user-guide/writing-your-docs/</a></li>
+<li><a href="http://docs.python-guide.org/en/latest/writing/documentation/">http://docs.python-guide.org/en/latest/writing/documentation/</a></li>
+<li><a href="https://help.github.com/articles/creating-project-pages-manually/">https://help.github.com/articles/creating-project-pages-manually/</a></li>
+<li><a href="https://python.libhunt.com/project/mkdocs/vs/sphinx">https://python.libhunt.com/project/mkdocs/vs/sphinx</a></li>
+<li><a href="https://wiki.python.org/moin/DocumentationTools">https://wiki.python.org/moin/DocumentationTools</a></li>
+</ul>
+<h1 id="releasing">RELEASING<a class="headerlink" href="#releasing" title="Permanent link">&para;</a></h1>
+<p>Release process:</p>
+<ol>
+<li>Make sure all tests passes,</li>
+<li>build release with <code>python <a href="http://setup.py">setup.py</a> sdist</code>,
+   install in release-testing environment with <code>pip install dist/gelutils-&lt;version&gt;-.tar.gz</code>, and run tests.</li>
+<li>Register release and upload source distribution to PyPI test site and check <a href="https://testpypi.python.org/pypi/gelutils/">https://testpypi.python.org/pypi/gelutils/</a>
+   <code>python <a href="http://setup.py">setup.py</a> register -r pypitest</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypitest</code></li>
+<li>Register release and upload production PyPI site and check <a href="https://pypi.python.org/pypi/gelutils/">https://pypi.python.org/pypi/gelutils/</a>
+   <code>python <a href="http://setup.py">setup.py</a> register -r pypi</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypi</code></li>
+<li>Tag this version with <code>git tag 1.2.3 -m "message"</code>, then push it with
+   <code>git push --follow-tags</code> (or <code>git push --tags</code> if you have already pushed the branch/commits)</li>
+</ol>
+<p><a href="http://setup.py">setup.py</a> example files and guides:</p>
+<ul>
+<li><a href="https://github.com/pypa/sampleproject/blob/master/setup.py">https://github.com/pypa/sampleproject/blob/master/setup.py</a></li>
+<li><a href="https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/">https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/</a></li>
+</ul>
+<h2 id="readmedocumentation-format-markdown-or-rest">README/Documentation format: Markdown or reST?<a class="headerlink" href="#readmedocumentation-format-markdown-or-rest" title="Permanent link">&para;</a></h2>
+<p>Markdown and reStructured Text are somewhat compatible.</p>
+<p>One major difference is reST&rsquo;s pervasive use of <em>directives</em>, lines starting with two periods <code>..</code>.</p>
+<p>reST links are created using a trailing underscore <code>mylink_</code>. The URI can either be embedded in the text using angle brackets, or it can be defined using a directive:</p>
+<pre><code>External hyperlink with embedded URI, like `Python &lt;http://www.python.org/&gt;`_.
+
+External hyperlinks, like Python_.
+
+.. _Python: http://www.python.org/
+
+</code></pre>
+
+<p>Markdown: Differences between GitHub and standard Markdown:</p>
+<ul>
+<li>GitHub support automatic link recognition, i.e. <a href="https://scholer.github.io/gelutils">https://scholer.github.io/gelutils</a> is a link when parsed by GitHub e.g. <a href="http://README.md">README.md</a>, but not when parsed by standard Markdown.</li>
+<li>GitHub understands lists even without an empty line above them. Which I use all the time.</li>
+</ul>
+<p>Unfortunately, neither Markdown nor reStructuredText supports automatic link recognition in their default configuration.</p>
+<ul>
+<li>GitHub does support link recognition and generation, but MkDocs does not.</li>
+<li><a href="https://github.com/daGrevis/mdx_linkify">linkify</a>   - Recognises links/urls using Bleach, with or without http:// scheme in url. Nice.</li>
+<li><a href="https://github.com/r0wb0t/markdown-urlize">urlize</a>  - parsed using regexes.</li>
+<li><a href="https://github.com/markdown-it/linkify-it">https://github.com/markdown-it/linkify-it</a>  (JavaScript library)</li>
+</ul>
+<p>Markdown vs re-structured text (rst) for README vs description_long in <a href="http://setup.py">setup.py</a>:</p>
+<ul>
+<li><a href="https://bitbucket.org/pypa/pypi/issues/148/support-markdown-for-readmes">https://bitbucket.org/pypa/pypi/issues/148/support-markdown-for-readmes</a> - PyPI feature request.</li>
+<li><a href="http://stackoverflow.com/questions/26737222/pypi-description-markdown-doesnt-work/26737672#26737672">http://stackoverflow.com/questions/26737222/pypi-description-markdown-doesnt-work/26737672#26737672</a> - how to convert Markdown to reST for use in <a href="http://setup.py">setup.py</a> using pypandoc with automatic fallback.</li>
+<li><a href="https://gist.github.com/dupuy/1855764">https://gist.github.com/dupuy/1855764</a> &ndash; commonalities between md and .rst</li>
+<li><a href="http://docutils.sourceforge.net/docs/user/rst/demo.html">http://docutils.sourceforge.net/docs/user/rst/demo.html</a>, <a href="http://docutils.sourceforge.net/docs/user/rst/demo.txt">http://docutils.sourceforge.net/docs/user/rst/demo.txt</a> &ndash; reST demo</li>
+</ul>
+<p>reStructured Text refs:</p>
+<ul>
+<li><a href="http://www.sphinx-doc.org/en/stable/rest.html">http://www.sphinx-doc.org/en/stable/rest.html</a></li>
+<li><a href="http://docutils.sourceforge.net/docs/user/rst/quickref.html">http://docutils.sourceforge.net/docs/user/rst/quickref.html</a></li>
+</ul>
+<h2 id="about-configuring-setuppy">About configuring <a href="http://setup.py">setup.py</a><a class="headerlink" href="#about-configuring-setuppy" title="Permanent link">&para;</a></h2>
+<p>General refs:</p>
+<ul>
+<li><a href="https://docs.python.org/3/distutils/setupscript.html">https://docs.python.org/3/distutils/setupscript.html</a></li>
+<li><a href="http://setuptools.readthedocs.io/en/latest/setuptools.html">http://setuptools.readthedocs.io/en/latest/setuptools.html</a></li>
+<li><a href="http://www.ianbicking.org/docs/setuptools-presentation/">http://www.ianbicking.org/docs/setuptools-presentation/</a></li>
+<li><a href="http://matthew-brett.github.io/pydagogue/installing_scripts.html">http://matthew-brett.github.io/pydagogue/installing_scripts.html</a></li>
+</ul>
+<p>Entry points vs scripts keywords:</p>
+<ul>
+<li><a href="http://stackoverflow.com/questions/18787036/difference-between-entry-points-console-scripts-and-scripts-in-setup-py">http://stackoverflow.com/questions/18787036/difference-between-entry-points-console-scripts-and-scripts-in-setup-py</a></li>
+</ul>
+<p>Requirements:</p>
+<ul>
+<li><a href="https://packaging.python.org/requirements/">https://packaging.python.org/requirements/</a></li>
+</ul>
+<p><a href="http://setup.py">setup.py</a> examples:</p>
+<ul>
+<li><a href="https://github.com/pypa/sampleproject/blob/master/setup.py">https://github.com/pypa/sampleproject/blob/master/setup.py</a></li>
+</ul>
+<p>pip install:</p>
+<ul>
+<li><a href="https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs">https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs</a></li>
+</ul>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="../about/" class="btn btn-neutral" title="About"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+      <p>GPLv3</p>
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/scholer/gelutils/" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../about/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+    </span>
+</div>
+
+</body>
+</html>
