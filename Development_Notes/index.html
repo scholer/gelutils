@@ -119,16 +119,19 @@
                 <li class="toctree-l3"><a href="#general-development-notes">General development notes:</a></li>
                 
             
-                <li class="toctree-l3"><a href="#docs-generation-hostingdeployment">Docs generation &amp; hosting/deployment:</a></li>
-                
-                    <li><a class="toctree-l4" href="#documentation-alternatives">Documentation - alternatives:</a></li>
+                <li class="toctree-l3"><a href="#release-process">RELEASE process:</a></li>
                 
             
-                <li class="toctree-l3"><a href="#releasing">RELEASING</a></li>
+                <li class="toctree-l3"><a href="#docs-generation-hostingdeployment">Docs generation &amp; hosting/deployment:</a></li>
                 
-                    <li><a class="toctree-l4" href="#readmedocumentation-format-markdown-or-rest">README/Documentation format: Markdown or reST?</a></li>
+            
+                <li class="toctree-l3"><a href="#documentation-alternatives">Documentation - alternatives:</a></li>
                 
-                    <li><a class="toctree-l4" href="#about-configuring-setuppy">About configuring setup.py</a></li>
+            
+                <li class="toctree-l3"><a href="#readmedocumentation-format-markdown-or-rest">README/Documentation format: Markdown or reST?</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#about-configuring-setuppy">About configuring setup.py</a></li>
                 
             
             </ul>
@@ -172,16 +175,54 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="general-development-notes">General development notes:<a class="headerlink" href="#general-development-notes" title="Permanent link">&para;</a></h1>
+                <h2 id="general-development-notes">General development notes:<a class="headerlink" href="#general-development-notes" title="Permanent link">&para;</a></h2>
 <p>Code and issue-tracking at github: <a href="https://github.com/scholer/gelutils">https://github.com/scholer/gelutils</a></p>
 <p>Extra python requirements for development:</p>
 <ul>
-<li><code>mkdocs</code> for docs generation and deployment. MkDocs further requires <code>Markdown, Jinja, Tornado, Click, Livereload, MarkupSafe</code>.</li>
-<li><code>mdx_linkify</code> to auto-recognize links in Markdown files, using <code>extensions=["linkify"]</code>. Requires <code>html5lib, bleach</code>.</li>
+<li><code>mkdocs</code> for docs generation and deployment.
+   MkDocs further requires <code>Markdown</code>, <code>Jinja</code>, <code>Tornado</code>, <code>Click</code>, <code>Livereload</code>, and <code>MarkupSafe</code>.</li>
+<li><code>mdx_linkify</code> to auto-recognize links in Markdown files, using <code>extensions=["linkify"]</code>.
+   Requires <code>html5lib</code>, and <code>bleach</code>.</li>
 <li><code>pandoc</code> to convert <a href="http://README.md">README.md</a> to README.rst during PyPI deployment.</li>
 <li><code>pytest</code> for testing.</li>
 </ul>
-<h1 id="docs-generation-hostingdeployment">Docs generation &amp; hosting/deployment:<a class="headerlink" href="#docs-generation-hostingdeployment" title="Permanent link">&para;</a></h1>
+<p>Packages available from Anaconda (if you use conda for your package management,
+install these with <code>conda install</code> before installing other packages with <code>pip</code>):</p>
+<pre><code>conda install jinja2 tornado click markupsafe pandoc pytest numpy
+</code></pre>
+
+<p>Setting up for Gelutils development (see also <a href="http://README.md">README.md</a>):</p>
+<ol>
+<li>(Optional): Make a dedicated python environment for gelutils, e.g.: <code>conda create -n</code></li>
+<li>cd to your dev folder and download repo: <code>git clone <a href="https://github.com/scholer/gelutils.git">https://github.com/scholer/gelutils.git</a></code></li>
+<li>Install gelutils into your python environment in editable mode: <code>cd gelutils</code>, then <code>pip install -e .</code></li>
+<li>Alternatively, you can combine steps 1+2 into one: <code>pip install -e git+<a href="https://github.com/scholer/gelutils">https://github.com/scholer/gelutils</a></code></li>
+<li>Make sure all dev requirements are installed: <code>pip install -r requirements_dev.txt</code></li>
+</ol>
+<h2 id="release-process">RELEASE process:<a class="headerlink" href="#release-process" title="Permanent link">&para;</a></h2>
+<p>Release process:</p>
+<ol>
+<li>Make sure all tests passes,</li>
+<li>Bump version number (version+download_url in <a href="http://setup.py">setup.py</a> and version in gelutils/<strong>init</strong>.py)</li>
+<li>Change to separate python build environment (e.g. <code>gelutils-release-testing</code> - This is NOT
+   the same as your <code>gelutils</code> development environment),
+   build release with <code>python <a href="http://setup.py">setup.py</a> sdist</code>,
+   install build in separate python environment using <code>pip install dist/gelutils-&lt;version&gt;-.tar.gz</code>, 
+   and run tests.</li>
+<li>Register release and upload source distribution to PyPI test site:
+   <code>python <a href="http://setup.py">setup.py</a> register -r pypitest</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypitest</code>,
+   then check <a href="https://testpypi.python.org/pypi/gelutils/">https://testpypi.python.org/pypi/gelutils/</a> and make sure it looks right.</li>
+<li>Register release and upload production PyPI site and check <a href="https://pypi.python.org/pypi/gelutils/">https://pypi.python.org/pypi/gelutils/</a>
+   <code>python <a href="http://setup.py">setup.py</a> register -r pypi</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypi</code></li>
+<li>Tag this version with <code>git tag 1.2.3 -m "message"</code>, then push it with
+   <code>git push --follow-tags</code> (or <code>git push --tags</code> if you have already pushed the branch/commits)</li>
+</ol>
+<p><a href="http://setup.py">setup.py</a> example files and guides:</p>
+<ul>
+<li><a href="https://github.com/pypa/sampleproject/blob/master/setup.py">https://github.com/pypa/sampleproject/blob/master/setup.py</a></li>
+<li><a href="https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/">https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/</a></li>
+</ul>
+<h2 id="docs-generation-hostingdeployment">Docs generation &amp; hosting/deployment:<a class="headerlink" href="#docs-generation-hostingdeployment" title="Permanent link">&para;</a></h2>
 <p>Currently using <strong>MkDocs</strong> for doc generation and <strong>GitHub Pages</strong> for hosting, c.f. <a href="../www.mkdocs.org/user-guide/deploying-your-docs/">www.mkdocs.org/user-guide/deploying-your-docs/</a></p>
 <p>To see the current docs locally at <a href="http://127.0.0.1:8000/">127.0.0.1:8000/</a>:</p>
 <pre><code>$ cd &lt;main project directory&gt;
@@ -238,24 +279,6 @@ python setup.py upload_docs --upload-dir=site
 <li><a href="https://help.github.com/articles/creating-project-pages-manually/">https://help.github.com/articles/creating-project-pages-manually/</a></li>
 <li><a href="https://python.libhunt.com/project/mkdocs/vs/sphinx">https://python.libhunt.com/project/mkdocs/vs/sphinx</a></li>
 <li><a href="https://wiki.python.org/moin/DocumentationTools">https://wiki.python.org/moin/DocumentationTools</a></li>
-</ul>
-<h1 id="releasing">RELEASING<a class="headerlink" href="#releasing" title="Permanent link">&para;</a></h1>
-<p>Release process:</p>
-<ol>
-<li>Make sure all tests passes,</li>
-<li>build release with <code>python <a href="http://setup.py">setup.py</a> sdist</code>,
-   install in release-testing environment with <code>pip install dist/gelutils-&lt;version&gt;-.tar.gz</code>, and run tests.</li>
-<li>Register release and upload source distribution to PyPI test site and check <a href="https://testpypi.python.org/pypi/gelutils/">https://testpypi.python.org/pypi/gelutils/</a>
-   <code>python <a href="http://setup.py">setup.py</a> register -r pypitest</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypitest</code></li>
-<li>Register release and upload production PyPI site and check <a href="https://pypi.python.org/pypi/gelutils/">https://pypi.python.org/pypi/gelutils/</a>
-   <code>python <a href="http://setup.py">setup.py</a> register -r pypi</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypi</code></li>
-<li>Tag this version with <code>git tag 1.2.3 -m "message"</code>, then push it with
-   <code>git push --follow-tags</code> (or <code>git push --tags</code> if you have already pushed the branch/commits)</li>
-</ol>
-<p><a href="http://setup.py">setup.py</a> example files and guides:</p>
-<ul>
-<li><a href="https://github.com/pypa/sampleproject/blob/master/setup.py">https://github.com/pypa/sampleproject/blob/master/setup.py</a></li>
-<li><a href="https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/">https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/</a></li>
 </ul>
 <h2 id="readmedocumentation-format-markdown-or-rest">README/Documentation format: Markdown or reST?<a class="headerlink" href="#readmedocumentation-format-markdown-or-rest" title="Permanent link">&para;</a></h2>
 <p>Markdown and reStructured Text are somewhat compatible.</p>
