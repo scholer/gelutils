@@ -27,11 +27,16 @@ gel_exts = (".gel", ".tiff", ".tif")
 img_exts = (".png", ".jpg", ".tiff", ".tif")
 cfg_exts = (".yaml", ".yml", ".gaml")
 default_yaml_ext = ".gaml"
-DEFAULT_CONFIG_FILEPATHS = ('gelannotator.yaml',  # file in current directory
-                            '~/.gelannotator.yaml', '~/.config/gelannotator.yaml',
-                            '~/.config/gelannotator/default_config.yaml',
-                            '~/.config/gelannotator/gelannotator.yaml',
-                            '~/.config/gelannotator/.gelannotator.yaml')
+DEFAULT_CONFIG_FILEPATHS = (
+    'gelannotator.yaml',  # file in current directory
+    '~/.gelannotator.yaml',
+    '~/.config/gelannotator.yaml',
+    '~/.config/gelannotator/default_config.yaml',
+    '~/.config/gelannotator/gelannotator.yaml',
+    '~/.config/gelannotator/.gelannotator.yaml',
+    '~/appdata/gelannotator/gelannotator.yaml',
+    '~/.appdata/gelannotator/gelannotator.yaml',
+)
 
 
 def filename_is_yaml(fn):

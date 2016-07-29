@@ -124,11 +124,11 @@ SciPy alone:
 
 from __future__ import print_function, absolute_import
 from six import string_types # python 2*3 compatability
+import sys
 import os
 import glob
 import re
 from itertools import cycle, chain
-
 #from functools import partial
 import numpy
 import PIL
@@ -138,10 +138,15 @@ from PIL.Image import FLIP_LEFT_RIGHT, FLIP_TOP_BOTTOM, ROTATE_90, ROTATE_180, R
 from PIL import ImageOps
 from PIL.TiffImagePlugin import OPEN_INFO, II
 # from PIL.TiffImagePlugin import BITSPERSAMPLE, SAMPLEFORMAT, EXTRASAMPLES, PHOTOMETRIC_INTERPRETATION, FILLORDER, OPEN_INFO
-
 import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
+if sys.version_info < (3, 3):
+    # flush keyword only supported for python 3.3+, so create custom print function:
+    import builtins
+    def print(*args, **kwargs):
+        kwargs.pop('flush', None) # remove "flush" keyword argument
+        builtins.print(*args, **kwargs)
 
 # Local imports
 from .utils import init_logging, printdict, getrelfilepath, getabsfilepath, setIfNone, ensure_numeric
@@ -677,7 +682,7 @@ def convert(gelfile, args, yamlfile=None, lanefile=None, **kwargs):   # (too man
     logger.debug("getting image file...")
     gelimg, info = get_gel(gelfile, args)
     print("Loaded gelfile:", gelfile)
-    print("Gel info: ", ", ".join("{}: {}".format(k, v) for k, v in info.items()))
+    print("Gel info: ", ", ".join("{}: {}".format(k, v) for k, v in info.items()), flush=True)
     # Use orgimg for info, e.g. orgimg.info and orgimg.tag
     #logger.debug("get_gel returned with ")
     logger.debug("gelimg extrema: %s", gelimg.getextrema())

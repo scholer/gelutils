@@ -39,13 +39,17 @@ import locale
 import yaml
 import webbrowser
 from six import string_types
-
+if sys.version_info < (3, 3):
+    # flush keyword only supported for python 3.3+, so create custom print function:
+    import builtins
+    def print(*args, **kwargs):
+        kwargs.pop('flush', None) # remove "flush" keyword argument
+        builtins.print(*args, **kwargs)
 try:
     from tkFileDialog import askopenfilename
 except ImportError:
     # python 3:
     from tkinter.filedialog import askopenfilename      # pylint: disable=F0401
-
 import logging
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
@@ -171,7 +175,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
 
         logger.info("Resetting UI using primary file: %s", self._primary_file)
         if not self._primary_file:
-            print("Error: Primary file not set, cannot continue.")
+            print("Error: Primary file not set, cannot continue.", flush=True)
+            logger.error("Error: Primary file not set, cannot continue.")
             return
         basedir = os.path.dirname(os.path.abspath(self._primary_file))
         self.set_directory(basedir)
@@ -386,12 +391,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             raise ValueError("Annotations file entry is empty.")
         with open(fn, 'w', encoding="utf-8") as fd:  # only use 'b' for byte/buffered input; 'str' is not byte/buffered.
             logger.debug("Saving annotations (%s chars) to file %s", len(text), fd)
-            try:
-                fd.write(text)
-            except UnicodeError as e:
-                print(e)
-                import pdb
-                pdb.set_trace()
+            fd.write(text)
 
     def browse_for_gelfile(self):
         """ Browse for gel image file. """
@@ -414,7 +414,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         # gelfilepath = os.path.realpath(gelfilepath)
         # self.set_gelfilepath(gelfilepath)
         logger.info("User selected gel file: %s", filename)
-        print("Gel file selected:", filename)
+        print("Gel file selected:", filename, flush=True)
         if filename:
             logger.debug("Setting gelfile to: %s", filename)
             logger.debug("os.getcwd(): %s", os.getcwd())
@@ -438,7 +438,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             return
         gelfile = self.get_gelfilepath()
         filename = getrelfilepath(gelfile, filename)
-        print("Yaml file selected:", filename)
+        print("Yaml file selected:", filename, flush=True)
         logger.debug("Setting yamlfile to: %s", filename)
         logger.debug("os.getcwd(): %s", os.getcwd())
         self.set_yamlfilepath(filename)
@@ -586,7 +586,7 @@ def get_default_config(fncands=None):
             continue
         except yaml.error.YAMLError:
             logger.info("YAMLError, could not parse file content (continuing search): %s", fn)
-            print("WARNING: YAML could not parse the content of default config file %s." % fn)
+            print("WARNING: YAML could not parse the content of default config file %s." % fn, flush=True)
             continue
         else:
             return fn, default_config
@@ -600,25 +600,26 @@ def main(config=None):
     Arguments:
         :args:  dict with arguments/configuration.
     """
-    print("\n\nApp started")
+
+    print("\n\nApp started", flush=True)
     print("- default encoding:", locale.getpreferredencoding(False))
     # Note: It might be a good idea to load the system-level default config (e.g. ~/.gelannotator.yaml)
     # BEFORE parsing args, and passing the default config to parseargs.
     load_system_config = config.pop('load_system_config', True) if config else True
     if load_system_config:  # incl if config is None
         print("Trying to load default config from file paths:", DEFAULT_CONFIG_FILEPATHS)
-        fn, default_config = get_default_config()
-        if default_config:
+        fn, system_config = get_default_config()
+        if system_config:
             print(" - Loaded initial system config/settings from file: %s" % fn)
         else:
             print(" - Could not find any default configuration file.")
     else:
-        default_config = None
+        system_config = None
     if config is None:
-        argsns = parseargs(prog='gui', defaults=default_config)
+        argsns = parseargs(prog='gui', defaults=system_config)
         config = argsns.__dict__
-        if default_config:
-            config = mergedicts(default_config, config)  # latter takes precedence except None-valued entries
+        if system_config:
+            config = mergedicts(system_config, config)  # latter takes precedence except None-valued entries
 
     yamlfile = config.get("yamlfile")
     config_template = config.pop("config_template", None)
@@ -627,26 +628,49 @@ def main(config=None):
         # If config file  is explicitly specified, do not try to catch errors:
         with open(os.path.expanduser(yamlfile), encoding="utf-8") as fp:
             print("Using yaml-formatted configuration file:", yamlfile)
-            default_config = yaml.load(fp)
-            config = mergedicts(default_config, config)
+            yaml_config = yaml.load(fp)
+            config = mergedicts(yaml_config, config)  # latter takes precedence except None-valued entries
     elif config_template:
         print("Loading explicitly-specififed config_template from file: %s" % config_template)
         try:
-            default_config = yaml.load(open(config_template, encoding="utf-8"))
+            template_config = yaml.load(open(config_template, encoding="utf-8"))
         except FileNotFoundError as e:
             print("Error loading default config: %s" % e)
         else:
-            config = mergedicts(default_config, config)
+            config = mergedicts(template_config, config)  # latter takes precedence except None-valued entries
+
+    print("Config after loading system_config, yamlfile and config_template:")
+    print(config)
+
+    # stdout and stderr redirection, if requested...
+    # I wanted to have this at the top, but then we cannot have system config.
+    if config.get('stdout'):
+        # stdout_backup = sys.stdout
+        stdout_fd = open(config['stdout'], mode=config.get('stdout_mode', 'w'), encoding='utf-8')
+        print("Redirecting stdout to file:", stdout_fd)
+        sys.stdout = stdout_fd
+        if config.get('stderr') is None:
+            stderr_backup = sys.stderr
+            print("Redirecting stderr to file:", stdout_fd)
+            sys.stderr = stdout_fd
+    if config.get('stderr'):
+        # stderr_backup = sys.stderr
+        stderr_fd = open(config['stderr'], mode=config.get('stderr_mode', 'w'), encoding='utf-8')
+        print("Redirecting stderr to file:", stderr_fd, flush=True)
+        sys.stderr = stderr_fd
 
     if not config.pop('disable_logging', False):
         print("Initializing logging system using:",
-              ", ".join("%s=%s" % (k, v) for k, v in config.items() if k.startswith("log")))
+              ", ".join("%s=%s" % (k, v) for k, v in config.items() if k.startswith("log")), flush=True)
         logger.debug("Initializing logging system...")
         init_logging(config)
         logger.info("logging system started, locale.getpreferredencoding(False) = %s",
                     locale.getpreferredencoding(False))
     else:
         print("Logging disabled (disable_logging=True)...")
+
+    print("\n\nApp config loaded, logging and stdout/stderr output configured, preferred encoding:",
+          locale.getpreferredencoding(False), flush=True)
 
     # For debugging:
     # logger.setLevel(logging.DEBUG)      # Set special loglevel for this main module
@@ -656,7 +680,7 @@ def main(config=None):
     if "utf-8" not in locale.getpreferredencoding(False).lower():
         # Avoid encoding errors by always using the same locale and encoding:
         # (alternatively always specify encoding keyword to open() files)
-        print("Resetting locale to ('en_US', 'UTF-8')...")
+        print("Resetting locale to ('en_US', 'UTF-8')...", flush=True)
         locale.setlocale(locale.LC_ALL, ('en_US', 'UTF-8'))
         logger.info("Locale reset to %s; preferred encoding is now '%s'",
                     ('en_US', 'UTF-8'), locale.getpreferredencoding(False))

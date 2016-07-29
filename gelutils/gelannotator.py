@@ -47,6 +47,12 @@ import argparse
 import webbrowser
 import svgwrite
 import logging
+if sys.version_info < (3, 3):
+    # flush keyword only supported for python 3.3+, so create custom print function:
+    import builtins
+    def print(*args, **kwargs):
+        kwargs.pop('flush', None) # remove "flush" keyword argument
+        builtins.print(*args, **kwargs)
 logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
 
@@ -124,11 +130,12 @@ def find_annotationsfilepath(filenames, rel=False, fallback=True):
     return ann_fn
 
 
-#def asterix_line_trimming(annotation_lines, remove_asterix='first_only', require_asterix=False):
-#    """
-#    Removes asterix from lines. Useful if you have a
-#    """
-#    pass
+# def asterix_line_trimming(annotation_lines, remove_asterix='first_only', require_asterix=False):
+#     """
+#     Removes asterix from lines. Useful if you have a
+#     """
+#     pass
+
 
 def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_asterix='first_only'):
     """
@@ -164,7 +171,6 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
     else:
         laneannotations = trimmed_lines_from_file(annotationsfile, args)
     return laneannotations, annotationsfile
-
 
 
 def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yamlfile=None, **kwargs):
@@ -390,9 +396,6 @@ def ensurePNG(gelfile, args, yamlfile=None, lanefile=None):
         raise ValueError("gelfile extension not recognized. Recognized extensions are: .gel, .png, .jpg.")
 
 
-
-
-
 def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     """
     Outer wrapper to annotate gel.
@@ -427,7 +430,7 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
         try:
             logger.debug("Loading additional settings (those not already specified) from file: %s", yamlfile)
             yamlsettings = yaml.safe_load(open(yamlfile))
-            #for key, value in settings.items():
+            # for key, value in settings.items():
             #    setattr(argns, key, value)
             # Make sure to update in-place:
             args.update(mergedicts(yamlsettings, args))
@@ -443,8 +446,9 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     if args.get('_primary_file_mode') == 'yaml':
         args['gelfile'] = gelfile
 
-    #args = mergeargs(argsns=args, argsdict=yamlsettings, excludeNone=True, precedence='argns')
-    logger.debug("Ensuring that we have a PNG file to annotate using ensurePNG(%s, ...). If a PNG file is not available, or if args['reusepng'] is false, "\
+    # args = mergeargs(argsns=args, argsdict=yamlsettings, excludeNone=True, precedence='argns')
+    logger.debug("Ensuring that we have a PNG file to annotate using ensurePNG(%s, ...). "
+                 "If a PNG file is not available, or if args['reusepng'] is false, "
                  "then a PNG file will be generated from the GEL file.", gelfile)
     ensurePNG(gelfile, args, yamlfile=yamlfile, lanefile=annotationsfile)
 
@@ -453,13 +457,12 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     logger.debug("Making annotated SVG file using makeSVG(%s, ...)", gelfile)
     dwg, svgfilename = makeSVG(gelfile, args, annotationsfile=annotationsfile, yamlfile=yamlfile)
 
-
     # Convert SVG to PNG: #
     if args.get('svgtopng'):
         # svg's base64 encoding is not as optimal as a native file but about 40-50% larger.
         # Thus, it might be nice to be able to export
-        #print "PNG export not implemented. Requires Cairo."
-        #svg2pngfn = args['svgtopngfile'] = svg2png(svgfilename)
+        # print "PNG export not implemented. Requires Cairo."
+        # svg2pngfn = args['svgtopngfile'] = svg2png(svgfilename)
         logger.debug("Converting svg to png using svg2png(%s)", svgfilename)
         svg2pngfn = svg2png(svgfilename)    # not saving svgtopngfile in args...
     else:
@@ -469,12 +472,13 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     if args.get('openwebbrowser'):
         # On OS X we need to add "file://" in front of the file path for it to work
         open_path = "file://" + os.path.abspath(svgfilename)
-        print("Opening annotated svg file %s with default application for that file type." % open_path)
+        print("Opening annotated svg file %s with default application for that file type." % open_path, flush=True)
         logger.info("Opening annotated svg file %s", open_path)
         webbrowser.open(open_path)
         if svg2pngfn:
             open_path = "file://" + os.path.abspath(svg2pngfn)
-            print("Opening annotated PNG file %s (converted from svg file) with default application for that file type." % open_path)
+            print("Opening annotated PNG file %s (converted from svg file) with default application." % open_path,
+                  flush=True)
             logger.info("Opening annotated PNG file %s", open_path)
             webbrowser.open(open_path)
             # webbrowser.open will open with either default browser OR default application.
@@ -489,7 +493,7 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
         logger.debug("Saving/updating args to yaml file: %s", yamlfile)
         # For Python3 it is important that the file mode is correct: binary vs str
         # yaml safe_dump produces a str output, so the file must be opened in str mode:
-        if args.get('remember_gelfile'):
+        if args.get('gelfile_remember'):
             args['gelfile'] = gelfile
         with open(yamlfile, 'w') as fd:
             # yaml.dump_all(documents, stream=None, Dumper=<class 'yaml.dumper.Dumper'>,
@@ -532,7 +536,7 @@ if __name__ == '__main__':
     #drawing = makeSVG(**args)
     drawing, svgfn, updatedargs = annotate_gel(cmd_gelfile, argns)
     if drawing:
-        print("Annotated svg saved as:", drawing.filename)
+        print("Annotated svg saved as:", drawing.filename, flush=True)
     #if argns.yamlfile:
     #    with open(argns.yamlfile, 'wb') as fd:
     #        yaml.dump(args, fd, default_flow_style=False)

@@ -349,20 +349,21 @@ def trimmed_lines_from_file(filepath, args=None):
         args = {}
     with open(filepath) as fd:
         # Auto detect line input style:
-        if args.get('lineinputstyle') in (None, 'auto'):
+        if args.get('lines_inputstyle') in (None, 'auto'):
             lines = [line for line in [line.strip() for line in fd] if line]
             fd.seek(0)
             if all(line[0] in "*#" for line in lines):
-                args['lineinputstyle'] = 'wikilist'
-        args.setdefault('commentmidchar', None) # Same for all...
-        if args.get('lineinputstyle', None) in ('wikilist', 'wiki', 'list'):
+                args['lines_inputstyle'] = 'wikilist'
+        args.setdefault('lines_commentmidchar', None)  # Same for all...
+        if args.get('lines_inputstyle', None) in ('wikilist', 'wiki', 'list'):
             # Add arguments to args for convenience to the user:
-            setIfNone(args, 'listchar', '*#-+')
-            trimmed_lines = gen_wikilist_entries(fd, args['listchar'], args['commentmidchar'])
+            setIfNone(args, 'lines_listchar', '*#-+')
+            trimmed_lines = gen_wikilist_entries(fd, args['lines_listchar'], args['lines_commentmidchar'])
         else:
-            setIfNone(args, 'commentchar', '#') # Explicitly added to args to make it easier to change.
+            setIfNone(args, 'lines_commentchar', '#')  # Explicitly added to args to make it easier to change.
             includeempty = args.setdefault('lines_includeempty', 'False')
-            trimmed_lines = gen_trimmed_lines(fd, args.get('commentchar', '#'), args.get('commentmidchar'), includeempty=includeempty)
+            trimmed_lines = gen_trimmed_lines(fd, args.get('lines_commentchar', '#'),
+                                              args.get('lines_commentmidchar'), includeempty=includeempty)
         lines = list(trimmed_lines)
     return lines
 

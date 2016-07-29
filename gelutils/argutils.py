@@ -43,7 +43,13 @@ def make_parser(prog='gelannotator', defaults=None,
 
     """
     if defaults is None:
-        defaults = {}
+        defaults = {
+            'stdout_mode': 'w',
+            'stderr_mode': 'w'
+        }
+
+    if prog.lower() == 'gui':
+        defaults.setdefault('openwebbrowser', True)
 
     ap = argparse.ArgumentParser(prog="AnnotateGel" if prog.lower == 'gui' else prog,
                                  description=description,
@@ -63,6 +69,16 @@ def make_parser(prog='gelannotator', defaults=None,
                     help="Logging level, e.g. 10, 30, or 'DEBUG', 'INFO.")
     ap.add_argument('--logtofile', default=defaults.get('logtofile'),
                     help="Write log output to file rather than console.")
+
+    ap.add_argument('--stdout', default=defaults.get('stdout'),
+                    help="Write stdout stream to file rather than console.")
+    ap.add_argument('--stderr', default=defaults.get('stderr'),
+                    help="Write stderr stream to file rather than console. Defaults to same value as stdout.")
+    ap.add_argument('--stdout-mode', default='w',
+                    help="File open mode for stdout stream, if stdout is given. Default: 'w'.")
+    ap.add_argument('--stderr-mode', default='w',
+                    help="File open mode for stderr stream, if stderr is given. Default: 'w'.")
+
 
     # If action='store_true', then default is False not None.
     # Using default=None so None can be used to indicate a value that has not been specified.
@@ -92,7 +108,7 @@ def make_parser(prog='gelannotator', defaults=None,
                     a suitable contrast range automatically.""".strip())
     # ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
 
-    ap.add_argument('--remember-gelfile', action='store_true', default=None,
+    ap.add_argument('--gelfile-remember', action='store_true', default=None,
                     help="Save gelfile in config for later use.")
 
     ap.add_argument('--invert', action='store_true', default=None,
@@ -148,6 +164,8 @@ def make_parser(prog='gelannotator', defaults=None,
                     help="Flip image horizontally left-to-right.")
     ap.add_argument('--flip_v', action='store_true', default=None,
                     help="Flip image vertically top-to-bottom.")
+
+
 
     if prog.lower() in ('gelannotator', 'gui'):
         # How to format svg filename:
@@ -213,16 +231,26 @@ def make_parser(prog='gelannotator', defaults=None,
                         help="Do not embed image data in svg file, link to the file instead. (default is to embed)")
 
         ap.add_argument('--annotationsfile', metavar="filename",
-                        help="Load lane annotations from this file. If not specified, will try to guess the right file.")
-        ap.add_argument('--lineinputstyle', metavar="string-spec",
+                        help="Load lane annotations from this file. "
+                        "If not specified, will try to guess the right file.")
+
+        # lineinputstyle->lines_inputstyle, lines_includeempty, lines_listchar, lines_commentchar, lines_commentmidchar
+        ap.add_argument('--lines_inputstyle', metavar="string-spec",
                         help="""This can be used to change how lines in the sample annotation file are interpreted.
                         Default is to use all non-empty lines that does not begin with '#'.
                         Set this to 'wikilist' to only include lines that starts with either of #, *, -, +.""")
         ap.add_argument('--lines_includeempty', action="store_true",
-                        help="""Whether to include empty lines.
-                        Not applicable to 'wikilist' lineinputstyle (use blank lines starting with '#' in this case).""")
+                        help="""Whether to include empty lines. Not applicable to 'wikilist' lines_inputstyle
+                        (use blank lines starting with '#' in this case).""")
+        ap.add_argument('--lines_listchar', metavar="string-spec",
+                        help="""If annotations are copy-pasted from a wiki/markdown list and you want to strip the
+                        list charaacter (e.g. '*' or '#'), specify the character here. Default: auto-detect.""")
+        ap.add_argument('--lines_commentchar', metavar="string-spec",
+                        help="Lines starting with this character are ignored (comments). Default: auto-detect.")
+        ap.add_argument('--lines_commentmidchar', metavar="string-spec",
+                        help="Input to the right of this character is ignored (commented out). Default: auto-detect.")
 
-        ap.add_argument('--openwebbrowser', action='store_true', default=None,
+        ap.add_argument('--openwebbrowser', action='store_true', default=defaults.get('openwebbrowser'),
                         help="Open annotated svg file in default webbrowser. Default: Do not open files.")
         ap.add_argument('--no-openwebbrowser', action='store_false', dest='openwebbrowser',
                         help="Do not open file in webbrowser.")
@@ -232,11 +260,11 @@ def make_parser(prog='gelannotator', defaults=None,
         ap.add_argument('--no-svgtopng', action='store_false', dest='svgtopng',
                         help="Do not save svg as png (requires cairo package).")
 
-
     #xmargin=(40, 30), xspacing=None, yoffset=100
     #textfmt="{idx} {name}", laneidxstart=0
 
     return ap
+
 
 def parseargs(prog='gelannotator', argv=None, defaults=None):#, partial=False, mockstring=None):
     """
