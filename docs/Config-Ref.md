@@ -17,7 +17,8 @@ argv: ['docs/docgen.py']
 <tr>  <td><pre>overwrite</pre></td> <td>true/false</td> <td>"Overwrite existing png file. If set to false, the program will re-use the any old PNG it finds instead of re-generating the PNG from the .GEL file. If you are playing around with e.g. the annotations, this can save a bit of computation. (default: True)</td>  </tr>
 <tr>  <td><pre>pngfnfmt</pre></td> <td>format_string</td> <td>Customize the png filename using python string formatting. (default: {yamlfnroot}_{dr_rng}{N_existing}{ext})</td>  </tr>
 <tr>  <td><pre>pngmode</pre></td> <td>pngmode</td> <td>PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit. (default: L)</td>  </tr>
-<tr>  <td><pre>fn_substitution</pre></td> <td>FIND, REPLACE</td> <td>Substitute x with y in output filename. </td>  </tr>
+<tr>  <td><pre>filename_sub</pre></td> <td>FIND, REPLACE</td> <td>Substitute FIND with REPLACE in output filename. </td>  </tr>
+<tr>  <td><pre>filename_sub_re</pre></td> <td>FIND, REPLACE</td> <td>Substitute all substrings matching the regex FIND with REPLACE in output filename. </td>  </tr>
 <tr>  <td><pre>crop</pre></td> <td>LEFT, UPPER, RIGHT, LOWER</td> <td>Crop image to this box (left upper right lower) aka (x1 y1 x2 y2), Values can be either pixel values [500, 100, 1200, 400], or fractional/percentage values [5%, 3%, 95%, 0.9]. Note: Yes, 0.9 is 90%. If gel image is 1000 pixels wide, 0.9 or 90% are equivalent to 900 pixels. OBS! Note that by default the values are interpreted as &lt;strong&gt;ABSOLUTE COORDINATE VALUES&lt;/strong&gt; from the top, left pixel. If you want to change this behaviour such that the RIGHT and LOWER values are interpreted as the amount to crop away, e.g. 'crop 12% from the right edge', set ```cropfromedges``` to true. </td>  </tr>
 <tr>  <td><pre>cropfromedges</pre></td> <td>true/false</td> <td>If true, the crop values RIGHT and LOWER defined above specifies pixels from their respective edges instead of absolute coordinates from the upper left corner. Default: false. </td>  </tr>
 <tr>  <td><pre>scale</pre></td> <td>scalefactor</td> <td>"Scale the gel by this amount. Can be a single value for uniform scaling, or two values for different scaling in x vs y. Can be given as float (0.1, 2.5) or percentage (10%, 250%). </td>  </tr>
@@ -48,7 +49,6 @@ argv: ['docs/docgen.py']
 <tr>  <td><pre>lines_includeempty</pre></td> <td>true/false</td> <td>Whether to include empty lines. Not applicable to 'wikilist' lines_inputstyle (use blank lines starting with '#' in this case). (default: False)</td>  </tr>
 <tr>  <td><pre>lines_listchar</pre></td> <td>string-spec</td> <td>If annotations are copy-pasted from a wiki/markdown list and you want to strip the list charaacter (e.g. '*' or '#'), specify the character here. Default: auto-detect. </td>  </tr>
 <tr>  <td><pre>lines_commentchar</pre></td> <td>string-spec</td> <td>Lines starting with this character are ignored (comments). Default: auto-detect. </td>  </tr>
-<tr>  <td><pre>lines_commentmidchar</pre></td> <td>string-spec</td> <td>Input to the right of this character is ignored (commented out). Default: auto-detect. </td>  </tr>
 <tr>  <td><pre>openwebbrowser</pre></td> <td>true/false</td> <td>Open annotated svg file in default webbrowser. Default: Do not open files. (default: True)</td>  </tr>
 <tr>  <td><pre>svgtopng</pre></td> <td>true/false</td> <td>Save svg as png (requires cairo package). </td>  </tr>
 </table>

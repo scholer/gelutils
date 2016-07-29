@@ -605,8 +605,17 @@ def main(config=None):
     print("- default encoding:", locale.getpreferredencoding(False))
     # Note: It might be a good idea to load the system-level default config (e.g. ~/.gelannotator.yaml)
     # BEFORE parsing args, and passing the default config to parseargs.
-    load_system_config = config.pop('load_system_config', True) if config else True
-    if load_system_config:  # incl if config is None
+    config_app_defaults = {}
+
+    # 1. Parse command line arguments, if config is not provided:
+    if config is None:
+        argsns = parseargs(prog='gui', defaults=config_app_defaults)
+        config = argsns.__dict__
+        if config_app_defaults:
+            config = mergedicts(config_app_defaults , config)  # latter takes precedence except None-valued entries
+
+    # 2. Load system-level config, unless deactivated by command line arguments:
+    if config.pop('load_system_config', True):  # incl if config is None
         print("Trying to load default config from file paths:", DEFAULT_CONFIG_FILEPATHS)
         fn, system_config = get_default_config()
         if system_config:
@@ -615,15 +624,10 @@ def main(config=None):
             print(" - Could not find any default configuration file.")
     else:
         system_config = None
-    if config is None:
-        argsns = parseargs(prog='gui', defaults=system_config)
-        config = argsns.__dict__
-        if system_config:
-            config = mergedicts(system_config, config)  # latter takes precedence except None-valued entries
-
     yamlfile = config.get("yamlfile")
     config_template = config.pop("config_template", None)
 
+    # 3. Load EITHER yamlfile OR config_template. Supporting both would be confusing.
     if yamlfile:
         # If config file  is explicitly specified, do not try to catch errors:
         with open(os.path.expanduser(yamlfile), encoding="utf-8") as fp:
@@ -639,23 +643,24 @@ def main(config=None):
         else:
             config = mergedicts(template_config, config)  # latter takes precedence except None-valued entries
 
-    print("Config after loading system_config, yamlfile and config_template:")
+    print("Config after parsing cmd args, and loading system_config, yamlfile/config_template:")
     print(config)
 
     # stdout and stderr redirection, if requested...
     # I wanted to have this at the top, but then we cannot have system config.
-    if config.get('stdout'):
-        # stdout_backup = sys.stdout
-        stdout_fd = open(config['stdout'], mode=config.get('stdout_mode', 'w'), encoding='utf-8')
+    stdout_fn = config.pop('stdout', None)
+    stdout_mode = config.pop('stdout_mode', 'w')
+    stderr_fn = config.pop('stderr', None)
+    stderr_mode = config.pop('stderr_mode', 'w')
+    if stdout_fn:
+        stdout_fd = open(stdout_fn, mode=stdout_mode, encoding='utf-8')
         print("Redirecting stdout to file:", stdout_fd)
-        sys.stdout = stdout_fd
+        sys.stdout = stdout_fd  # backups are available as sys.__stdout__, sys.__stderr__
         if config.get('stderr') is None:
-            stderr_backup = sys.stderr
             print("Redirecting stderr to file:", stdout_fd)
             sys.stderr = stdout_fd
     if config.get('stderr'):
-        # stderr_backup = sys.stderr
-        stderr_fd = open(config['stderr'], mode=config.get('stderr_mode', 'w'), encoding='utf-8')
+        stderr_fd = open(stderr_fn, mode=stderr_mode, encoding='utf-8')
         print("Redirecting stderr to file:", stderr_fd, flush=True)
         sys.stderr = stderr_fd
 

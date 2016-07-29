@@ -4,6 +4,12 @@
 Changes since last release:
 ---------------------------
 
+* New keyword 'filename_sub_re', using regex to substitute filename substrings.
+* Renamed 'filename_substitution' keyword to 'filename_sub'.
+* filename_sub (and filename_sub_re) now support more than two elements, FIND1, REPLACE1, FIND2, REPLACE2, etc.
+* removed lines_commentmidchar keyword, should just use lines_commentchar consistently.
+* Parsing command line args before loading system config, passing config_app_defaults to parser instead.
+* Properly removing load_system_config and stdout/stderr/etc from config.
 
 
 Release 0.6.0:

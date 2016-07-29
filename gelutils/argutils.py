@@ -251,8 +251,8 @@ def make_parser(prog='gelannotator', defaults=None,
                         list charaacter (e.g. '*' or '#'), specify the character here. Default: auto-detect.""")
         ap.add_argument('--lines_commentchar', metavar="string-spec",
                         help="Lines starting with this character are ignored (comments). Default: auto-detect.")
-        ap.add_argument('--lines_commentmidchar', metavar="string-spec",
-                        help="Input to the right of this character is ignored (commented out). Default: auto-detect.")
+        # ap.add_argument('--lines_commentmidchar', metavar="string-spec",
+        #                 help="Input to the right of this character is ignored (commented out). Default: auto-detect.")
 
         ap.add_argument('--openwebbrowser', action='store_true', default=defaults.get('openwebbrowser'),
                         help="Open annotated svg file in default webbrowser. Default: Do not open files.")
