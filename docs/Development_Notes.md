@@ -30,7 +30,7 @@ $ mkdocs serve
 ```
 
 
-Deploying to GitHub pages:
+Deploying to GitHub pages: (this is what I'm currently using)
 
 * Push docs to ```gh-pages``` branch, docs available at [scholer.github.io/gelutils](https://scholer.github.io/gelutils)
 

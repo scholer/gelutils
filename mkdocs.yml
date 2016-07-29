@@ -1,0 +1,25 @@
+site_name: Gelutils
+repo_url: https://github.com/scholer/gelutils/
+site_author: Rasmus S. Sorensen
+copyright: GPLv3
+theme: readthedocs
+markdown_extensions:
+    - smarty
+    - toc:
+        permalink: True
+    - sane_lists
+    - linkify
+# Defaults: docs_dir=docs, site_dir=site, extra_css/js=<all .css/.js files in docs_dir>,
+# default extensions: meta, toc, tables, and fenced_code
+# use_directory_urls: false # default true will create nice links to directories but doesn't always work well ATM.
+pages:
+    - 'Introduction': 'index.md'
+    - 'Installation': 'Installation.md'
+    - 'Tutorial - GUI': 'Tutorial-GUI.md'
+    - 'Tutorial - Command line': 'Tutorial-Console.md'
+    - 'GUI User Guide': 'GelAnnotator_GUI_help.md'
+    - 'Configuration Reference': 'Config-Ref.md'
+    - 'Configuration Examples': 'Config-Examples.md'
+    - 'About': 'about.md'
+    - 'Development': 'Development_Notes.md'
+# Config-Ref.md is auto-generated from argument parser.

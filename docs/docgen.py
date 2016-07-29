@@ -38,6 +38,17 @@ from gelutils.argutils import make_parser
 # https://pypi.python.org/pypi/argcomplete
 
 
+"""
+
+Use this module to create Markdown documentation files using the command line / config keyword reference help
+already specified in the argutils module.
+
+To use:
+# Make sure you are in a python environment where gelutils is available.
+$ cd <project root>
+$ python docs/docgen.py
+
+"""
 
 
 def playing_around():

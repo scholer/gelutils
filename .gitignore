@@ -55,6 +55,9 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Mkdocs build:
+site/
+
 # Extra images
 res/icons/*.jpg
 res/icons/*.png
