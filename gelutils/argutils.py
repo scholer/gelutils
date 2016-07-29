@@ -118,7 +118,7 @@ def make_parser(prog='gelannotator', defaults=None,
 
     ap.add_argument('--convertgelto', default='png', metavar="png/jpg/etc",
                     help="Convert gel to this format.")
-    #ap.add_argument('--png', action='store_true', help="Save as png.")
+    # ap.add_argument('--png', action='store_true', help="Save as png.")
     ap.add_argument('--overwrite', action='store_true', default=True,
                     help=""""Overwrite existing png file. If set to false, the program will
                     re-use the any old PNG it finds instead of re-generating the PNG from the .GEL file.
@@ -131,8 +131,12 @@ def make_parser(prog='gelannotator', defaults=None,
     ap.add_argument('--pngmode', default='L',
                     help="PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit.")
 
-    ap.add_argument('--fn_substitution', nargs=2, metavar=("FIND", "REPLACE"),
-                    help="Substitute x with y in output filename.")
+    ap.add_argument('--filename-sub', nargs='+', metavar=("FIND", "REPLACE"),
+                    help="Substitute FIND with REPLACE in output filename. ")
+    # "If FIND is given and REPLACE isn't, then REPLACE defaults to ''.")
+
+    ap.add_argument('--filename-sub-re', nargs='+', metavar=("FIND", "REPLACE"),
+                    help="Substitute all substrings matching the regex FIND with REPLACE in output filename.")
 
     ap.add_argument('--crop', nargs=4, type=int, metavar=('LEFT', 'UPPER', 'RIGHT', 'LOWER'),
                     help="""Crop image to this box (left upper right lower) aka (x1 y1 x2 y2),

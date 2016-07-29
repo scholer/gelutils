@@ -724,16 +724,43 @@ def convert(gelfile, args, yamlfile=None, lanefile=None, **kwargs):   # (too man
                                   lanefnroot=lanefnroot, yamlfnroot=yamlfnroot,
                                   N_existing=N_existing, ext=ext)
 
-    if args.get('filename_substitution'):
-        try:
-            find, replace = args.get('filename_substitution')
-        except ValueError:
-            print("ERROR: filename_substitution must be a list of length 2. Will not perform filename_substitution.")
-        else:
-            if find in pngfilename:
-                logger.info("filename_substitution: replacing '%s' with '%s' in %s", find, replace, pngfilename)
-                pngfilename = pngfilename.replace(*args.get('filename_substitution'))
+    if args.get('filename_sub'):
+        logger.info("Doing filename substitution using filename_sub = %s", args['filename_sub'])
+        if len(args['filename_sub']) % 2 != 0:
+            logger.warning("The number of elements in filename_sub list should be a multiple of 2"
+                           "(find1, replace1, find2, replace2, ...), but is has %s elements" % len(args['filename_sub']))
+        list_iter = iter(args['filename_sub'])
+        find_replace_iter = zip(list_iter, list_iter)
+        for find, replace in find_replace_iter:
+            logger.info("filename_sub: replacing '%s' with '%s' in %s", find, replace, pngfilename)
+            try:
+                pngfilename = pngfilename.replace(find, replace)
                 logger.debug("New pngfilename: %s", pngfilename)
+            except (ValueError, TypeError) as e:
+                logger.warning("Failed to do filename_sub using re.sub(%s, %s, %s)",
+                               find, replace, pngfilename)
+                print("\nERROR: Something went wrong doing filename_sub using find=%s, replace=%s\n" % (find, replace))
+    else:
+        logger.debug("args.get('filename_sub') = %s", args.get('filename_sub'))
+    if args.get('filename_sub_re'):
+        logger.info("Doing regex substitution using filename_sub_re = %s", args['filename_sub_re'])
+        if len(args['filename_sub_re']) % 2 != 0:
+            logger.warning("The number of elements in filename_sub_re list should be a multiple of 2"
+                           "(find1, replace1, find2, replace2, ...), but is has %s elements" % len(args['filename_sub_re']))
+        list_iter = iter(args['filename_sub_re'])
+        find_replace_iter = zip(list_iter, list_iter)
+        for find, replace in find_replace_iter:
+            logger.info("filename_sub_re: replacing '%s' with '%s' in %s", find, replace, pngfilename)
+            try:
+                pngfilename = re.sub(find, replace, pngfilename)
+                logger.debug("New pngfilename: %s", pngfilename)
+            except (ValueError, TypeError) as e:
+                logger.warning("Failed to do filename_sub_re using re.sub(%s, %s, %s)",
+                               find, replace, pngfilename)
+                print("\nERROR: Something went wrong doing filename_sub_re using find=%s, replace=%s\n" % (find, replace))
+    else:
+        logger.debug("args.get('filename_sub_re') = %s", args.get('filename_sub_re'))
+
 
     # The 'pngfile' in args is relative to the gelfile,
     # But when you save, it should be absolute:

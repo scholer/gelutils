@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     default_args = {
         'openwebbrowser': True,
-        'filename_substitution': ['-[SYBR Gold]', ''],
+        'filename_sub': ['-[SYBR Gold]', ''],
     }
     # There are two approaches to merging default args (or user preferences) and command line overrides.
     # (a) Forward the default args to parseargs and it will use default args for defaults.

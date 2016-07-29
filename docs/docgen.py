@@ -46,7 +46,7 @@ already specified in the argutils module.
 To use:
 # Make sure you are in a python environment where gelutils is available.
 $ cd <project root>
-$ python docs/docgen.py
+$ python docs/docgen.py > docs/Config-Ref.md
 
 """
 
@@ -187,7 +187,13 @@ def format_actions_table(actions, prefix="<table>", postfix="</table>",
             fields['help'] = re.sub(" +", " ", fields['help'])
             fields['help'] = fields['help'].replace("<", "&lt;").replace(">", "&gt;")
             # Argutils does a % formatting of all help strings. We must do the same to get same behaviour.
+            # try:
             fields['help'] = fields['help'] % {}
+            # except ValueError as e:
+            #     print("Error formatting fields['help']: %s" % e)
+            #     print(fields['help'])
+            #     import pdb
+            #     pdb.set_trace()
 
         table_strs.append(row_fmt.format(**fields))
 
@@ -215,7 +221,7 @@ def main(argv=None):
 
 
     p = make_parser(prog="gui")
-    p._optionals._actions
+    # p._optionals._actions
     actions = p._actions
 
     table_str = format_actions_table(actions)
