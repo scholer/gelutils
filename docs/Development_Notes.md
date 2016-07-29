@@ -1,6 +1,6 @@
 
 General development notes:
-==========================
+--------------------------
 
 Code and issue-tracking at github: https://github.com/scholer/gelutils
 
@@ -13,9 +13,49 @@ Extra python requirements for development:
  * ```pytest``` for testing.
 
 
+Setting up for Gelutils development (see also README.md):
+0. (Optional): Make a dedicated python environment for gelutils, e.g.: ```conda create -n 
+1. cd to your dev folder and download repo: ```git clone https://github.com/scholer/gelutils.git```
+2. Install gelutils into your python environment in editable mode: ```cd gelutils```, then ```pip install -e .```
+3. Alternatively, you can combine steps 1+2 into one: ```pip install -e git+https://github.com/scholer/gelutils```
+4. Make sure all requirements are installed: ```pip install -r REQUIREMENTS.txt```
+
+
+
+RELEASE process:
+----------------
+
+
+Release process:
+
+1. Make sure all tests passes,
+2. Bump version number (version+download_url in setup.py and version in gelutils/__init__.py)
+3. Change to separate python build environment (e.g. ```gelutils-release-testing``` - NOT the same as your ```gelutils``` development environment),
+   build release with ```python setup.py sdist```,
+   install build in separate python environment using ```pip install dist/gelutils-<version>-.tar.gz```, 
+   and run tests.
+4. Register release and upload source distribution to PyPI test site:
+   ```python setup.py register -r pypitest```, then ```python setup.py sdist upload -r pypitest```,
+   then check https://testpypi.python.org/pypi/gelutils/ and make sure it looks right.
+5. Register release and upload production PyPI site and check https://pypi.python.org/pypi/gelutils/
+   ```python setup.py register -r pypi```, then ```python setup.py sdist upload -r pypi```
+6. Tag this version with ```git tag 1.2.3 -m "message"```, then push it with
+   ```git push --follow-tags``` (or ```git push --tags``` if you have already pushed the branch/commits)
+
+
+setup.py example files and guides:
+
+* https://github.com/pypa/sampleproject/blob/master/setup.py
+* https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
+
+
+
+
+
+
 
 Docs generation & hosting/deployment:
-=====================================
+-------------------------------------
 
 
 Currently using **MkDocs** for doc generation and **GitHub Pages** for hosting, c.f. [www.mkdocs.org/user-guide/deploying-your-docs/](www.mkdocs.org/user-guide/deploying-your-docs/)
@@ -92,31 +132,6 @@ Documentation Refs:
 * https://help.github.com/articles/creating-project-pages-manually/
 * https://python.libhunt.com/project/mkdocs/vs/sphinx
 * https://wiki.python.org/moin/DocumentationTools
-
-
-
-RELEASING
-=========
-
-
-Release process:
-
-1. Make sure all tests passes,
-2. build release with ```python setup.py sdist```,
-   install in release-testing environment with ```pip install dist/gelutils-<version>-.tar.gz```, and run tests.
-3. Register release and upload source distribution to PyPI test site and check https://testpypi.python.org/pypi/gelutils/
-   ```python setup.py register -r pypitest```, then ```python setup.py sdist upload -r pypitest```
-4. Register release and upload production PyPI site and check https://pypi.python.org/pypi/gelutils/
-   ```python setup.py register -r pypi```, then ```python setup.py sdist upload -r pypi```
-5. Tag this version with ```git tag 1.2.3 -m "message"```, then push it with
-   ```git push --follow-tags``` (or ```git push --tags``` if you have already pushed the branch/commits)
-
-
-setup.py example files and guides:
-
-* https://github.com/pypa/sampleproject/blob/master/setup.py
-* https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
-
 
 
 

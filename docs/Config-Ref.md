@@ -1,18 +1,17 @@
-
-Config keywords reference:
-==========================
-
-Click [here](Config-Examples.md) to see real-world examples of how to use the configuration keywords.
-
+argv: ['docs/docgen.py']
 <table>
 <tr><th>Keyword</th>  <th>Type and default</th>  <th>Help</th></tr>
 <tr>  <td><pre>gelfile</pre></td> <td>gelfile</td> <td>If file is a YAML file, you can specify gelfile explicitly with --gelfile. </td>  </tr>
 <tr>  <td><pre>loglevel</pre></td> <td>loglevel</td> <td>Logging level, e.g. 10, 30, or 'DEBUG', 'INFO. </td>  </tr>
 <tr>  <td><pre>logtofile</pre></td> <td>logtofile</td> <td>Write log output to file rather than console. </td>  </tr>
+<tr>  <td><pre>stdout</pre></td> <td>stdout</td> <td>Write stdout stream to file rather than console. </td>  </tr>
+<tr>  <td><pre>stderr</pre></td> <td>stderr</td> <td>Write stderr stream to file rather than console. Defaults to same value as stdout. </td>  </tr>
+<tr>  <td><pre>stdout_mode</pre></td> <td>stdout_mode</td> <td>File open mode for stdout stream, if stdout is given. Default: 'w'. (default: w)</td>  </tr>
+<tr>  <td><pre>stderr_mode</pre></td> <td>stderr_mode</td> <td>File open mode for stderr stream, if stderr is given. Default: 'w'. (default: w)</td>  </tr>
 <tr>  <td><pre>disable_logging</pre></td> <td>true/false</td> <td>Disable logging system. </td>  </tr>
 <tr>  <td><pre>linearize</pre></td> <td>true/false</td> <td>Linearize gel (if e.g. typhoon). </td>  </tr>
 <tr>  <td><pre>dynamicrange</pre></td> <td>MIN, MAX</td> <td>Specify dynamic range (contrast). Valid argumets are 'MIN MAX', 'MAX' and 'auto', e.g. '1000, 20000' to set range from 1000 to 20000, '20000' to set range from zero to 20000, and 'auto' to determine range automatically. MIN and MAX are usually provided as absolute values e.g. '300 5000', but can also be specified as percentage values, e.g. '0.1% 99%'. If percentage or decimal values are given, the dynamic range is set such that MIN % of the pixels are below the lower range and (1.0 - MAX) of the pixels are above the dynamic range. If only one integer argument is given if is assumed to be the max, and min is set to 0. If specifying 'auto', the software will try to determine a suitable contrast range automatically. </td>  </tr>
-<tr>  <td><pre>remember_gelfile</pre></td> <td>true/false</td> <td>Save gelfile in config for later use. </td>  </tr>
+<tr>  <td><pre>gelfile_remember</pre></td> <td>true/false</td> <td>Save gelfile in config for later use. </td>  </tr>
 <tr>  <td><pre>invert</pre></td> <td>true/false</td> <td>Invert gel data, so zero is white, high intensity black. </td>  </tr>
 <tr>  <td><pre>convertgelto</pre></td> <td>png/jpg/etc</td> <td>Convert gel to this format. (default: png)</td>  </tr>
 <tr>  <td><pre>overwrite</pre></td> <td>true/false</td> <td>"Overwrite existing png file. If set to false, the program will re-use the any old PNG it finds instead of re-generating the PNG from the .GEL file. If you are playing around with e.g. the annotations, this can save a bit of computation. (default: True)</td>  </tr>
@@ -45,13 +44,11 @@ Click [here](Config-Examples.md) to see real-world examples of how to use the co
 <tr>  <td><pre>updateyaml</pre></td> <td>true/false</td> <td>Update yaml settings after run to reflect the settings used. (default: False)</td>  </tr>
 <tr>  <td><pre>embed</pre></td> <td>true/false</td> <td>Embed image data in svg file. (default) (default: True)</td>  </tr>
 <tr>  <td><pre>annotationsfile</pre></td> <td>filename</td> <td>Load lane annotations from this file. If not specified, will try to guess the right file. </td>  </tr>
-<tr>  <td><pre>lineinputstyle</pre></td> <td>string-spec</td> <td>This can be used to change how lines in the sample annotation file are interpreted. Default is to use all non-empty lines that does not begin with '#'. Set this to 'wikilist' to only include lines that starts with either of #, *, -, +. </td>  </tr>
-<tr>  <td><pre>lines_includeempty</pre></td> <td>true/false</td> <td>Whether to include empty lines. Not applicable to 'wikilist' lineinputstyle (use blank lines starting with '#' in this case). (default: False)</td>  </tr>
-<tr>  <td><pre>openwebbrowser</pre></td> <td>true/false</td> <td>Open annotated svg file in default webbrowser. Default: Do not open files. </td>  </tr>
+<tr>  <td><pre>lines_inputstyle</pre></td> <td>string-spec</td> <td>This can be used to change how lines in the sample annotation file are interpreted. Default is to use all non-empty lines that does not begin with '#'. Set this to 'wikilist' to only include lines that starts with either of #, *, -, +. </td>  </tr>
+<tr>  <td><pre>lines_includeempty</pre></td> <td>true/false</td> <td>Whether to include empty lines. Not applicable to 'wikilist' lines_inputstyle (use blank lines starting with '#' in this case). (default: False)</td>  </tr>
+<tr>  <td><pre>lines_listchar</pre></td> <td>string-spec</td> <td>If annotations are copy-pasted from a wiki/markdown list and you want to strip the list charaacter (e.g. '*' or '#'), specify the character here. Default: auto-detect. </td>  </tr>
+<tr>  <td><pre>lines_commentchar</pre></td> <td>string-spec</td> <td>Lines starting with this character are ignored (comments). Default: auto-detect. </td>  </tr>
+<tr>  <td><pre>lines_commentmidchar</pre></td> <td>string-spec</td> <td>Input to the right of this character is ignored (commented out). Default: auto-detect. </td>  </tr>
+<tr>  <td><pre>openwebbrowser</pre></td> <td>true/false</td> <td>Open annotated svg file in default webbrowser. Default: Do not open files. (default: True)</td>  </tr>
 <tr>  <td><pre>svgtopng</pre></td> <td>true/false</td> <td>Save svg as png (requires cairo package). </td>  </tr>
 </table>
-
-
-#### See also: ####
-
-* [Config Examples](Config-Examples.md)
