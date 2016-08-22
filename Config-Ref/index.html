@@ -159,15 +159,15 @@
               
                 <table>
 <tr><th>Keyword</th>  <th>Type and default</th>  <th>Help</th></tr>
-<tr>  <td><pre>gelfile</pre></td> <td>gelfile</td> <td>If file is a YAML file, you can specify gelfile explicitly with --gelfile. </td>  </tr>
+<tr>  <td><pre>gelfile</pre></td> <td>gelfile</td> <td>Explicitly specify the gelfile to use. Often used in "yaml-mode" where the primary file is a YAML config file ("yaml-mode"). Specifying gelfile with this keyword will save it it the .gaml config file. Useful for having multiple .gaml config files all using the same .GEL file, e.g. with different crop regions if the GEL file contains multiple gels. </td>  </tr>
 <tr>  <td><pre>loglevel</pre></td> <td>loglevel</td> <td>Logging level, e.g. 10, 30, or 'DEBUG', 'INFO. </td>  </tr>
 <tr>  <td><pre>logtofile</pre></td> <td>logtofile</td> <td>Write log output to file rather than console. </td>  </tr>
-<tr>  <td><pre>stdout</pre></td> <td>stdout</td> <td>Write stdout stream to file rather than console. </td>  </tr>
-<tr>  <td><pre>stderr</pre></td> <td>stderr</td> <td>Write stderr stream to file rather than console. Defaults to same value as stdout. </td>  </tr>
-<tr>  <td><pre>stdout_mode</pre></td> <td>stdout_mode</td> <td>File open mode for stdout stream, if stdout is given. Default: 'w'. (default: w)</td>  </tr>
-<tr>  <td><pre>stderr_mode</pre></td> <td>stderr_mode</td> <td>File open mode for stderr stream, if stderr is given. Default: 'w'. (default: w)</td>  </tr>
+<tr>  <td><pre>stdout</pre></td> <td>filename</td> <td>Write stdout stream to file rather than console. </td>  </tr>
+<tr>  <td><pre>stderr</pre></td> <td>filename</td> <td>Write stderr stream to file rather than console. Defaults to same value as stdout. </td>  </tr>
+<tr>  <td><pre>stdout_mode</pre></td> <td>file mode</td> <td>File open mode for stdout stream, if stdout is given. Default: 'w'. (default: w)</td>  </tr>
+<tr>  <td><pre>stderr_mode</pre></td> <td>file mode</td> <td>File open mode for stderr stream, if stderr is given. Default: 'w'. (default: w)</td>  </tr>
 <tr>  <td><pre>disable_logging</pre></td> <td>true/false</td> <td>Disable logging system. </td>  </tr>
-<tr>  <td><pre>linearize</pre></td> <td>true/false</td> <td>Linearize gel (if e.g. typhoon). </td>  </tr>
+<tr>  <td><pre>linearize</pre></td> <td>true/false</td> <td>Linearize gel input data stored in Square-Root Encoded Data (if Typhoon). </td>  </tr>
 <tr>  <td><pre>dynamicrange</pre></td> <td>MIN, MAX</td> <td>Specify dynamic range (contrast). Valid argumets are 'MIN MAX', 'MAX' and 'auto', e.g. '1000, 20000' to set range from 1000 to 20000, '20000' to set range from zero to 20000, and 'auto' to determine range automatically. MIN and MAX are usually provided as absolute values e.g. '300 5000', but can also be specified as percentage values, e.g. '0.1% 99%'. If percentage or decimal values are given, the dynamic range is set such that MIN % of the pixels are below the lower range and (1.0 - MAX) of the pixels are above the dynamic range. If only one integer argument is given if is assumed to be the max, and min is set to 0. If specifying 'auto', the software will try to determine a suitable contrast range automatically. </td>  </tr>
 <tr>  <td><pre>gelfile_remember</pre></td> <td>true/false</td> <td>Save gelfile in config for later use. </td>  </tr>
 <tr>  <td><pre>invert</pre></td> <td>true/false</td> <td>Invert gel data, so zero is white, high intensity black. </td>  </tr>
@@ -193,7 +193,7 @@
 <tr>  <td><pre>xspacing</pre></td> <td>int-or-fraction</td> <td>Force a certain x spacing between lanes. </td>  </tr>
 <tr>  <td><pre>xtraspaceright</pre></td> <td>int-or-fraction</td> <td>Add additional padding/whitespace to the right side of the gel image. This is sometimes needed if the gel is not wide enough for the last lane annotation. </td>  </tr>
 <tr>  <td><pre>textrotation</pre></td> <td>angle</td> <td>Rotate lane annotations by this angle (counter-clockwise). Default: 70. </td>  </tr>
-<tr>  <td><pre>fontsize</pre></td> <td>SIZE (int)</td> <td>Specify default font size, e.g. 12 or 16. </td>  </tr>
+<tr>  <td><pre>fontsize</pre></td> <td>size (int)</td> <td>Specify default font size, e.g. 12 or 16. </td>  </tr>
 <tr>  <td><pre>fontfamily</pre></td> <td>fontfamily</td> <td>Specify default font family, e.g. arial or MyriadPro. </td>  </tr>
 <tr>  <td><pre>fontweight</pre></td> <td>fontweight</td> <td>Font weight: normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | inherit. </td>  </tr>
 <tr>  <td><pre>textfmt</pre></td> <td>format_string</td> <td>How to format the lane annotations, e.g. '{idx} {name}'. Format keys include: idx, name. Default: '{name}'. </td>  </tr>

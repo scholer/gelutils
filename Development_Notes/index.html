@@ -119,10 +119,10 @@
                 <li class="toctree-l3"><a href="#general-development-notes">General development notes:</a></li>
                 
             
-                <li class="toctree-l3"><a href="#release-process">RELEASE process:</a></li>
+                <li class="toctree-l3"><a href="#release-build-and-distribution">Release build and distribution:</a></li>
                 
             
-                <li class="toctree-l3"><a href="#docs-generation-hostingdeployment">Docs generation &amp; hosting/deployment:</a></li>
+                <li class="toctree-l3"><a href="#docs-generation-and-deployment">Docs generation and deployment:</a></li>
                 
             
                 <li class="toctree-l3"><a href="#documentation-alternatives">Documentation - alternatives:</a></li>
@@ -185,6 +185,7 @@
    Requires <code>html5lib</code>, and <code>bleach</code>.</li>
 <li><code>pandoc</code> to convert <a href="http://README.md">README.md</a> to README.rst during PyPI deployment.</li>
 <li><code>pytest</code> for testing.</li>
+<li><code>twine</code> for uploading files (only for old python versions).</li>
 </ul>
 <p>Packages available from Anaconda (if you use conda for your package management,
 install these with <code>conda install</code> before installing other packages with <code>pip</code>):</p>
@@ -193,39 +194,59 @@ install these with <code>conda install</code> before installing other packages w
 
 <p>Setting up for Gelutils development (see also <a href="http://README.md">README.md</a>):</p>
 <ol>
-<li>(Optional): Make a dedicated python environment for gelutils, e.g.: <code>conda create -n</code></li>
+<li>Make a dedicated python environment for gelutils, e.g.:
+   <code>conda create -n gelutils pip numpy Pillow==2.7 six pyyaml cffi pandoc pytest jinja</code></li>
 <li>cd to your dev folder and download repo: <code>git clone <a href="https://github.com/scholer/gelutils.git">https://github.com/scholer/gelutils.git</a></code></li>
 <li>Install gelutils into your python environment in editable mode: <code>cd gelutils</code>, then <code>pip install -e .</code></li>
-<li>Alternatively, you can combine steps 1+2 into one: <code>pip install -e git+<a href="https://github.com/scholer/gelutils">https://github.com/scholer/gelutils</a></code></li>
+<li>Note: You can combine steps 1+2 into one: <code>pip install -e git+<a href="https://github.com/scholer/gelutils">https://github.com/scholer/gelutils</a></code></li>
 <li>Make sure all dev requirements are installed: <code>pip install -r requirements_dev.txt</code></li>
 </ol>
-<h2 id="release-process">RELEASE process:<a class="headerlink" href="#release-process" title="Permanent link">&para;</a></h2>
-<p>Release process:</p>
+<ul>
+<li>Note 1: If you want to make releases, you should additionally create two extra python environments,
+  one for testing the sdist (<code>gelutils-sdist-test</code>)
+  and another to verify the PyPI release (<code>gelutils-pypi-test</code>).</li>
+<li>Note 2: Consider deleting and re-creating the <code>gelutils-pypi-test</code> environment for every release/dist,
+  using <code>conda create -n gelutils pip numpy Pillow==2.7 six pyyaml cffi</code>,
+  then <code>pip install gelutils</code>.
+  You do not need to install &ldquo;requirements_dev.txt&rdquo; dependencies in pypi-test environment.
+  Simply deleting the <code>gelutils-pypi-test</code> directory inside Anaconda3 should be fine.</li>
+</ul>
+<h2 id="release-build-and-distribution">Release build and distribution:<a class="headerlink" href="#release-build-and-distribution" title="Permanent link">&para;</a></h2>
+<p>Release protocol:</p>
 <ol>
-<li>Make sure all tests passes,</li>
-<li>Bump version number (version+download_url in <a href="http://setup.py">setup.py</a> and version in gelutils/<strong>init</strong>.py)</li>
-<li>Change to separate python build environment (e.g. <code>gelutils-release-testing</code> - This is NOT
-   the same as your <code>gelutils</code> development environment),
+<li>Make sure all tests passes.
+   Verify that both annotategel_debug script and AnnotateGel gui entry points are functional and able to complete.
+   Preferably verify that it works both when invoked from console and from Automator script.</li>
+<li>Bump version number (version+download_url in <a href="http://setup.py">setup.py</a> and version in gelutils/<strong>init</strong>.py),
+   then <code>git commit</code>.</li>
+<li>Change to separate python build/dist environment (e.g. <code>gelutils-release-testing</code> or <code>gelutils-sdist-test</code> -
+   This is <em>NOT</em> the same as your <code>gelutils</code> development environment),
    build release with <code>python <a href="http://setup.py">setup.py</a> sdist</code>,
-   install build in separate python environment using <code>pip install dist/gelutils-&lt;version&gt;-.tar.gz</code>, 
+   install build in sdist environment using <code>pip install dist/gelutils-&lt;version&gt;.tar.gz</code>,
    and run tests.</li>
 <li>Register release and upload source distribution to PyPI test site:
    <code>python <a href="http://setup.py">setup.py</a> register -r pypitest</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypitest</code>,
    then check <a href="https://testpypi.python.org/pypi/gelutils/">https://testpypi.python.org/pypi/gelutils/</a> and make sure it looks right.</li>
 <li>Register release and upload production PyPI site and check <a href="https://pypi.python.org/pypi/gelutils/">https://pypi.python.org/pypi/gelutils/</a>
-   <code>python <a href="http://setup.py">setup.py</a> register -r pypi</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypi</code></li>
-<li>Tag this version with <code>git tag 1.2.3 -m "message"</code>, then push it with
+   <code>python <a href="http://setup.py">setup.py</a> register -r pypi</code>, then <code>python <a href="http://setup.py">setup.py</a> sdist upload -r pypi</code>.
+   Note: On old python distributions <code>python <a href="http://setup.py">setup.py</a> upload</code> will use unencrypted communication,
+   consider using <code>twine</code> if you are distributing using a python version older than 3.4.</li>
+<li>Tag this version in git with <code>git tag &lt;version&gt; -m "message"</code>, then push it with
    <code>git push --follow-tags</code> (or <code>git push --tags</code> if you have already pushed the branch/commits)</li>
+<li>Test the PYPI release using the <code>gelutils-pypi-test</code> environment,
+   preferably also on a different platform/OS as well.</li>
 </ol>
+<p>If you find an error at any point, go back to step 1.</p>
 <p><a href="http://setup.py">setup.py</a> example files and guides:</p>
 <ul>
 <li><a href="https://github.com/pypa/sampleproject/blob/master/setup.py">https://github.com/pypa/sampleproject/blob/master/setup.py</a></li>
 <li><a href="https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/">https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/</a></li>
 </ul>
-<h2 id="docs-generation-hostingdeployment">Docs generation &amp; hosting/deployment:<a class="headerlink" href="#docs-generation-hostingdeployment" title="Permanent link">&para;</a></h2>
+<h2 id="docs-generation-and-deployment">Docs generation and deployment:<a class="headerlink" href="#docs-generation-and-deployment" title="Permanent link">&para;</a></h2>
 <p>Currently using <strong>MkDocs</strong> for doc generation and <strong>GitHub Pages</strong> for hosting, c.f. <a href="../www.mkdocs.org/user-guide/deploying-your-docs/">www.mkdocs.org/user-guide/deploying-your-docs/</a></p>
 <p>To see the current docs locally at <a href="http://127.0.0.1:8000/">127.0.0.1:8000/</a>:</p>
-<pre><code>$ cd &lt;main project directory&gt;
+<pre><code>$ source activate gelutils-sdist-test # or source activate gelutils-release-testing
+$ cd ~/dev/gelutils
 $ mkdocs serve
 
 </code></pre>
@@ -241,7 +262,8 @@ $ mkdocs serve
 <ul>
 <li>Use setuptools in your <a href="http://setup.py">setup.py</a>, docs available at <a href="http://pythonhosted.org/gelutils/">pythonhosted.org/gelutils/</a></li>
 </ul>
-<pre><code>mkdocs build --clean
+<pre><code># (I'm NOT using this at the moment -- using gh-deploy above instead.)
+mkdocs build --clean
 python setup.py upload_docs --upload-dir=site
 </code></pre>
 
@@ -319,8 +341,9 @@ External hyperlinks, like Python_.
 <h2 id="about-configuring-setuppy">About configuring <a href="http://setup.py">setup.py</a><a class="headerlink" href="#about-configuring-setuppy" title="Permanent link">&para;</a></h2>
 <p>General refs:</p>
 <ul>
+<li><a href="https://setuptools.readthedocs.io/en/latest/setuptools.html">https://setuptools.readthedocs.io/en/latest/setuptools.html</a></li>
+<li><a href="https://packaging.python.org/distributing/">https://packaging.python.org/distributing/</a></li>
 <li><a href="https://docs.python.org/3/distutils/setupscript.html">https://docs.python.org/3/distutils/setupscript.html</a></li>
-<li><a href="http://setuptools.readthedocs.io/en/latest/setuptools.html">http://setuptools.readthedocs.io/en/latest/setuptools.html</a></li>
 <li><a href="http://www.ianbicking.org/docs/setuptools-presentation/">http://www.ianbicking.org/docs/setuptools-presentation/</a></li>
 <li><a href="http://matthew-brett.github.io/pydagogue/installing_scripts.html">http://matthew-brett.github.io/pydagogue/installing_scripts.html</a></li>
 </ul>
