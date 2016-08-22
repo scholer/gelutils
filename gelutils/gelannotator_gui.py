@@ -682,13 +682,19 @@ def main(config=None):
     # Global logging behaviour is adjusted by config['loglevel'] and config['logtofile']
 
     logger.debug("Creating GelAnnotatorApp with args/config=%s", config)
-    if "utf-8" not in locale.getpreferredencoding(False).lower():
+    preferredencoding = locale.getpreferredencoding(False)
+    if "utf-8" not in preferredencoding.lower():
         # Avoid encoding errors by always using the same locale and encoding:
         # (alternatively always specify encoding keyword to open() files)
-        print("Resetting locale to ('en_US', 'UTF-8')...", flush=True)
-        locale.setlocale(locale.LC_ALL, ('en_US', 'UTF-8'))
-        logger.info("Locale reset to %s; preferred encoding is now '%s'",
-                    ('en_US', 'UTF-8'), locale.getpreferredencoding(False))
+        print("Resetting locale to ('en_US', 'UTF-8') - was originally %s..." % (preferredencoding, ), flush=True)
+        try:
+            locale.setlocale(locale.LC_ALL, ('en_US', 'UTF-8'))
+        except Exception as e:
+            print("Failed to set locale: %s" % e)
+            logger.info("Failed to set locale: %s",  e)
+        else:
+            logger.info("Locale reset to %s; preferred encoding is now '%s'",
+                        ('en_US', 'UTF-8'), locale.getpreferredencoding(False))
     app = GelAnnotatorApp(args=config)
     logger.debug("GelAnnotatorApp created, starting mainloop()...")
     app.mainloop()

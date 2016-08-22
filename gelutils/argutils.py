@@ -58,7 +58,12 @@ def make_parser(prog='gelannotator', defaults=None,
     if prog == 'gui':
         # For GUI app the user can browse for gel file so it is not mandatory
         ap.add_argument('file', nargs='?')
-        ap.add_argument('--gelfile', help="If file is a YAML file, you can specify gelfile explicitly with --gelfile.")
+        ap.add_argument('--gelfile',
+                        help='Explicitly specify the gelfile to use. '
+                        'Often used in "yaml-mode" where the primary file is a YAML config file ("yaml-mode"). '
+                        'Specifying gelfile with this keyword will save it it the .gaml config file. '
+                        'Useful for having multiple .gaml config files all using the same .GEL file, '
+                        'e.g. with different crop regions if the GEL file contains multiple gels.')
     else:
         ap.add_argument('gelfile')
 
@@ -70,13 +75,15 @@ def make_parser(prog='gelannotator', defaults=None,
     ap.add_argument('--logtofile', default=defaults.get('logtofile'),
                     help="Write log output to file rather than console.")
 
-    ap.add_argument('--stdout', default=defaults.get('stdout'),
-                    help="Write stdout stream to file rather than console.")
-    ap.add_argument('--stderr', default=defaults.get('stderr'),
+    ap.add_argument('--stdout', metavar="filename", default=defaults.get('stdout'),
+                    help="Write stdout stream to file rather than console. "
+                         "This may be useful in cases where a terminal is not available, "
+                         "e.g. when invoking AnnotateGel on OSX with an Automator script.")
+    ap.add_argument('--stderr', metavar="filename", default=defaults.get('stderr'),
                     help="Write stderr stream to file rather than console. Defaults to same value as stdout.")
-    ap.add_argument('--stdout-mode', default='w',
+    ap.add_argument('--stdout-mode', metavar="file mode", default='w',
                     help="File open mode for stdout stream, if stdout is given. Default: 'w'.")
-    ap.add_argument('--stderr-mode', default='w',
+    ap.add_argument('--stderr-mode', metavar="file mode", default='w',
                     help="File open mode for stderr stream, if stderr is given. Default: 'w'.")
 
 
@@ -91,7 +98,7 @@ def make_parser(prog='gelannotator', defaults=None,
     # For geltransformer -- also nice for gel annotator
 
     ap.add_argument('--linearize', action='store_true', default=None,
-                    help="Linearize gel (if e.g. typhoon).")
+                    help="Linearize gel input data stored in Square-Root Encoded Data (if Typhoon).")
     ap.add_argument('--no-linearize', action='store_false', dest='linearize',
                     help="Linearize gel (if e.g. typhoon).")
     ap.add_argument('--dynamicrange', nargs='+', metavar=("MIN", "MAX"),
@@ -198,7 +205,7 @@ def make_parser(prog='gelannotator', defaults=None,
 
         ap.add_argument('--textrotation', type=int, dest='textrotation', metavar="angle",
                         help="Rotate lane annotations by this angle (counter-clockwise). Default: 70.")
-        ap.add_argument('--fontsize', type=int, metavar="SIZE (int)",
+        ap.add_argument('--fontsize', type=int, metavar="size (int)",
                         help="Specify default font size, e.g. 12 or 16.")
         ap.add_argument('--fontfamily',
                         help="Specify default font family, e.g. arial or MyriadPro.")

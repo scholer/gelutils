@@ -23,7 +23,29 @@ Module for transforming gel images: converting, mapping, cropping, etc.
 Requires Pillow version 2.7 (NOT version 3.0 or above!)
 
 
-= CURRENT STATUS =
+About .GEL files (from e.g. Typhoon scanners):
+* Data structure like TIFF file
+* Created by: Amersham Biosciences
+* Owner: GE Healthcare Life Sciences
+* Developer: Molecular Dynamics
+* Name: Molecular Dynamics GEL file format, see http://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
+* AKA: amersham-biosciences-gel, "Square-Root Encoded Data"
+* Pixel data is encoded as: stored_value = sqrt(intensity)/scale,
+* where scale factor is stored in file metadata, MD_ScalePixel tag code 332446
+* Decode pixel data as: actual_value = scale * stored_value^2
+* Default Scale factor value: 21025 - 1/scale = 1/21025 = 4.75624256837099E-5
+
+
+See also:
+* http://www.awaresystems.be/imaging/tiff/tifftags/docs/gel.html
+* http://www.openmicroscopy.org/site/support/bio-formats5.1/formats/amersham-biosciences-gel.html
+* http://www.openmicroscopy.org/site/support/bio-formats5.1/metadata/BioRadGelReader.html
+* http://www.openmicroscopy.org/site/support/bio-formats5.1/formats/bio-rad-gel.html
+* https://github.com/openmicroscopy/bioformats/blob/v5.1.10/components/formats-gpl/src/loci/formats/in/GelReader.java
+
+
+ CURRENT STATUS:
+-----------------
 
 It works, but I'm having problems linearizing the data because PIL wants
 to fit the data into its own range.
@@ -34,7 +56,8 @@ Or skip PIL all together and use something else.
 
 
 
-= READING .GEL FILES: ==
+ READING .GEL FILES:
+---------------------
 
 Options:
 * PIL
@@ -53,7 +76,8 @@ Options:
 ** http://www.imagemagick.org/download/python/
 
 
-== USING PIL ==
+ USING PIL:
+------------
 
 To open with PIL:
     from PIL.TiffImagePlugin import OPEN_INFO, II
@@ -99,7 +123,8 @@ MORE PILLOW refs:
     https://pillow.readthedocs.org/handbook/concepts.html
 
 
-Alternatives to using PIL:
+ Alternatives to using PIL:
+----------------------------
 
 MATPLOTLIB:
 * Is suggested by: http://stackoverflow.com/questions/15284601/python-pil-struggles-with-uncompressed-16-bit-tiff-images

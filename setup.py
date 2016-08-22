@@ -36,10 +36,10 @@ setup(
     description="Annotate and convert GEL images (PAGE, agarose gels, etc.) acquired from e.g. Typhoon scanners, GelDocs or similar.",
     long_description=long_description,
     # long_description=open('README.txt').read(),
-    version='0.6.0',  # update: version and download_url, also gelutils.__init__.__version__.
+    version='0.6.1',  # update: version and download_url, also gelutils.__init__.__version__.
     packages=['gelutils', 'gelutils.tkui'],  # List all packages (directories) to include in the source dist.
     url="https://github.com/scholer/gelutils",
-    download_url = 'https://github.com/scholer/gelutils/tarball/0.6.0',
+    download_url = 'https://github.com/scholer/gelutils/tarball/0.6.1',
     author="Rasmus S. Sorensen",
     author_email="rasmusscholer@gmail.com",
     license='GNU General Public License v3 (GPLv3)',

@@ -1,0 +1,25 @@
+# Requirements for development, build and release.
+# Create new environment and install with pip -r requirements_dev.txt
+# python2 should still work but is not actively tested against:
+# python>=3
+# PIL
+Pillow==2.7
+six
+# yaml provided by pyyaml package:
+pyyaml
+# svgwrite is available on Anaconda using e.g. the bioconda channel: conda install -c bioconda svgwrite=1.1.6
+svgwrite
+# numpy used for array processing, e.g. during linearization.
+numpy
+# base64 is included for python3+ but must be pip-install'ed for python2:
+# base64
+# Cairo/pycairo/cairocffi is required to convert svg images to png:
+cffi
+cairocffi
+cairosvg
+
+# development/release packages:
+mkdocs
+mdx_linkify
+pandoc
+pytest
