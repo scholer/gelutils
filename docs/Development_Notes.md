@@ -13,7 +13,7 @@ Extra python requirements for development:
    Requires ```html5lib```, and ```bleach```.
 * ```pandoc``` to convert README.md to README.rst during PyPI deployment.
 * ```pytest``` for testing.
-* ```twine ``` for uploading files.
+* ```twine ``` for uploading files (only for old python versions).
 
 
 Packages available from Anaconda (if you use conda for your package management,
@@ -25,14 +25,21 @@ conda install jinja2 tornado click markupsafe pandoc pytest numpy
 
 Setting up for Gelutils development (see also README.md):
 
-0. Make a dedicated python environment for gelutils, e.g.: ```conda create -n```
+0. Make a dedicated python environment for gelutils, e.g.:
+   ```conda create -n gelutils pip numpy Pillow==2.7 six pyyaml cffi pandoc pytest jinja```
 1. cd to your dev folder and download repo: ```git clone https://github.com/scholer/gelutils.git```
 2. Install gelutils into your python environment in editable mode: ```cd gelutils```, then ```pip install -e .```
-3. Alternatively, you can combine steps 1+2 into one: ```pip install -e git+https://github.com/scholer/gelutils```
+3. Note: You can combine steps 1+2 into one: ```pip install -e git+https://github.com/scholer/gelutils```
 4. Make sure all dev requirements are installed: ```pip install -r requirements_dev.txt```
-* Note: If you want to make releases, you should additionally create two extra python environments,
+
+* Note 1: If you want to make releases, you should additionally create two extra python environments,
   one for testing the sdist (```gelutils-sdist-test```)
   and another to verify the PyPI release (```gelutils-pypi-test```).
+* Note 2: Consider deleting and re-creating the ```gelutils-pypi-test``` environment for every release/dist,
+  using ```conda create -n gelutils pip numpy Pillow==2.7 six pyyaml cffi```,
+  then ```pip install gelutils```.
+  (You do not need to install "requirements_dev.txt" dependencies in pypi-test environment.)
+  To delete a conda environment, just delete the ```gelutils-pypi-test``` directory inside the Anaconda3 directory.
 
 
 
@@ -43,7 +50,8 @@ Release build and distribution:
 Release protocol:
 
 1. Make sure all tests passes.
-   Verify that AnnotateGel_console script and AnnotateGel app are both able to properly complete.
+   Verify that both annotategel_debug script and AnnotateGel gui entry points are functional and able to complete.
+   Preferably verify that it works both when invoked from console and from Automator script.
 2. Bump version number (version+download_url in setup.py and version in gelutils/__init__.py),
    then ```git commit```.
 3. Change to separate python build/dist environment (e.g. ```gelutils-release-testing``` or ```gelutils-sdist-test``` -
@@ -56,12 +64,14 @@ Release protocol:
    then check https://testpypi.python.org/pypi/gelutils/ and make sure it looks right.
 5. Register release and upload production PyPI site and check https://pypi.python.org/pypi/gelutils/
    ```python setup.py register -r pypi```, then ```python setup.py sdist upload -r pypi```.
-   Note: ```python setup.py upload``` on old python distributions will use unencrypted communication.
-   For old python distributions, use ```twine``` instead.
-6. Tag this version with ```git tag 1.2.3 -m "message"```, then push it with
+   Note: On old python distributions ```python setup.py upload``` will use unencrypted communication,
+   consider using ```twine``` if you are distributing using a python version older than 3.4.
+6. Tag this version in git with ```git tag <version> -m "message"```, then push it with
    ```git push --follow-tags``` (or ```git push --tags``` if you have already pushed the branch/commits)
+   You can also create tags/releases using Github's interface, c.f. https://help.github.com/articles/creating-releases/.
 7. Test the PYPI release using the ```gelutils-pypi-test``` environment,
    preferably also on a different platform/OS as well.
+   Use ```pip install -U gelutils``` to update.
 
 If you find an error at any point, go back to step 1.
 
@@ -71,8 +81,13 @@ setup.py example files and guides:
 * https://github.com/pypa/sampleproject/blob/master/setup.py
 * https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
 
-
-
+Regarding versioning:
+* I *am* trying to adhere to [semantic versioning](http://semver.org).
+* I do *not* prefix version names/tags with ```v```, although this is customary and allowed by semver.
+* Refs:
+* * https://help.github.com/articles/creating-releases/
+* * https://git-scm.com/book/en/v2/Git-Basics-Tagging
+* * http://stackoverflow.com/questions/18216991/create-a-tag-in-github-repository
 
 
 
@@ -87,7 +102,8 @@ Currently using **MkDocs** for doc generation and **GitHub Pages** for hosting, 
 To see the current docs locally at [127.0.0.1:8000/](http://127.0.0.1:8000/):
 
 ```
-$ cd <main project directory>
+$ source activate gelutils-sdist-test # or source activate gelutils-release-testing
+$ cd ~/dev/gelutils
 $ mkdocs serve
 
 ```
@@ -107,6 +123,7 @@ Deploying to pythonhosted (PyPI):
 * Use setuptools in your setup.py, docs available at [pythonhosted.org/gelutils/](http://pythonhosted.org/gelutils/)
 
 ```
+# (I'm NOT using this at the moment -- using gh-deploy above instead.)
 mkdocs build --clean
 python setup.py upload_docs --upload-dir=site
 ```

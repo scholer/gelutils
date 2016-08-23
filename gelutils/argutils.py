@@ -30,7 +30,7 @@ from itertools import chain
 def make_parser(prog='gelannotator', defaults=None,
                 description='Gelutils - Convert and Annotate scientific .GEL/TIFF files.',
                 **argparser_kwargs):
-    """
+    """Make a parser to parse command line arguments.
 
     Default values if not specified are None for most arguments,
     except for switches (store_true/false), where it is the default is the opposite of the first given switch.
@@ -40,6 +40,18 @@ def make_parser(prog='gelannotator', defaults=None,
     When two switches with same destination are defined, the first will define the default value.
     E.g. below, both linearize and no-linearize are defined having dest=linearize.
     Because linearize is defined first, the default value of linearize will be False.
+
+    Args:
+        prog: A string e.g. 'gui' to create a parser customized for GUI app.
+        defaults: A dict with default values for the parsers keyword arguments.
+        description: A string describing the program for which the parser is used.
+        argparser_kwargs: Other keywords passed to argparse.ArgumentParser init.
+
+    Returns:
+        An argparse.ArgumentParser instance customized for gelutils usage.
+
+    Examples:
+        ap = make_parser('gui', defaults={'openwebbrowser': False}, description='Gelutils Gel Annotator.')
 
     """
     if defaults is None:
@@ -294,22 +306,26 @@ def parseargs(prog='gelannotator', argv=None, defaults=None):#, partial=False, m
 
 
 def mergedicts(*dicts):
-    """
-    Merges dictionaries in dicts.
-    <dicts> is a sequence of dictionaries.
+    """Merge dictionaries.
+
+    Merge all given dictionaries.
     The returned dict will have all keys from all dictionaries in dicts.
-    The latter items in dicts take precedence of earlier, i.e.:
-    >>> mergedicts({3:1, {3:2})
-    {3:2}
-    However only non-None items take precedence:
-    >>> mergedicts({4:1}, {4:None})
-    {4:1}
-    However, the returned dict *will* have all keys from all dicts, even if they are None:
-    >>> mergedicts({6:None, 7:None}, {6:None, 8:None})
-    {6:None, 7:None, 8:None}
-    In total:
-    >>> mergedicts({1:1, 3:1, 4:1, 5:None, 6:None, 7:None}, {2:2, 3:2, 4:None, 5:2, 6:None, 8:None})
-    {1:1, 2:2, 3:2, 4:1, 5:2, 6:None, 7:None, 8:None}
+    The latter items in dicts take precedence of earlier, except if the value is None.
+    None-values have the lowest precedence and is always overwritten if another dict has
+    the same key/entry with a value different from None.
+
+    Examples:
+        >>> mergedicts({3:1, {3:2})
+        {3:2}
+        However only non-None items take precedence:
+        >>> mergedicts({4:1}, {4:None})
+        {4:1}
+        However, the returned dict *will* have all keys from all dicts, even if they are None:
+        >>> mergedicts({6:None, 7:None}, {6:None, 8:None})
+        {6:None, 7:None, 8:None}
+        In total:
+        >>> mergedicts({1:1, 3:1, 4:1, 5:None, 6:None, 7:None}, {2:2, 3:2, 4:None, 5:2, 6:None, 8:None})
+        {1:1, 2:2, 3:2, 4:1, 5:2, 6:None, 7:None, 8:None}
     """
     # Make dict with all keys from all keys, set to None:
     #print "dicts:", dicts
@@ -321,7 +337,8 @@ def mergedicts(*dicts):
 
 
 def mergeargs(argsns, argsdict=None, excludeNone=True, precedence='argsdict'):
-    """
+    """Merge argns and argsdict into a single dict.
+
     Merges arguments from <argsdict> and <argsns> (argparse Namespace or similar object).
     The returned dict is guaranteed to have all keys from both argsns and argsdict,
     even if they are None and <excludeNone> is True.

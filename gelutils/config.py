@@ -45,7 +45,7 @@ def filename_is_yaml(fn):
 
 
 def yaml_get(filepath, default=None):
-    """ Load yaml from filepath. Return default if file could not be loaded. """
+    """Load yaml from filepath. Return default if file could not be loaded."""
     try:
         with open(filepath) as fd:
             data = yaml.safe_load(fd)

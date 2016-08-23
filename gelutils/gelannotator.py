@@ -69,8 +69,9 @@ from .config import default_yaml_ext
 
 
 def find_yamlfilepath(gelfn, rel=False, basedir=None):
-    """
-    Finds a suitable yaml filename depending on gel filename.
+    """Finds a suitable yaml filename depending on gel filename.
+
+    Given a gel filename, returns a yaml filename.
     The returned file is absolute;
     use utils.getrelfilepath to get relative to gelfile.
     """
@@ -81,8 +82,7 @@ def find_yamlfilepath(gelfn, rel=False, basedir=None):
 
 
 def find_annotationsfilepath(filenames, rel=False, fallback=True):
-    """
-    Finds a suitable annotationsfile depending on gel filename.
+    """Finds a suitable annotationsfile depending on gel filename.
 
     Return the first, best candidate for an annotation file for the given gel file.
 
@@ -125,7 +125,11 @@ def find_annotationsfilepath(filenames, rel=False, fallback=True):
             ann_fn = next(fn for fn in chain(*(glob.glob(pat) for pat in glob_pats)))
         except StopIteration:
             logger.debug("None of the file patterns in search_pats matched any file, using fallback: %s", fallback)
-            ann_fn = fallback
+            if fallback:
+                ann_fn = fallback
+            else:
+                raise ValueError("Could not find any suitable annotationsfile.")
+
     logger.debug("Selected annotationsfile: %s", ann_fn)
     return ann_fn
 
@@ -138,17 +142,35 @@ def find_annotationsfilepath(filenames, rel=False, fallback=True):
 
 
 def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_asterix='first_only'):
-    """
-    Returns annotations given gel filename.
-    Annotationsfile, whether given directly or through args,
-    is relative to gelfile.
+    """Find gel/lane annotations.
+
+    Load and return annotations from a gel/lane annotations file.
+    This function is meant to make it easy to just pass all app config args and this function will
+    figure out how to do the sane thing.
+    If annotations file is not specified explicitly,
+    do a brief search for a suitable annotations file (using the gelfile filename).
+
+    Annotations can optionally be read from clipboard, if args['fromclipboard'] is True.
+
+    Args:
+        args: a dict with configuration/command-line arguments.
+        annotationsfile: explicitly specify the annotations file to use.
+        gelfile: Use this filename as the base for finding the correct annotations file.
+
+    If both gelfile and annotationsfile are given, annotationsfile is assumed to be relative to gelfile.
+
+    Returns:
+        A tuple of (laneannotations, annotationsfile),
+        where the first element is a list of lane annotations,
+        and the second element is the filepath of the annotations file that was read.
+
     """
     if args.get('fromclipboard', False):
         laneannotations = list(gen_trimmed_lines(get_clipboard().split('\n')))
         if laneannotations and len(laneannotations) < 30:
             # If laneannotations is more than 30, it is probably not intended to use.
             print("Found lines in clipboard:", laneannotations)
-            return laneannotations
+            return laneannotations, None
     annotationsfile = annotationsfile or args['annotationsfile']
     gelfile = gelfile or args['gelfile']
     # annotationsfile is relative to gelfile:
@@ -157,13 +179,7 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
 
     if not annotationsfile:
         logger.debug("annotationsfile is %s, searching for one by gelfilename...", annotationsfile)
-        try:
-            # get_annotation_fn_by_gel_fn returns an actual filepath, not relative to gelfile.
-            annotationsfile = get_annotation_fn_by_gel_fn(gelfile, fallback=False)
-        except StopIteration:
-            logger.warning("Could not find annotationsfile!")
-            raise ValueError("Could not find any suitable annotationsfile.")
-        logger.debug("Using annotations file: %s", annotationsfile)
+        annotationsfile = find_annotationsfilepath([gelfile], fallback=False)
 
     ## We have a filepath with annotations:
     if os.path.splitext(annotationsfile)[1].lower() == '.yml':
@@ -174,8 +190,7 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
 
 
 def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yamlfile=None, **kwargs):
-    """
-    Creates SVG file with lane annotations overlayed over the gel.
+    """Creates SVG file with lane annotations overlayed over the gel.
 
     Arguments:
         gelfile : gelfile that is the basis. Not pngfile; that is given in args.
@@ -356,12 +371,23 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yaml
 
 
 def ensurePNG(gelfile, args, yamlfile=None, lanefile=None):
-    """
-    Ensures that we have a png file to work with.
-    If args['gelfile'] already is a png, then just skip.
+    """Ensures that we have a png file to overlay our annotations on.
 
-    If gelfile is a .GEL file:
-    Make PNG from GEL file and update args to reflect that change.
+    If args['gelfile'] already is a png, then just skip.
+    If gelfile is a .GEL file: Make PNG from GEL file and update args to reflect that change.
+
+    Arguments:
+        gelfile: Filename of the gel file which we are annotating.
+        args: configuration arguments. If gelfile is not specified, use args['gelfile']
+        yamlfile: Load extra config arguments from this file.
+        lanefile: The annotationsfile with gel/lane annotations.
+
+    Returns:
+        None (no return value)
+
+    Raises:
+        ValueError if gelfile extension is not recognized.
+        Will also raise any exception thrown by convert()
     """
     if args is None:
         args = {}
@@ -397,23 +423,27 @@ def ensurePNG(gelfile, args, yamlfile=None, lanefile=None):
 
 
 def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
-    """
-    Outer wrapper to annotate gel.
+    """Annotate gel according to the given configuraiton args.
+
+    This function is the primary function in charge of annotating gel files.
+    It works as an outer wrapper with a series of responsibilities:
         0) Load yaml and annotations files.
         1) Creates/ensures a PNG file.
         2) Create SVG with annotations.
         3) Converts svg to png if requested and other stuff.
-
-    Returns 3-tuple of:
-        drawing
-        svgfilename
-        args - updated args dict with anything that may have been changed as a result of the run.
 
     Arguments:
         args: dict with standard arguments.
         gelfile: main gelfile.
         annotationfile: file with annotations. Is this actual or relative to gelfile? - Relative.
         yamlfile: file with options in yaml format. Is this actual or relative to gelfile? - Relative.
+
+    Returns:
+        A 3-tuple with:
+            drawing,
+            svgfilename,
+            args - updated args dict with anything that may have been changed as a result of the run.
+
     """
     logger.debug("""annotate_gel invoked with gelfile='%s', yamlfile='%s', annotationsfile='%s',
                  and args=%s""", gelfile, yamlfile, annotationsfile, printdict(args))

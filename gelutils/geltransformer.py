@@ -211,8 +211,8 @@ print("PIL version: %s || PILLOW? - %s" % (PIL_VERSION, PIL_IS_PILLOW))
 
 
 def get_mode_minmax(mode):
-    """
-    Determine the maximum values for the specified image mode.
+    """Determine the maximum values for the specified image mode.
+
     E.g. for a 32-bit integer image mode, the max value is 2**32-1.
     """
     # For float we set bit to 1 so that maxval becomes 1.0 .
@@ -232,9 +232,10 @@ def get_mode_minmax(mode):
     return minval, maxval
 
 def get_bits_mode_dtype(mode):
-    """
-    Returns tuple of
-        (pixel_bits, pil_mode, numpy_dtype)
+    """get PIL pixel bits, mode and numpy data type for a given mode.
+
+    Return:
+        3-Tuple with (pixel_bits, pil_mode, numpy_dtype)
     """
     imgmode_to_bits = {'I': 32, 'L': 8}
     bits_to_imgmode = {8: 'L', 32: 'I'} # These are the only two supported afaik.
@@ -253,7 +254,9 @@ def get_bits_mode_dtype(mode):
 
 
 def get_PMT(img):
-    """
+    """Return PMT (photomultiplier) information for a PIL image or scan-info tag.
+
+    Tags are in the format of:
      (33449, <Scan Info>)
     """
     if isinstance(img, string_types):
@@ -276,16 +279,17 @@ def get_PMT(img):
     #        return match.groups()[0]
 
 def has_PMT(filename):
-    """
-    Returns whether filename has photomultipler designation in filename.
-    E.g. "Agarose 500 V.gel", "Agarose_500V.gel", "Agarose_500_V_gel1.gel"
+    """Determine whether filename has photomultipler designation in filename.
+
+    E.g. "Agarose 500 V.gel", "Agarose_500V.gel", "Agarose_500_V_gel1.gel" all have PMT in filename.
     """
     prog = re.compile(r'.*\d{3}[_\s]?[Vv].*')
     return prog.match(filename)
 
 
 def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None, converter='auto'):
-    """
+    """find a suitable dynamic range by looking at histogram of pixel values.
+
     Try to determine the range given the numpy data, so that the
     values within the cutoff fraction is within the dynamic range,
     and the fraction of values above and below the cutoff is beyond the dynamic range.
@@ -321,7 +325,8 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None, converter='
 
 def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=None,
                  crop=None, rotate=None, scale=None, **kwargs):          # pylint: disable=R0912
-    """
+    """process a given gel image (rotate, scale, crop, image contrast, etc).
+
     gelimg is a PIL Image file, not just a path.
     Linearizes all data points (pixels) in gelimg.
     gelimg should be a PIL.Image.Image object.
@@ -645,12 +650,16 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
 
 
 def get_gel(filepath, args):
-    """
-    Returns (image, info) tuple.
+    """Open gelfile and process it.
+
     Image is a PIL.Image.Image object of the gel after processing as specified by args.
     Info is a dict with various info on the original image (before round-trip to numpy).
     If linearize is True (default), the .GEL data will be linearized before returning.
     Note that invert only takes effect if you specify a dynamic range.
+
+    Returns:
+         2-Tuple of (image, info), where image is a PIL.Image instance
+         and info is a dict with information about the image.
     """
     gelimage = Image.open(filepath)
     gelimage, info = processimage(gelimage, args)
@@ -659,17 +668,18 @@ def get_gel(filepath, args):
 
 
 def convert(gelfile, args, yamlfile=None, lanefile=None, **kwargs):   # (too many branches and statements, bah) pylint: disable=R0912,R0915
-    """
-    Converts gel file to png given the info in args (using processimage to apply transformations).
+    """Convert gel file to png given the info in args (using processimage to apply transformations).
+
     Args:
-    :gelfile: <str> file path pointing to a gel file.
-    :args: forwarded to get_gel/processimage together with gelfile to load gelfile data and apply image transformations.
+        gelfile: <str> file path pointing to a gel file.
+        args: forwarded to get_gel/processimage together with gelfile to load gelfile data and apply image transformations.
 
-    Returns (image, info) tuple.
-    Image is a PIL.Image.Image object of the gel after processing as specified by args.
-    Info is a dict with various info on the original image (before round-trip to numpy).
+    Return:
+        2-tuple of (image, info), where
+        Image is a PIL.Image.Image object of the gel after processing as specified by args.
+        Info is a dict with various info on the original image (before round-trip to numpy).
 
-    <args> may be updated by the process to contain transformed arguments, e.g.
+    <args> may be updated in-place by the process to contain transformed arguments, e.g.
       dynamicrange='auto' being converted to an actual (min, max) tuple value.
 
     If linearize is True (default for gel data), the .GEL data will be linearized before returning.

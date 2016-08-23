@@ -44,7 +44,8 @@ else:
 
 
 def ensure_numeric(inval, scalefactor=None, sf_lim=2, converter=None):
-    """
+    """ensure that a given value is numeric.
+
     Takes a string value or iterable with string values and converts them to absolute values.
     Args:
         :inval:     Input to convert to a numeric value. String or iterable.
@@ -109,8 +110,8 @@ def getfilepath(gelfilepath, otherfilepath):
 
 
 def getabsfilepath(gelfilepath, otherfilepath):
-    """
-    Try to ensure that otherfilepath is a proper file path.
+    """Try to ensure that otherfilepath is a proper file path.
+
     Usecases:
     If otherfilepath is 'mygel.png' or 'pngs/mygel.png',
     normal file operation will prefix this with os.getcwd() to get the absolute path.
@@ -157,8 +158,8 @@ def getabsfilepath(gelfilepath, otherfilepath):
 
 
 def getrelfilepath(gelfilepath, otherfilepath):
-    """
-    Get otherfilepath relative to gelfilepath.
+    """Get otherfilepath relative to gelfilepath.
+
     Usecases:
     - Linking to png file in svg rather than embedding data.
     - Returning easy-to-read values to the GUI.
@@ -193,7 +194,7 @@ def getrelfilepath(gelfilepath, otherfilepath):
 
 
 def printdict(d):
-    """ Returns a string of d with sorted keys. """
+    """Returns a string of d with sorted keys."""
     try:
         return "{"+", ".join("{}: {}".format(repr(k), repr(v)) for k, v in sorted(d.items())) +"}"
     except AttributeError:
@@ -201,7 +202,8 @@ def printdict(d):
 
 
 def getLoglevelInt(loglevel, defaultlevel=None):
-    """
+    """Get a proper loglevel integer.
+
     Used to ensure that a value is a valid loglevel integer.
     If loglevel is already an integer, or a string representation of an interger, this integer is returned.
     If loglevel is a registrered level NAME (e.g. DEBUG, INFO, WARNING, ERROR), the correspoinding integer value is returned.
@@ -223,7 +225,8 @@ def getLoglevelInt(loglevel, defaultlevel=None):
 
 
 def init_logging(args=None, prefix="gelutils"):
-    """
+    """Initialize logging.
+
     Set up standard logging system based on values provided by argsns, namely:
     - loglevel
     - logtofile
@@ -278,7 +281,8 @@ def init_logging(args=None, prefix="gelutils"):
 
 
 def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None, includeempty=False):
-    """
+    """Generate lane annotations from a string assuming list-like input format.
+
     This is sort of the inverse of gen_trimmed_lines, it returns
     all lines that starts with either '#' or '*',
     corresponding to a enumerated or bullet list in wiki format.
@@ -297,7 +301,8 @@ def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None, includeemp
 
 
 def gen_trimmed_lines(lines, commentchar='#', commentmidchar=None, includeempty=False):
-    """
+    """Generate "nice" lane annotations, trimmed, stripped and without comments.
+
     Returns non-empty, non-comment lines.
     Args:
         commentchar (default='#') defines a character that is used to denote a comment in a line:
@@ -317,7 +322,8 @@ def gen_trimmed_lines(lines, commentchar='#', commentmidchar=None, includeempty=
 
 
 def gen_stripped_nonempty_lines(lines):
-    """
+    """Remove empty lines.
+
     Returns a generator of stripped, nonempty lines in <lines>.
     Args:
         lines : an iterator of string-like objects.
@@ -328,7 +334,8 @@ def gen_stripped_nonempty_lines(lines):
 
 
 def gen_noncomments_lines(lines, firstchar='#', midchar=None):
-    """
+    """Remove lines that are just comments.
+
     Returns a generator of lines that does not begin with firstchar.
     If midchar is provided, that is used to remove the part of the line to the right of that.
     """
@@ -339,7 +346,8 @@ def gen_noncomments_lines(lines, firstchar='#', midchar=None):
 
 
 def trimmed_lines_from_file(filepath, args=None):
-    """
+    """Read file and return a list with each line.
+
     Reads all non-comment parts of non-empty lines from file <filepath>,
     and returns these as a list, closing the file after loading the lines.
     See textdata_util.gen_trimmed_lines docs for info on commenchar and commentmidchar.
@@ -369,12 +377,12 @@ def trimmed_lines_from_file(filepath, args=None):
 
 
 def setIfNone(targetdict, key, value):
-    """ Update an entry in targetdict if either targetdict[key] is None or key not in targetdict. """
+    """Update an entry in targetdict if either targetdict[key] is None or key not in targetdict."""
     if targetdict.get(key) is None:
         targetdict[key] = value
 
 
 def updateNoneValues(targetdict, updatedict):
-    """ With all items in updatedict update targetdict ONLY IF targetdict[key] is None or key not in targetdict."""
+    """With all items in updatedict update targetdict ONLY IF targetdict[key] is None or key not in targetdict."""
     for k, v in updatedict.items():
         setIfNone(targetdict, k, v)

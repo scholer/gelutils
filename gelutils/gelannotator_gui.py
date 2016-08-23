@@ -238,24 +238,26 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             logger.debug("%s -- No problem, will save to default when annotating.", e)
 
     def get_gelfilepath(self):
-        """ Returns content of gel-filepath entry widget. """
+        """Returns content of gel-filepath entry widget."""
         return self.Root.Gelfilepath.get()
 
     def set_gelfilepath(self, filepath):
-        """ Sets content of gel-filepath entry widget. """
+        """Sets content of gel-filepath entry widget."""
         logger.debug("Setting gelfilepath to %s", filepath)
         self.Root.Gelfilepath.set(filepath)
 
     def get_directory(self):
+        """Return the current directory."""
         return self.Root.Gelfiledirectory.get() or os.getcwd()
 
     def set_directory(self, directory):
+        """Set the current directory."""
         logger.debug("Setting base directory to %s", directory)
         os.chdir(directory)
         self.Root.Gelfiledirectory.set(directory)
 
     def getgeldir(self):
-        """ Returns directory of gel-filepath entry widget, if not empty else user home dir. """
+        """Returns directory of gel-filepath entry widget, if not empty else user home dir."""
         gelfilepath = self.get_gelfilepath()
         if gelfilepath:
             return os.path.dirname(gelfilepath)
@@ -265,27 +267,25 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             return os.path.expanduser('~')
 
     def get_yamlfilepath(self):
-        """ Returns content of yaml-filepath entry widget. """
+        """Returns content of yaml-filepath entry widget."""
         return self.Root.Yamlfilepath.get()
 
     def set_yamlfilepath(self, filepath):
-        """ Sets content of yaml-filepath entry widget. """
+        """Sets content of yaml-filepath entry widget."""
         logger.debug("Setting yaml filepath to %s", filepath)
         self.Root.Yamlfilepath.set(filepath)
 
     def get_yaml(self):
-        """ Returns content of yaml text widget. """
+        """Returns content of yaml text widget."""
         return self.Root.get_yaml()
 
     def set_yaml(self, value):
-        """ Set content of yaml text widget. """
+        """Set content of yaml text widget."""
         # print("Setting content of yaml widget to:", value)
         self.Root.set_yaml(value)
 
     def init_yaml(self, args, filepath=None):       # pylint: disable=W0621
-        """
-        Merge args with yaml file (args take precedence).
-        """
+        """Merge args with yaml file (args take precedence)."""
         if filepath is None:
             filepath = getabsfilepath(self.get_gelfilepath(), self.get_yamlfilepath())
             logger.debug("init yaml filepath wasn't given, extracting from yaml widget value")
@@ -309,8 +309,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.set_yaml(yaml.dump(args, default_flow_style=False))
 
     def load_yaml(self, filepath=None, filepath_is_relative_to_gelfile=True):
-        """
-        Load content of yaml file into yaml text widget.
+        """Load content of yaml file into yaml text widget.
+
         If filepath is provided, should it be relative to gelfile?
         """
         logger.debug("Loading yaml from user-selected filepath: %s", filepath)
@@ -325,7 +325,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.set_yaml(text)
 
     def save_yaml(self, event=None):     # pylint: disable=W0613
-        """ Save content of yaml text widget to yaml file. """
+        """Save content of yaml text widget to yaml file. """
         # TODO: Consider adding gelfile and annotationfile to the yaml config before saving file.
         gelfile = self.get_gelfilepath()
         yamlfile_relative = self.get_yamlfilepath()
@@ -344,25 +344,25 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             fd.write(text)
 
     def get_annotationsfilepath(self):
-        """ Returns content of annotations-filepath entry widget. """
+        """Returns content of annotations-filepath entry widget. """
         return self.Root.Annotationsfilepath.get()
 
     def set_annotationsfilepath(self, filepath):
-        """ Sets content of annotations-filepath entry widget. """
+        """Sets content of annotations-filepath entry widget. """
         logger.debug("Setting annotations filepath to %s", filepath)
         self.Root.Annotationsfilepath.set(filepath)
 
     def get_annotations(self):
-        """ Returns content of annotations text widget. """
+        """Return content of annotations text widget. """
         return self.Root.get_annotations()
 
     def set_annotations(self, value):
-        """ Sets content of annotations text widget. """
+        """Set content of annotations text widget. """
         self.Root.set_annotations(value)
 
     def load_annotations(self, filepath=None, filepath_is_relative_to_gelfile=True):
-        """
-        Loads the content of <filepath> into annotations text widget.
+        """Load the content of <filepath> into annotations text widget.
+
         filepath defaults to annotations-filepath widget entry.
         """
         if filepath is None:
@@ -380,7 +380,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.set_annotations(text)
 
     def save_annotations(self, event=None):     # pylint: disable=W0613
-        """ Saves the content of annotations text widget to annotations-filepath. """
+        """Saves the content of annotations text widget to annotations-filepath.
+        """
         gelfile = self.get_gelfilepath()
         filepath_relative = self.get_annotationsfilepath()
         fn = getabsfilepath(gelfile, filepath_relative)
@@ -394,7 +395,10 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             fd.write(text)
 
     def browse_for_gelfile(self):
-        """ Browse for gel image file. """
+        """Browse for gel image file.
+
+        Open a GUI dialog and allow the user to select the gel file.
+        """
         # This call should probably be moved to tkroot...:
         logger.debug("Browsing for GEL file using askopenfilename dialog...")
         filename = askopenfilename(filetypes=(("GEL files", gel_exts),
@@ -422,8 +426,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             self.reset_aux_files()
 
     def browse_for_yamlfile(self):
-        """
-        Browse for yaml file.
+        """Browse for yaml file.
+
         Note that yamlfile, annotationsfile, etc are given relative to the gelfile.
         """
         logger.debug("Browsing for YAML file using askopenfilename dialog...")
@@ -445,8 +449,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.load_yaml()
 
     def browse_for_annotationsfile(self):
-        """
-        Browse for annotations file.
+        """Browse for annotations file.
+
         Note that yamlfile, annotationsfile, etc are given relative to the gelfile.
         """
         logger.debug("Browsing for ANNOTATIONS file using askopenfilename dialog...")
@@ -470,14 +474,14 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.load_annotations()  # If you provide filename, it currently should be absolute?
 
     def mainloop(self):
-        """ Starts this App's tk root mainloop. """
+        """Start this App's tk root mainloop."""
         logger.info("Starting tkroot mainloop()...")
         self.Root.mainloop()
         logger.info("<< Tkroot mainloop() complete, GelAnnotator app started OK. <<")
 
     def show_help(self, event=None):
-        """
-        Show some help to the user.
+        """Show some help to the user.
+
         # event not used, method could be function pylint: disable=W0613,R0201
         # but, it is easier to bind buttons if we can pass App instance when initializing GelAnnotatorTkRoot
         """
@@ -493,9 +497,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.Root.Statustext.set(newstatus)
 
     def annotate(self, event=None):  # event not used, pylint: disable=W0613
-        """
-        Performs annotations (typically upon button press).
-        """
+        """Perform annotations (typically upon button press)."""
         # Load/save? Uhm, no, just save
         # and then invoke gelannotator with args.
         # Update yaml when done.
@@ -539,7 +541,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
 
 
 def get_workdir(args):
-    """
+    """Get working directory based on values in args.
+
     Try to find a working directory in args.
     If none of the path arguments are absolute, return current working directory.
     """
@@ -553,7 +556,7 @@ def get_workdir(args):
 
 
 def set_workdir(args):
-    """ Change working directory to match args, where args is gelfile or args dict. """
+    """Change working directory to match args, where args is gelfile or args dict. """
     if isinstance(args, string_types):
         d = os.path.dirname(args)
     else:
@@ -563,14 +566,18 @@ def set_workdir(args):
 
 
 def get_default_config(fncands=None):
-    """
-    Find default user config. (The "system default" config is created by the argument parser).
+    """Find default user config.
+
+    Locate and load default user config from file.
+    The "system default" config is created by the argument parser).
+
     Arguments:
-        :fncands: Sequence of potential filenames to search for user config.
-    :return: tuple with (filename, config)
-    where
-     filename is the config file that was found first, and
-     config is a dict with user config or None if no default config files were found.
+        fncands: Sequence of potential filenames to search for user config.
+
+    Returns:
+        2-Tuple with (filename, config), where:
+            filename is the config file that was found first, and
+            config is a dict with user config or None if no default config files were found.
     """
     # Load default user config
     if fncands is None:
@@ -594,11 +601,16 @@ def get_default_config(fncands=None):
 
 
 def main(config=None):
-    """
+    """main driver for launching GUI Application.
+
     Having a dedicated main() makes it easier to run the GUI interactively
     from a python prompt.
+
     Arguments:
         :args:  dict with arguments/configuration.
+
+    Examples:
+        >>> main()
     """
 
     print("\n\nApp started", flush=True)

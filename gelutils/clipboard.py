@@ -83,9 +83,19 @@ except ImportError:
 
 
 def set_clipboard(text, datatype=None):
-    """
-    Arg datatype currently not used. Will generally assumed to be unicode text.
-    From http://stackoverflow.com/questions/579687/how-do-i-copy-a-string-to-the-clipboard-on-windows-using-python
+    """Set system clipboard to the given text.
+
+    This function tries a range of modules and methods to find a suitable way to set the clipboard.
+
+    Args:
+        text: A string with text to copy to the clipboard.
+        datatype currently not used. Will generally assumed to be unicode text.
+
+    Examples:
+        >>> set_clipboard("hello there")
+
+    References:
+        From http://stackoverflow.com/questions/579687/how-do-i-copy-a-string-to-the-clipboard-on-windows-using-python
     """
     if 'xerox' in sys.modules.keys():
         xerox.copy(text)
@@ -114,8 +124,14 @@ def set_clipboard(text, datatype=None):
         tkroot.destroy()
 
 def get_clipboard():
-    """
-    Get content of OS clipboard.
+    """Get content of OS clipboard.
+
+    This function tries a range of modules and methods to find a suitable way to get the clipboard content.
+
+    Example:
+        >>> get_clipboard()
+        "hello there"
+
     """
     if 'xerox' in sys.modules.keys():
         print("Returning clipboard content using xerox...")
@@ -156,6 +172,7 @@ def addToClipBoard_windows(text):
     """
     This uses the external 'clip' program to add content to the windows clipboard by invoking:
         >>> echo <text> | clip
+
     Example:
         >>> addToClipBoard('penny lane')
 
@@ -165,17 +182,25 @@ def addToClipBoard_windows(text):
 
 
 def copy_file_to_clipboard(file):
-    """
-    Copies the content of open file <fd> to clipboard.
-    If fd is a string it is assumed that you want to
-    open that file and read its content into the clipboard.
-    Usage:
-    >>> myfd = open('/path/to/a/textfile.txt')
-    >>> copy_file_to_clipboard(myfd)
-    Shortcut:
-    >>> copy_file_to_clipboard('/path/to/a/textfile.txt')
-    >>> content = get_clipboard() # returns content of file.
+    """Copy the content of a file to clipboard.
+
+    Read the content of a file and add it to the system clipboard.
+
+    Args:
+        file:   The file to read and load into the clipboard.
+                If the file is a string it is assumed that you want to
+                open that file and read its content into the clipboard.
+
+    Examples:
+        >>> myfd = open('/path/to/a/textfile.txt')
+        >>> copy_file_to_clipboard(myfd)
+
+        The same effect can be obtained by giving the filepath directly:
+        >>> copy_file_to_clipboard('/path/to/a/textfile.txt')
+        >>> content = get_clipboard() # returns content of /path/to/a/textfile.txt
     """
     if isinstance(file, string_types):
-        file = open(file)
-    set_clipboard(file.read())
+        with open(file) as fd:
+            set_clipboard(fd.read())
+    else:
+        set_clipboard(file.read())

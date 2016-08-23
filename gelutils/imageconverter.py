@@ -107,7 +107,8 @@ from .geltransformer import convert
 
 
 def gel2png(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None, **kwargs):
-    """
+    """convert gel file to png.
+
     Opens a .GEL file, linearize the data, adjust the range, crops, rotates,
     and saves as .png.
     Returns filename of the saved png file.
@@ -120,7 +121,8 @@ def gel2png(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None,
 
 
 def svg2png(svgfilepath, target='png', tool=None, removeExt=True, **kwargs):
-    """
+    """create a png file by converting a svg file.
+
     Converts svgfilepath file to target format.
     If target is just an extension, it is appended to svgfilepath.
     If removeExt is set to false, will save output as path/to/inputfile.svg.png
@@ -169,7 +171,8 @@ def svg2png(svgfilepath, target='png', tool=None, removeExt=True, **kwargs):
     return outputfn
 
 def target2outputfilepath(inputfilepath, target, removeExt=True):
-    """
+    """convert input file to target format.
+
     Converts a generic target param, which can be either an actual filepath,
     or an extension with or without dot prefix, i.e. 'ext' or '.png',
     and returns an actual filepath.
@@ -194,7 +197,7 @@ def target2outputfilepath(inputfilepath, target, removeExt=True):
 
 
 def cairosvg_available():
-    """ Probes whether cairosvg module is available. """
+    """Probe whether cairosvg module is available."""
     try:
         import cairosvg                     # pylint: disable=W0612
         return True
@@ -204,7 +207,8 @@ def cairosvg_available():
 
 
 def debug_cairo():
-    """
+    """Used to debug the current cairo installation.
+
     Where to find libcairo-2.dll (or equivalent) for cairocffi:
     * https://pythonhosted.org/cairocffi/overview.html#installing-cairo-on-windows
     * http://www.gtk.org/download/ (Windows binaries are not currently available - but you can compile the source)
@@ -297,16 +301,23 @@ def cairo_available():
             return False
     return available
 
+
 def cairo_convert(inputfilepath, target='png', removeExt=True, **kwargs):   # I do not use kwargs, pylint: disable=W0613
-    """
+    """Use cairo to convert a file to the given target format.
+
     Convert with cairo library.
-    Several libraries:
+
+    Several cairo-based libraries:
     * Pycairo   : "original" cairo bindings.
     * cairocffi : "a drop-in replacement for Pycairo", github.com/SimonSapin/cairocffi
     * CairoSVG  : "export svg to pdf, ps and png". Requires Pycairo or cairocffi. github.com/Kozea/CairoSVG
 
-    Raises ValueError if target is not recognized.
-    Raises RuntimeError if no cairo library is available.
+    Returns:
+        outputfilepath: A string with the filename of the converted file.
+
+    Raises:
+        ValueError if target is not recognized.
+        RuntimeError if no cairo library is available.
     """
     if not cairosvg_available():
         print("Cairosvg not available... debugging cairo...")
@@ -332,13 +343,10 @@ def cairo_convert(inputfilepath, target='png', removeExt=True, **kwargs):   # I 
     return outputfilepath
 
 
-
 ### ImageMagick functions:  ###
 
 def imagemagick_available():
-    """
-    Probes whether ImageMagick command line tool is available on the current system.
-    """
+    """Probe whether ImageMagick command line tool is available on the current system."""
     # Test for ImageMagik
     process = Popen('convert --version', shell=True,
                     stdin=PIPE, stdout=PIPE, stderr=STDOUT,
@@ -353,8 +361,8 @@ def imagemagick_available():
         return False
 
 def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', scale='', resize='', crop='', cmdlineargs=''):  # pylint: disable=R0912,R0913
-    """
-    Convert inputfilepath to target using imagemagick.
+    """Convert inputfilepath to target using imagemagick.
+
     <target> can be either a filetype, e.g. 'png' or '.png',
     or a complete new filename, e.g. 'myoutputfile.png'.
     cmdlineargs is a string with arguments passed directly to imagemagic's convert tool,
@@ -364,7 +372,11 @@ def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', 
 
     For a full list of imagemagick commands, see http://www.imagemagick.org/Usage
 
-    Raises RuntimeError if ImageMagick command line tool is not available.
+    Returns:
+        outputfilepath: A string with the filename of the converted file.
+
+    Raises:
+        RuntimeError if ImageMagick command line tool is not available.
 
     Pst... there's also python wrappers for imagemagick:
     * pypi.python.org/pypi/PythonMagickWand/
@@ -391,7 +403,6 @@ def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', 
     ## Check that ImageMagick is available:
     if not imagemagick_available():
         raise RuntimeError('ImageMagick is not installed. Aborting...')
-
 
     if resize:
         if isinstance(resize, string_types):
@@ -422,7 +433,6 @@ def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', 
         infile=inputfilepath, rotate=rotate, resize=resize, scale=scale, crop=crop,
         cmdargs=cmdlineargs, outfile=outputfilepath
     )
-
     process = Popen(cmd, shell=True,
                         stdin=PIPE, stdout=PIPE, stderr=STDOUT,
                         close_fds=CLOSE_FDS)
