@@ -86,3 +86,112 @@ If you get a "compiler" error, make sure you have a compiler installed.
     * The ```cffi``` library is generally available as a binary wheel for Anaconda.
     If ```cffi``` install is your problem and you are using Anaconda, try installing ```cffi``` using: ```conda install cffi```.
 
+
+
+
+Create Automator App (OS X / MacOS):
+--------------------------------------
+
+
+Notes:
+* Use "$@" to refer to "all arguments given to the Automator App/script".
+* Use > to redirect stdout to file, use &> to redirect both stderr and stdout to file.
+* Use & at the end to start as background process.
+* Redirecting stdout/stderr may alter the default behaviour of e.g. builtin open() so it uses ascii instead of utf-8.
+  This is because it may alter the default/preferred encoding.
+* If, for some reason, it is not possible to redirect stdout/stderr using standard methods (```&>```),
+  then you can use ```--stdout``` and ```--stderr``` arguments to ask the App to redirect the streams.
+  (The redirect is only done AFTER loading config files. But that means you can use ```stdout``` and ```stderr```
+  keywords to configure redirection in the system-level config.)
+* Caveat: When redirecting stdout/stderr to a file object, the stream may not be written immediately unless you flush,
+  e.g. using the ```flush``` keyword: ```print("Flushing!", flush=True)```.
+* The same caveat about delayed printing is true if App is invoked through Automator.
+
+
+# Conda ENVIRONMENTS:
+# * gelutils = dev version at /Dev/Gelutils, installed using ```pip install -e```
+# * gelutils-release-testing = sdist release test env, installed using ```python setup.py sdist && pip install pip install dist/gelutils-<version>.tar.gz```
+# * gelutils-pypi-test = PyPI release test env, installed using ```pip install gelutils```.
+
+Entry points:
+* AnnotateGel = Main GUI app, intended for regular users.
+* AnnotateGel_debug = GUI app, launched from terminal to get stdout/stderr directly in console. (Does not work when launched as Automator App).
+* * AnnotateGel_debug entry point was previously named AnnotateGel_console.
+
+
+Example Automator script:
+
+    # Dev version: *ACTIVE*
+    /Users/rasmus/anaconda3/envs/gelutils/bin/AnnotateGel "$@" --stdout /Users/rasmus/appdata/gelutils/AnnotateGel.stdout
+
+    # Release testing:
+    # /Users/rasmus/anaconda3/envs/gelutils-release-testing/bin/AnnotateGel "$@" --stdout /Users/rasmus/appdata/gelutils/AnnotateGel.stdout
+
+    # PyPI testing:
+    # /Users/rasmus/anaconda3/envs/gelutils-pypi-test/bin/AnnotateGel "$@" &> /Users/rasmus/appdata/gelutils/AnnotateGel.out
+
+    # If you get errors, just open AnnotateGel_console from within a terminal using:
+    # /Users/rasmus/anaconda3/envs/gelutils/bin/AnnotateGel_debug [args, ...]
+
+
+
+### Q: I really want to have a console/terminal displaying print messages. Isn't that possible?
+
+
+A1: I tried to get an online terminal using
+```open -a Terminal /path/to/bin/AnnotateGel_console "$@"```
+But that doesn't forward $@ to the script, but instead opens two terminals one for each input.
+
+
+A2: Could just forward to empty file if you want.
+This will launch an external terminal which ```tail```s a file to which you are redirecting stdout/stderr.
+Obviously, this is pretty complex and weird, and only works when print messages are being ```flush```ed to file.
+
+    # In Automator "Run Shell Script" (bash) action:
+    # Note: $$ is process id (pid); & at the end of a command starts it in the background and continues script
+    echo "Automator App script: Starting AnnotateGel_console script..."
+    echo " - pwd is: `pwd`\n"
+    echo " - saving stdout to file: $$.tmp"
+    /Users/rasmus/anaconda3/envs/gelutils/bin/AnnotateGel_console "$@" > $$.tmp &
+
+    # Then: (1) create a script that tails your log file, (2) make it executable and (3) you execute it:
+    # c.f. http://stackoverflow.com/questions/22520948/how-to-view-stdout-of-script-run-within-automator
+
+    echo "tail -f $$.tmp" > x.command
+    chmod +x x.command
+    open x.command
+
+    read -p "Press [Enter] to continue... "
+
+
+
+### Q: How can I get the proper AnnotateGel icon for my Automator Application script?
+
+Method 1: If you already have another application with the icon you want for your App script:
+* Find the source app with the icon you want
+* Get Info of the source app (cmd-i)
+* Click on the icon inside the source app's info window (Not the one in the big Preview section at the bottom, if you have one of those; the little one in the top-left corner.)
+* Copy it (cmd-c)
+* Get Info of the automator script (i.e., the destination app) (cmd-i)
+* Click on the icon inside the destination app's info window
+* Paste the icon from the clipboard (cmd-v)
+
+Method 2: If you want to use an arbitrary icon for your App script:
+* (Create your icns icon file - however you want)
+* Open Applications Folder, right-click on automator script and select "view package contents"
+* Add your icon to resources folder and rename it to AutomatorApplet.icns
+
+Refs:
+* http://apple.stackexchange.com/questions/369/can-i-change-the-application-icon-of-an-automator-script
+
+
+Note: The above is only the icon for the Automator script as displayed inside
+the Applications folder (or when you select a default app for GEL/GAML files).
+However, since the Automator script launches AnnotateGel as an external process,
+it will not automatically use the same icon.
+The actual window icon, displayed in the application drawer or when you ALT+TAB (or CMD+TAB)
+through open apps, is specified by tkinter using ```tkroot.iconbitmap(<path-to-icon>)```,
+just like how the app title is specified using ```tkroot.title("AnnotateGel (Gelutils)")```.
+
+Refs:
+* http://stackoverflow.com/questions/18537918/set-window-icon

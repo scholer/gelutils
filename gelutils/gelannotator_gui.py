@@ -38,6 +38,7 @@ import os
 import locale
 import yaml
 import webbrowser
+from datetime import datetime
 from six import string_types
 if sys.version_info < (3, 3):
     # flush keyword only supported for python 3.3+, so create custom print function:
@@ -65,6 +66,9 @@ from .utils import open_utf  # unicode writer. # TODO: Is this only needed for p
 open = open_utf     # overwrite built-in, yes that's the point: pylint: disable=W0622
 from .config import DEFAULT_CONFIG_FILEPATHS, gel_exts, img_exts, cfg_exts
 from .config import filename_is_yaml, yaml_get
+
+# Configure global GelAnnotator app defaults:
+CONFIG_APP_DEFAULTS = {}
 
 
 class GelAnnotatorApp(object):   # pylint: disable=R0904
@@ -215,6 +219,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
                     logger.debug("No gelfile found matching yamlfile, gelfilepath is: '%s'", gelfilepath)
             self.set_gelfilepath(gelfilepath)
         else:
+            # _primary_file is GEL or None:
             gelfilepath = os.path.relpath(self._primary_file, start=basedir)
             self.set_gelfilepath(gelfilepath)
             logger.debug("Primary file is a GEL file: %s", gelfilepath)
@@ -613,53 +618,55 @@ def main(config=None):
         >>> main()
     """
 
-    print("\n\nApp started", flush=True)
+    print("\nApp main() started {:%Y-%m-%d %H:%M}".format(datetime.now()), flush=True)
     print("- default encoding:", locale.getpreferredencoding(False))
     # Note: It might be a good idea to load the system-level default config (e.g. ~/.gelannotator.yaml)
     # BEFORE parsing args, and passing the default config to parseargs.
-    config_app_defaults = {}
 
     # 1. Parse command line arguments, if config is not provided:
     if config is None:
-        argsns = parseargs(prog='gui', defaults=config_app_defaults)
+        argsns = parseargs(prog='gui', defaults=CONFIG_APP_DEFAULTS)
         config = argsns.__dict__
-        if config_app_defaults:
-            config = mergedicts(config_app_defaults , config)  # latter takes precedence except None-valued entries
+    if CONFIG_APP_DEFAULTS:
+        config = mergedicts(CONFIG_APP_DEFAULTS, config)  # latter takes precedence except None-valued entries
 
     # 2. Load system-level config, unless deactivated by command line arguments:
     if config.pop('load_system_config', True):  # incl if config is None
         print("Trying to load default config from file paths:", DEFAULT_CONFIG_FILEPATHS)
-        fn, system_config = get_default_config()
+        system_config_fn, system_config = get_default_config()
         if system_config:
-            print(" - Loaded initial system config/settings from file: %s" % fn)
+            print(" - Loaded system config/settings from file %s," % (system_config_fn, ),
+                  "merging with main config.")
+            config = mergedicts(system_config, config)
         else:
             print(" - Could not find any default configuration file.")
     else:
-        system_config = None
+        system_config_fn, system_config = None, None
     yamlfile = config.get("yamlfile")
-    config_template = config.pop("config_template", None)
+    config_template_fn = config.pop("config_template_fn", None)
 
-    # 3. Load EITHER yamlfile OR config_template. Supporting both would be confusing.
+    # 3. Load EITHER yamlfile OR config_template_fn. Supporting both would be confusing.
     if yamlfile:
         # If config file  is explicitly specified, do not try to catch errors:
         with open(os.path.expanduser(yamlfile), encoding="utf-8") as fp:
             print("Using yaml-formatted configuration file:", yamlfile)
             yaml_config = yaml.load(fp)
             config = mergedicts(yaml_config, config)  # latter takes precedence except None-valued entries
-    elif config_template:
-        print("Loading explicitly-specififed config_template from file: %s" % config_template)
+    elif config_template_fn:
+        print("Loading explicitly-specififed config_template_fn from file: %s" % config_template_fn)
         try:
-            template_config = yaml.load(open(config_template, encoding="utf-8"))
+            template_config = yaml.load(open(config_template_fn, encoding="utf-8"))
         except FileNotFoundError as e:
             print("Error loading default config: %s" % e)
         else:
             config = mergedicts(template_config, config)  # latter takes precedence except None-valued entries
 
-    print("Config after parsing cmd args, and loading system_config, yamlfile/config_template:")
+    print("Config after parsing cmd args, and loading system_config, yamlfile/config_template_fn:")
     print(config)
 
     # stdout and stderr redirection, if requested...
-    # I wanted to have this at the top, but then we cannot have system config.
+    # I wanted to have this at the top, but I also would like to load system config first.
+    # But, maybe just repeat what you said above not, after you've redirected stdout?
     stdout_fn = config.pop('stdout', None)
     stdout_mode = config.pop('stdout_mode', 'w')
     stderr_fn = config.pop('stderr', None)
@@ -668,8 +675,13 @@ def main(config=None):
         stdout_fd = open(stdout_fn, mode=stdout_mode, encoding='utf-8')
         print("Redirecting stdout to file:", stdout_fd)
         sys.stdout = stdout_fd  # backups are available as sys.__stdout__, sys.__stderr__
+        print("stdout redirected to file:", stdout_fd)
+        print("Note - date = {:%Y-%m-%d %H:%M}".format(datetime.now()), flush=True)
+        print('Note - config files: system_config_fn="%s", config_template_fn="%s", yamlfile="%s"'
+              % (system_config_fn, config_template_fn, yamlfile), flush=True)
+        print('Note - config: "%s"' % (config, ), flush=True)
         if config.get('stderr') is None:
-            print("Redirecting stderr to file:", stdout_fd)
+            print(" - Also redirecting stderr to same file as stdout (%s)" % (stdout_fd, ), flush=True)
             sys.stderr = stdout_fd
     if config.get('stderr'):
         stderr_fd = open(stderr_fn, mode=stderr_mode, encoding='utf-8')
