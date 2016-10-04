@@ -47,25 +47,28 @@ import argparse
 import webbrowser
 import svgwrite
 import logging
-if sys.version_info < (3, 3):
-    # flush keyword only supported for python 3.3+, so create custom print function:
-    import builtins
-    def print(*args, **kwargs):
-        kwargs.pop('flush', None) # remove "flush" keyword argument
-        builtins.print(*args, **kwargs)
-logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
-logger = logging.getLogger(__name__)
 
 # Local imports:
 from .clipboard import get_clipboard
 from .utils import (gen_trimmed_lines, trimmed_lines_from_file, init_logging,
                     getabsfilepath, printdict, ensure_numeric)
-from .argutils import mergedicts, parseargs #, make_parser
+from .argutils import mergedicts, parseargs  # , make_parser
 from .geltransformer import convert
 from .imageconverter import svg2png
-from .config import default_yaml_ext
+from .config import config_ext
+from . import __version__
 
+# Constants:
+if sys.version_info < (3, 3):
+    # flush keyword only supported for python 3.3+, so create custom print function:
+    import builtins
 
+    def print(*args, **kwargs):
+        kwargs.pop('flush', None) # remove "flush" keyword argument
+        builtins.print(*args, **kwargs)
+
+logging.addLevelName(4, 'SPAM')  # Can be invoked as much as you'd like.
+logger = logging.getLogger(__name__)
 
 
 def find_yamlfilepath(gelfn, rel=False, basedir=None):
@@ -78,7 +81,7 @@ def find_yamlfilepath(gelfn, rel=False, basedir=None):
     if rel:
         gelfn = os.path.basename(gelfn)         # "filename", without directory
     basename, _ = os.path.splitext(gelfn)
-    return basename + default_yaml_ext
+    return basename + config_ext
 
 
 def find_annotationsfilepath(filenames, rel=False, fallback=True):
@@ -472,9 +475,14 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
             logger.debug("KeyError: %s", e)
     if gelfile is None:
         gelfile = args['gelfile']
+        args['_primary_file_mode'] = 'yaml'
 
-    if args.get('_primary_file_mode') == 'yaml':
+    # If in yaml mode, ensure that args['gelfile'] correctly reflects the gelfile used:
+    if args.get('_primary_file_mode') == 'yaml' or args.get('gelfile_remember', True):
         args['gelfile'] = gelfile
+    # 'gelfile_last_used' is a fallback mechanism for cases where the app is started in gel_is_primary mode,
+    # but we then save yaml file under a different name.
+    args['gelfile_last_used'] = gelfile
 
     # args = mergeargs(argsns=args, argsdict=yamlsettings, excludeNone=True, precedence='argns')
     logger.debug("Ensuring that we have a PNG file to annotate using ensurePNG(%s, ...). "
@@ -517,25 +525,39 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
             # subprocess.call(['xdg-open', filename])  on POSIX (or possibly just use open)
             # c.f. http://stackoverflow.com/questions/434597/open-document-with-default-application-in-python
 
+    if args.get("remember_gelutils_version", True):
+        args['gelutils_version'] = __version__
+
     # Running ensurePNG and makeSVG can update args dict, e.g. with automatic dynamic range.
-    if yamlfile and args.get('updateyaml', True):
-        # Not sure if this should be done here or in gelannotator:
-        logger.debug("Saving/updating args to yaml file: %s", yamlfile)
+    # if yamlfile and args.get('updateyaml', True):
+    config_save_final_params = args.get('config_save_final_params', args.get('saveyamlto', True))
+    if config_save_final_params:
+        args['gelfile'] = gelfile
+        args['yamlfile'] = yamlfile
+        args['annotationsfile'] = annotationsfile
+        if config_save_final_params is True:
+            final_params_fn = yamlfile
+        else:
+            assert isinstance(config_save_final_params, str)
+            yamlfile_fnroot, yamlfile_ext = os.path.splitext(yamlfile)
+            final_params_fn = config_save_final_params.format(config_ext=config_ext, **locals())
+
+        # Not sure if this should be done here or in AnnotateGel GUI app:
+        logger.debug("Saving final config parameters to file: %s", final_params_fn)
         # For Python3 it is important that the file mode is correct: binary vs str
         # yaml safe_dump produces a str output, so the file must be opened in str mode:
-        if args.get('gelfile_remember'):
-            args['gelfile'] = gelfile
-        with open(yamlfile, 'w') as fd:
-            # yaml.dump_all(documents, stream=None, Dumper=<class 'yaml.dumper.Dumper'>,
+        with open(final_params_fn, 'w') as fd:
+            # Call signature: yaml.dump_all(documents, stream=None, Dumper=<class 'yaml.dumper.Dumper'>,
             # default_style=None, default_flow_style=None, canonical=None, indent=None, width=None,
             # allow_unicode=None, line_break=None, encoding='utf-8', explicit_start=None, explicit_end=None,
             # version=None, tags=None)
             yaml.safe_dump(args, fd, default_flow_style=False)
+    else:
+        args['gelfile_last_used'] = gelfile
+        args['yamlfile_last_used'] = yamlfile
+        args['annotationsfile_last_used'] = annotationsfile
 
     return dwg, svgfilename, args
-
-
-
 
 
 if __name__ == '__main__':

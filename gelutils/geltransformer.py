@@ -174,7 +174,7 @@ if sys.version_info < (3, 3):
         builtins.print(*args, **kwargs)
 
 # Local imports
-from .utils import init_logging, printdict, getrelfilepath, getabsfilepath, setIfNone, ensure_numeric
+from .utils import init_logging, printdict, getrelfilepath, getabsfilepath, set_if_none, ensure_numeric
 from .argutils import parseargs, mergedicts
 
 # PIL.Image.Image.convert has a little info on image modes.

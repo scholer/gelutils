@@ -29,6 +29,7 @@ import sys
 from six import string_types
 import codecs
 import logging
+from itertools import chain
 logger = logging.getLogger(__name__)
 
 
@@ -365,10 +366,10 @@ def trimmed_lines_from_file(filepath, args=None):
         args.setdefault('lines_commentmidchar', None)  # Same for all...
         if args.get('lines_inputstyle', None) in ('wikilist', 'wiki', 'list'):
             # Add arguments to args for convenience to the user:
-            setIfNone(args, 'lines_listchar', '*#-+')
+            set_if_none(args, 'lines_listchar', '*#-+')
             trimmed_lines = gen_wikilist_entries(fd, args['lines_listchar'], args['lines_commentmidchar'])
         else:
-            setIfNone(args, 'lines_commentchar', '#')  # Explicitly added to args to make it easier to change.
+            set_if_none(args, 'lines_commentchar', '#')  # Explicitly added to args to make it easier to change.
             includeempty = args.setdefault('lines_includeempty', 'False')
             trimmed_lines = gen_trimmed_lines(fd, args.get('lines_commentchar', '#'),
                                               args.get('lines_commentmidchar'), includeempty=includeempty)
@@ -376,13 +377,110 @@ def trimmed_lines_from_file(filepath, args=None):
     return lines
 
 
-def setIfNone(targetdict, key, value):
+def set_if_none(targetdict, key, value):
     """Update an entry in targetdict if either targetdict[key] is None or key not in targetdict."""
     if targetdict.get(key) is None:
         targetdict[key] = value
 
 
-def updateNoneValues(targetdict, updatedict):
+def update_none_values(targetdict, updatedict):
     """With all items in updatedict update targetdict ONLY IF targetdict[key] is None or key not in targetdict."""
     for k, v in updatedict.items():
-        setIfNone(targetdict, k, v)
+        set_if_none(targetdict, k, v)
+
+
+def update_defaults(target, *other_dicts):
+    """Populate the first given dict in-place with default values from the other given dict(s).
+    Values in earlier dicts take precedence over latter dicts.
+    This is exactly the same as update_none_values, except it supports multiple other_dicts.
+
+    Args:
+        target: The dict to update.
+        *other_dicts: One or more dicts with values to update target with.
+
+    Examples:
+        >>> A = {'a': 1, 'b': 2, 'c': 3}
+        >>> update_setdefault(A, {'a': -1, 'd': -4}, {'a': 'X', 'd': 'Y', 'e': 'Z'})
+        >>> print(A)  # {'a': 1, 'b': 2, 'c': 3, 'd': -4, 'e': 'Z'}
+
+    """
+    for d in other_dicts:
+        for k, v in d.items():
+            if k not in target or target[k] is None:
+                target[k] = v
+
+
+def mergedicts(*dicts):
+    """Merge dictionaries.
+
+    Merge all given dictionaries.
+    The returned dict will have all keys from all dictionaries in dicts.
+    The latter items in dicts take precedence of earlier, except if the value is None.
+    None-values have the lowest precedence and is always overwritten if another dict has
+    the same key/entry with a value different from None.
+
+    Examples:
+        >>> mergedicts({3:1, {3:2})
+        {3:2}
+        However only non-None items take precedence:
+        >>> mergedicts({4:1}, {4:None})
+        {4:1}
+        However, the returned dict *will* have all keys from all dicts, even if they are None:
+        >>> mergedicts({6:None, 7:None}, {6:None, 8:None})
+        {6:None, 7:None, 8:None}
+        In total:
+        >>> mergedicts({1:1, 3:1, 4:1, 5:None, 6:None, 7:None}, {2:2, 3:2, 4:None, 5:2, 6:None, 8:None})
+        {1:1, 2:2, 3:2, 4:1, 5:2, 6:None, 7:None, 8:None}
+    """
+    # Make dict with all keys from all keys, set to None:
+    ret = dict.fromkeys(set(chain(*(d.keys() for d in dicts))))
+    for d in dicts:
+        ret.update({k: v for k, v in d.items() if v is not None})
+    return ret
+
+
+def mergeargs(argsns, argsdict=None, excludeNone=True, precedence='argsdict'):
+    """Merge argns and argsdict into a single dict.
+
+    Merges arguments from <argsdict> and <argsns> (argparse Namespace or similar object).
+    The returned dict is guaranteed to have all keys from both argsns and argsdict,
+    even if they are None and <excludeNone> is True.
+    <excludeNone> only refers to whether elements with value of None still takes
+    preference when the dicts are merged.
+    * argns can be either an object or a dict.
+    * argsdict, if specified must be a dict or None.
+    * If argsdict is not specified, an empty dict is used. The result is then simply
+        argsns.__dict__.copy().
+    * If excludeNone is set to True (default), only non-None values from argsns is loaded to argsdict.
+    * <precedence> can be either 'argsns' or 'argsdict'. If 'argsdict' is specified (default),
+        entries in the argsdict take precedence over entries in argsns.
+        If specifying 'argsns', entries in argsns will override entries in argsdict.
+    Be careful if you specify default values for argparse and set presedence='argsns' !
+
+    Typical usage is a function that that takes both an argsns argument and has **kwargs:
+        def mock(a, b=None, argsns=None, **kwargs)
+            kwargs = argsnstodict(argsns, kwargs)
+
+    Note that when 'drippling down' kwargs:
+    * a function should only specify keys that it does not pass on and which it does not intend to
+        get from argsns.
+    * If a function needs to use a variable but also pass this on, it should use it as a kwargs item.
+    * Does that make sense?
+    """
+    if argsdict is None:
+        argsdict = {}
+    if argsns is None:
+        nsdict = {}
+    else:
+        try:
+            nsdict = argsns.__dict__
+        except AttributeError:
+            nsdict = argsns
+    ret = dict.fromkeys(set(argsdict.keys()) | set(nsdict.keys()))
+    # Specify which order to merge depending on which dict takes precedence (should be the last)
+    mergeorder = (nsdict, argsdict) if precedence == 'argsdict' else (argsdict, nsdict)
+    if excludeNone:
+        return mergedicts(*mergeorder)
+    for d in mergeorder:
+        ret.update({k: v for k, v in d.items() if v is not None} if excludeNone else d)
+    return ret

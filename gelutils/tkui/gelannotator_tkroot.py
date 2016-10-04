@@ -57,17 +57,23 @@ logger = logging.getLogger(__name__)
 class GelAnnotatorTkRoot(tk.Tk):    # pylint: disable=R0904
     """
     The actual UI.
+
+    Args:
+        title: The title to show in the top window bar. NOT reflected in app docker or ALT+TAB.
     """
-    def __init__(self, app, title=None):
-        tk.Tk.__init__(self) # IMPORTANT FIRST STEP for a Tk root!
+    def __init__(self, app, title="AnnotateGel - Gelutils"):
+        tk.Tk.__init__(self)  # IMPORTANT FIRST STEP for a Tk root!
         self.App = app          # Needed to bind button function? No, I bind button function in App code instead.
 
+        self.iconbitmap("/Users/rasmus/Dev/gelutils/res/icons/Version2/GelAnnotator_v2-2.ico")
         # Init variables:
         self.Gelfilepath = tk.StringVar()
         self.Gelfiledirectory = tk.StringVar()
         self.Annotationsfilepath = tk.StringVar()
         self.Yamlfilepath = tk.StringVar()
-        self.Statustext = tk.StringVar(value="Tip: Use CTRL+ENTER to annotate. (Buffers can be saved with ctrl+s, but that's also done automatically.)")
+        self.Statustext = tk.StringVar(
+            value="Tip: Use CTRL+ENTER to annotate. "
+                  "(Buffers can be saved with ctrl+s, but that's also done automatically.)")
 
         self.init_ui()
         if title:
@@ -199,7 +205,7 @@ Non-used:
         lbl.grid(sticky='w', column=0, row=0)
         # undo ref: http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/text-undo-stack.html
         # http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/text.html
-        text = self.AnnotationsText = tk.Text(annotationsframe, width=40, height=20, undo=True, maxundo=-1) # default: width=80, height=24   # pylint: disable=W0201
+        text = self.AnnotationsText = tk.Text(annotationsframe, width=40, height=20, undo=True, maxundo=-1)  # default: width=80, height=24   # pylint: disable=W0201
         text.grid(sticky='news', column=0, row=1)
         text.bind(sequence='<Control-s>', func=self.App.save_annotations)
         # text.bind("<Control-Return>", dont_propagate)

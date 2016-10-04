@@ -4,12 +4,27 @@
 Changes since last release:
 ---------------------------
 
+* Updated docstrings, updated .gitignore.
+* Fixed: Sane ranking of configs. Config loaded from yaml file now takes precedence over everything incl command line switches. Use config_template if you want command line switches to take precedence.
+* Fixed: Opening stdout/stderr redirection files in line-buffered mode (buffering=1) to eliminate issue with delayed printing of error messages.
+* Fixed: Error where GAML file is being reset when browse-selecting GEL file even when _primary_file is yaml.
+* New: primary_file can now be specified as a separate argument to GelAnnotatorApp. This better reflects the new mode of operation which is based on whether the primary file is a .gel or .gaml file.
+* New: Regarding updateyaml and persisting final parameters: Previously, updateyaml=True meant overwriting the main yaml file with the final parameters. Now, I use config_save_final_params to save the final parameters and update_yaml is instead used to update the GUI widget config display.
+* Updated Installation.md docs describing how to Create Automator application script on Mac/OSX.
+
+
+
+Release 0.6.1:
+--------------
+
 * New keyword 'filename_sub_re', using regex to substitute filename substrings.
 * Renamed 'filename_substitution' keyword to 'filename_sub'.
 * filename_sub (and filename_sub_re) now support more than two elements, FIND1, REPLACE1, FIND2, REPLACE2, etc.
 * removed lines_commentmidchar keyword, should just use lines_commentchar consistently.
 * Parsing command line args before loading system config, passing config_app_defaults to parser instead.
 * Properly removing load_system_config and stdout/stderr/etc from config.
+* Updated command line args help and metavars
+*
 
 
 Release 0.6.0:

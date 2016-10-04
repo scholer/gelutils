@@ -106,6 +106,8 @@ Notes:
 * Caveat: When redirecting stdout/stderr to a file object, the stream may not be written immediately unless you flush,
   e.g. using the ```flush``` keyword: ```print("Flushing!", flush=True)```.
 * The same caveat about delayed printing is true if App is invoked through Automator.
+* However, if using --stdout/--stderr to redirect, then annotategel will make sure to open the file in line-buffered
+  mode, which eliminates this issue.
 
 
 # Conda ENVIRONMENTS:
@@ -195,3 +197,12 @@ just like how the app title is specified using ```tkroot.title("AnnotateGel (Gel
 
 Refs:
 * http://stackoverflow.com/questions/18537918/set-window-icon
+* http://forums.fedoraforum.org/showthread.php?t=297279
+* http://stackoverflow.com/questions/29973246/python-tkinter-command-iconbitmap
+* https://www.daniweb.com/programming/software-development/threads/249857/changing-the-tkinter-icon
+* https://www.tcl.tk/man/tcl/TkCmd/tk_mac.htm#M22
+* https://iconverticons.com/online/
+* http://stackoverflow.com/questions/20860325/python-3-tkinter-iconbitmap-error-in-ubuntu
+* http://stackoverflow.com/questions/11176638/python-setting-application-icon/11180300#11180300
+* https://groups.google.com/forum/#!topic/comp.lang.python/xaobxaJwQrs
+* http://www.jamesstroud.com/jamess-miscellaneous-how-tos/icons/tkinter-title-bar-icon

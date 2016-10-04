@@ -22,11 +22,14 @@ Default constants and configuration.
 
 import os
 import yaml
+import logging
+
+logger = logging.getLogger(__name__)
 
 gel_exts = (".gel", ".tiff", ".tif")
 img_exts = (".png", ".jpg", ".tiff", ".tif")
 cfg_exts = (".yaml", ".yml", ".gaml")
-default_yaml_ext = ".gaml"
+config_ext = ".gaml"
 DEFAULT_CONFIG_FILEPATHS = (
     'gelannotator.yaml',  # file in current directory
     '~/.gelannotator.yaml',

@@ -24,7 +24,8 @@ Common module for parsing and handling arguments.
 """
 import os
 import argparse
-from itertools import chain
+
+from .utils import mergedicts
 
 
 def make_parser(prog='gelannotator', defaults=None,
@@ -79,14 +80,23 @@ def make_parser(prog='gelannotator', defaults=None,
     else:
         ap.add_argument('gelfile')
 
-    # Testing and logging config:
+    #
+    # Testing, logging and debugging parameters:
+    # ------------------------------------------
     # parser.add_argument('--dryrun', '-n', action="store_true", help="Dry-run. Do not actually do anything.")
     ap.add_argument('--verbose', '-v', action='count', help="Verbosity.")
     ap.add_argument('--loglevel', default=defaults.get('loglevel'),
                     help="Logging level, e.g. 10, 30, or 'DEBUG', 'INFO.")
     ap.add_argument('--logtofile', default=defaults.get('logtofile'),
                     help="Write log output to file rather than console.")
-
+    # Note: If action='store_true', then default is False not None.
+    # Using default=None so None can be used to indicate a value that has not been specified.
+    ap.add_argument('--disable-logging', dest='disable_logging', action='store_true', default=None,
+                    help="Disable logging system.")
+    # When adding a dest already in place, the default is not overwritten.
+    ap.add_argument('--enable-logging', dest='disable_logging', action='store_false',
+                    help="Enable logging system.")
+    # Redirection of stdout/stderr (useful if console display is not available when launching program).
     ap.add_argument('--stdout', metavar="filename", default=defaults.get('stdout'),
                     help="Write stdout stream to file rather than console. "
                          "This may be useful in cases where a terminal is not available, "
@@ -98,43 +108,10 @@ def make_parser(prog='gelannotator', defaults=None,
     ap.add_argument('--stderr-mode', metavar="file mode", default='w',
                     help="File open mode for stderr stream, if stderr is given. Default: 'w'.")
 
-
-    # If action='store_true', then default is False not None.
-    # Using default=None so None can be used to indicate a value that has not been specified.
-    ap.add_argument('--disable-logging', dest='disable_logging', action='store_true', default=None,
-                    help="Disable logging system.")
-    # When adding a dest already in place, the default is not overwritten.
-    ap.add_argument('--enable-logging', dest='disable_logging', action='store_false',
-                    help="Enable logging system.")
-
-    # For geltransformer -- also nice for gel annotator
-
-    ap.add_argument('--linearize', action='store_true', default=None,
-                    help="Linearize gel input data stored in Square-Root Encoded Data (if Typhoon).")
-    ap.add_argument('--no-linearize', action='store_false', dest='linearize',
-                    help="Linearize gel (if e.g. typhoon).")
-    ap.add_argument('--dynamicrange', nargs='+', metavar=("MIN", "MAX"),
-                    help="""Specify dynamic range (contrast). Valid argumets are 'MIN MAX', 'MAX' and 'auto',
-                    e.g. '1000, 20000' to set range from 1000 to 20000,
-                    '20000' to set range from zero to 20000, and 'auto' to determine range automatically.
-                    MIN and MAX are usually provided as absolute values e.g. '300 5000',
-                    but can also be specified as percentage values, e.g. '0.1%% 99%%'.
-                    If percentage or decimal values are given, the dynamic range is set such that
-                    MIN %% of the pixels are below the lower range
-                    and (1.0 - MAX) of the pixels are above the dynamic range.
-                    If only one integer argument is given if is assumed to be the max, and min is set to 0.
-                    If specifying 'auto', the software will try to determine
-                    a suitable contrast range automatically.""".strip())
-    # ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
-
-    ap.add_argument('--gelfile-remember', action='store_true', default=None,
-                    help="Save gelfile in config for later use.")
-
-    ap.add_argument('--invert', action='store_true', default=None,
-                    help="Invert gel data, so zero is white, high intensity black.")
-    ap.add_argument('--no-invert', action='store_false', dest='invert',
-                    help="Do not invert image data. Zero will be black, high intensity white.")
-
+    #
+    # File inputs and outputs:
+    # ------------------------
+    # TODO: Rename convertgelto to image_format
     ap.add_argument('--convertgelto', default='png', metavar="png/jpg/etc",
                     help="Convert gel to this format.")
     # ap.add_argument('--png', action='store_true', help="Save as png.")
@@ -144,19 +121,79 @@ def make_parser(prog='gelannotator', defaults=None,
                     If you are playing around with e.g. the annotations, this can save a bit of computation.""")
     ap.add_argument('--no-overwrite', action='store_false', dest='overwrite',
                     help="Do not overwrite existing png file.")
-    # Format for png file: Note that {ext} includes the dot in '.png'
+    # filename inputs and outputs:
     ap.add_argument('--pngfnfmt', default="{yamlfnroot}_{dr_rng}{N_existing}{ext}", metavar="format_string",
-                    help="Customize the png filename using python string formatting.")
-    ap.add_argument('--pngmode', default='L',
-                    help="PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit.")
-
+                    help=("Customize the png filename using python string formatting.",
+                          "Note that {ext} includes the dot in '.png'"))
+    ap.add_argument('--svgfnfmt', default="{pngfnroot}_annotated{ext}", metavar="format_string",
+                    help=("Format for the svg filename, if created, using python string formatting."
+                          "Valid placeholders include: {pngfnroot}, {gelfnroot}, {ext}, {ext} includes dot in '.svg'"))
+    ap.add_argument('--pngfile', metavar="filename",
+                    help="Use this png/image file instead of the specified gelfile.")
+    # TODO: What is the functional difference between reusepng and overwrite ?
+    ap.add_argument('--reusepng', action='store_true', default=None,
+                    help=("Prefer png file over the specified gelfile,"
+                          "IF a PNG file with matching the output already exists."
+                          "Rotations and scaling are still applied, but not "))
+    ap.add_argument('--no-reusepng', action='store_false', dest='reusepng',
+                    help="Do not use pngfile, even if it is specified.")
+    # Perform substitution of input filenames, e.g. to remove illegal characters.
     ap.add_argument('--filename-sub', nargs='+', metavar=("FIND", "REPLACE"),
                     help="Substitute FIND with REPLACE in output filename. ")
     # "If FIND is given and REPLACE isn't, then REPLACE defaults to ''.")
-
     ap.add_argument('--filename-sub-re', nargs='+', metavar=("FIND", "REPLACE"),
                     help="Substitute all substrings matching the regex FIND with REPLACE in output filename.")
 
+    #
+    # Config / yaml parameters:
+    # -------------------------
+    ap.add_argument('--no-load-system-config', action="store_false", dest="load_system_config",
+                    help="Load standard system/user config. (Default is to load system config if one is found.)")
+    ap.add_argument('--load-system-config', action="store_true",
+                    help="Load standard system/user config.")
+    ap.add_argument('--config-template', metavar="filename", default=defaults.get("config_template"),
+                    help=("Use this yaml-formatted file as config template."
+                          "The difference between config-template and config-filename is that the"
+                          "template will never be updated/overwritten. It is just default config."))
+
+    # TODO: Rename yamlfile keyword to config_filename
+    ap.add_argument('--yamlfile', metavar="filename",
+                    help="Load and save config parameters from YAML file, update and save.")
+    # TODO: Rename to config_save_final_params  - final/fixed/static/post/processed
+    ap.add_argument('--saveyamlto', metavar="filename",
+                    default=defaults.get("saveyamlto"),
+                    help="Force saving yaml to this file when complete.")
+    # TODO: Rename to config_update_display - config/yaml/parameters/params/args/configuration/options
+    # Usually this should be left disabled, but can be used to display and tune auto-calculated parameters.
+    ap.add_argument('--no-update-yaml', dest='updateyaml', action='store_false', default=None,
+                    help="Do not update yaml settings after run to reflect the final settings used.")
+    ap.add_argument('--update-yaml', dest='updateyaml', action='store_true',
+                    help="Update yaml settings after run to reflect the settings used.")
+
+    # "save", "record", "write", "persist" or "remember" - add static parameters to config:
+    # Edit, probably just always save gelutils version to final_params config file.
+    ap.add_argument('--remember-gelutils-version', action='store_true', default=defaults.get('save_gelutils_version'),
+                    help="Save svg as png (requires cairo package).")
+    # Remember/record/save input gel filename to yaml config.
+    # TODO: Rename to "record-gelfile" ?
+    # TODO, edit: Maybe just have a mandatory "gelfile_lastused" entry?
+    # TODO, edit: Or just always save the gelfile in the static version?
+    ap.add_argument('--gelfile-remember', action='store_true', default=None,
+                    help="Save last used gelfile in config for later use.")
+    ap.add_argument('--no-gelfile-remember', dest='gelfile_remember', action='store_false', default=None,
+                    help="Do not save last used gelfile in config for later use.")
+
+    ap.add_argument('--gelfile_last_used', metavar="filename",
+                    help="The last used gel/image file. The program will update this on every run.")
+    ap.add_argument('--yamlfile_last_used', metavar="filename",
+                    help="The last used yaml config file. The program will update this on every run.")
+    ap.add_argument('--annotationsfile_last_used', metavar="filename",
+                    help="The last used annotations file. The program will update this on every run.")
+
+    #
+    # Image processing parameters:  (geltransformer, gelannotator)
+    # ----------------------------
+    # TODO: Prefix all image processing/transformation keywords with "image_".
     ap.add_argument('--crop', nargs=4, type=int, metavar=('LEFT', 'UPPER', 'RIGHT', 'LOWER'),
                     help="""Crop image to this box (left upper right lower) aka (x1 y1 x2 y2),
                     Values can be either pixel values [500, 100, 1200, 400],
@@ -188,21 +225,43 @@ def make_parser(prog='gelannotator', defaults=None,
     ap.add_argument('--flip_v', action='store_true', default=None,
                     help="Flip image vertically top-to-bottom.")
 
+    # Contrast and display: Converting raw data to human-readable png image:
+    # TODO: Prefix all keywords with "image_"
+    ap.add_argument('--linearize', action='store_true', default=None,
+                    help="Linearize gel input data stored in Square-Root Encoded Data (if Typhoon).")
+    ap.add_argument('--no-linearize', action='store_false', dest='linearize',
+                    help="Linearize gel (if e.g. typhoon).")
+    ap.add_argument('--dynamicrange', nargs='+', metavar=("MIN", "MAX"),
+                    help="""Specify dynamic range (contrast). Valid argumets are 'MIN MAX', 'MAX' and 'auto',
+                    e.g. '1000, 20000' to set range from 1000 to 20000,
+                    '20000' to set range from zero to 20000, and 'auto' to determine range automatically.
+                    MIN and MAX are usually provided as absolute values e.g. '300 5000',
+                    but can also be specified as percentage values, e.g. '0.1%% 99%%'.
+                    If percentage or decimal values are given, the dynamic range is set such that
+                    MIN %% of the pixels are below the lower range
+                    and (1.0 - MAX) of the pixels are above the dynamic range.
+                    If only one integer argument is given if is assumed to be the max, and min is set to 0.
+                    If specifying 'auto', the software will try to determine
+                    a suitable contrast range automatically.""".strip())
+    # ap.add_argument('--autorange', action='store_true', help="Dynamic range, min max, e.g. 300 5000.")
+    ap.add_argument('--invert', action='store_true', default=None,
+                    help="Invert gel data, so zero is white, high intensity black.")
+    ap.add_argument('--no-invert', action='store_false', dest='invert',
+                    help="Do not invert image data. Zero will be black, high intensity white.")
 
+    ap.add_argument('--pngmode', default='L',
+                    help="PNG output format (bits per pixel). L = 8 bit integer, I = 16/32 bit.")
 
+    #
+    # Annotations config parameters:
+    # ------------------------------
     if prog.lower() in ('gelannotator', 'gui'):
-        # How to format svg filename:
-        # Valid placeholders are: {pngfnroot}, {gelfnroot}, {ext}
-        # Note that {ext} includes the dot in '.svg'
-        ap.add_argument('--svgfnfmt', default="{pngfnroot}_annotated{ext}", metavar="format_string",
-                        help="How to format the png filename (if created).")
-        ap.add_argument('--pngfile', metavar="filename",
-                        help="Use this pngfile instead of the specified gelfile.")
-        ap.add_argument('--reusepng', action='store_true', default=None,
-                        help="Prefer png file over the specified gelfile.")
-        ap.add_argument('--no-reusepng', action='store_false', dest='reusepng',
-                        help="Do not use pngfile, even if it is specified.")
 
+        # Image and text positioning:
+        # TODO: Maybe prefix with image_ or img_pos_ or canvas_img_ or svg_img_ or svg_gel_ ?
+        # TODO, edit: Some of these are for the text, some are for the image, but they are all somewhat related
+        # TODO, edit: in that all relates to the position of text and image relative to each other.
+        # TODO, edit: so maybe prefix with pos_img_*/pos_text_* or canvas_image_*/canvas_text_* ?
         ap.add_argument('--yoffset', metavar="int-or-fraction",
                         help="Y offset (how far down the gel image should be).") #, default=100
         ap.add_argument('--ypadding', metavar="int-or-fraction",
@@ -215,6 +274,8 @@ def make_parser(prog='gelannotator', defaults=None,
                         help="""Add additional padding/whitespace to the right side of the gel image.
                         This is sometimes needed if the gel is not wide enough for the last lane annotation.""")
 
+        # Annotation/text parameters:
+        # TODO: prefix all keywords with "text_" (or "annotations_" ?)
         ap.add_argument('--textrotation', type=int, dest='textrotation', metavar="angle",
                         help="Rotate lane annotations by this angle (counter-clockwise). Default: 70.")
         ap.add_argument('--fontsize', type=int, metavar="size (int)",
@@ -224,40 +285,23 @@ def make_parser(prog='gelannotator', defaults=None,
         ap.add_argument('--fontweight',
                         help="""Font weight: normal | bold | bolder | lighter |
                         100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | inherit.""")
-
+        # TODO: Rename to text_format (not fmt)
         ap.add_argument('--textfmt', metavar="format_string",
                         help="""How to format the lane annotations, e.g. '{idx} {name}'.
                         Format keys include: idx, name. Default: '{name}'.""")
+        # TODO: Rename to text_idxstart (not lane)
         ap.add_argument('--laneidxstart', type=int,
                         help="Change the start number of the {idx} format parameter of lane annotations.")
 
-        ap.add_argument('--config_template', metavar="filename", #default=default_config,
-                        help="Use this yaml-formatted file as config template.")
-
-        ap.add_argument('--no-load-system-config', action="store_false", dest="load_system_config",
-                        help="Load standard system/user config.")
-        ap.add_argument('--load-system-config', action="store_true",
-                        help="Load standard system/user config.")
-
-        ap.add_argument('--yamlfile', metavar="filename",
-                        help="Load options from YAML file, update and save.")
-        ap.add_argument('--saveyamlto', metavar="filename",
-                        help="Force saving yaml to this file when complete.")
-        ap.add_argument('--no-update-yaml', dest='updateyaml', action='store_false', default=None,
-                        help="Do not update yaml settings after run to reflect the settings used.")
-        ap.add_argument('--update-yaml', dest='updateyaml', action='store_true',
-                        help="Update yaml settings after run to reflect the settings used.")
-
-        ap.add_argument('--embed', action='store_true', default=True,
-                        help="Embed image data in svg file. (default)")
-        ap.add_argument('--no-embed', dest='embed', action='store_false',
-                        help="Do not embed image data in svg file, link to the file instead. (default is to embed)")
-
+        #
+        # Annotation parameters:
+        # ----------------------
         ap.add_argument('--annotationsfile', metavar="filename",
                         help="Load lane annotations from this file. "
                         "If not specified, will try to guess the right file.")
 
         # lineinputstyle->lines_inputstyle, lines_includeempty, lines_listchar, lines_commentchar, lines_commentmidchar
+        # TODO: Maybe change all "lines_" to "annotations_" or text_input_?
         ap.add_argument('--lines_inputstyle', metavar="string-spec",
                         help="""This can be used to change how lines in the sample annotation file are interpreted.
                         Default is to use all non-empty lines that does not begin with '#'.
@@ -273,18 +317,23 @@ def make_parser(prog='gelannotator', defaults=None,
         # ap.add_argument('--lines_commentmidchar', metavar="string-spec",
         #                 help="Input to the right of this character is ignored (commented out). Default: auto-detect.")
 
-        ap.add_argument('--openwebbrowser', action='store_true', default=defaults.get('openwebbrowser'),
-                        help="Open annotated svg file in default webbrowser. Default: Do not open files.")
-        ap.add_argument('--no-openwebbrowser', action='store_false', dest='openwebbrowser',
-                        help="Do not open file in webbrowser.")
+        # TODO: Rename to "svg_embed_png" (or "canvas_embed_png" ?)
+        ap.add_argument('--embed', action='store_true', default=True,
+                        help="Embed image data in svg file. (default)")
+        ap.add_argument('--no-embed', dest='embed', action='store_false',
+                        help="Do not embed image data in svg file, link to the file instead. (default is to embed)")
 
+        # TODO: Maybe prefix with "convert" - "convert-svg-to-png" or "svg_convert_to_png" ?
         ap.add_argument('--svgtopng', action='store_true', default=None,
                         help="Save svg as png (requires cairo package).")
         ap.add_argument('--no-svgtopng', action='store_false', dest='svgtopng',
                         help="Do not save svg as png (requires cairo package).")
 
-    #xmargin=(40, 30), xspacing=None, yoffset=100
-    #textfmt="{idx} {name}", laneidxstart=0
+        # TODO: Rename to to "show_annotated_svg", "show_annotated_png" (or "open", "show", or "display") ?
+        ap.add_argument('--openwebbrowser', action='store_true', default=defaults.get('openwebbrowser'),
+                        help="Open annotated svg file in default webbrowser. Default: Do not open files.")
+        ap.add_argument('--no-openwebbrowser', action='store_false', dest='openwebbrowser',
+                        help="Do not open file in webbrowser.")
 
     return ap
 
@@ -305,82 +354,6 @@ def parseargs(prog='gelannotator', argv=None, defaults=None):#, partial=False, m
     return argns
 
 
-def mergedicts(*dicts):
-    """Merge dictionaries.
-
-    Merge all given dictionaries.
-    The returned dict will have all keys from all dictionaries in dicts.
-    The latter items in dicts take precedence of earlier, except if the value is None.
-    None-values have the lowest precedence and is always overwritten if another dict has
-    the same key/entry with a value different from None.
-
-    Examples:
-        >>> mergedicts({3:1, {3:2})
-        {3:2}
-        However only non-None items take precedence:
-        >>> mergedicts({4:1}, {4:None})
-        {4:1}
-        However, the returned dict *will* have all keys from all dicts, even if they are None:
-        >>> mergedicts({6:None, 7:None}, {6:None, 8:None})
-        {6:None, 7:None, 8:None}
-        In total:
-        >>> mergedicts({1:1, 3:1, 4:1, 5:None, 6:None, 7:None}, {2:2, 3:2, 4:None, 5:2, 6:None, 8:None})
-        {1:1, 2:2, 3:2, 4:1, 5:2, 6:None, 7:None, 8:None}
-    """
-    # Make dict with all keys from all keys, set to None:
-    #print "dicts:", dicts
-    ret = dict.fromkeys(set(chain(*(d.keys() for d in dicts))))
-    #print "mergedicts: initial dict:", ret
-    for d in dicts:
-        ret.update({k: v for k, v in d.items() if v is not None})
-    return ret
-
-
-def mergeargs(argsns, argsdict=None, excludeNone=True, precedence='argsdict'):
-    """Merge argns and argsdict into a single dict.
-
-    Merges arguments from <argsdict> and <argsns> (argparse Namespace or similar object).
-    The returned dict is guaranteed to have all keys from both argsns and argsdict,
-    even if they are None and <excludeNone> is True.
-    <excludeNone> only refers to whether elements with value of None still takes
-    preference when the dicts are merged.
-    * argns can be either an object or a dict.
-    * argsdict, if specified must be a dict or None.
-    * If argsdict is not specified, an empty dict is used. The result is then simply
-        argsns.__dict__.copy().
-    * If excludeNone is set to True (default), only non-None values from argsns is loaded to argsdict.
-    * <precedence> can be either 'argsns' or 'argsdict'. If 'argsdict' is specified (default),
-        entries in the argsdict take precedence over entries in argsns.
-        If specifying 'argsns', entries in argsns will override entries in argsdict.
-    Be careful if you specify default values for argparse and set presedence='argsns' !
-
-    Typical usage is a function that that takes both an argsns argument and has **kwargs:
-        def mock(a, b=None, argsns=None, **kwargs)
-            kwargs = argsnstodict(argsns, kwargs)
-
-    Note that when 'drippling down' kwargs:
-    * a function should only specify keys that it does not pass on and which it does not intend to
-        get from argsns.
-    * If a function needs to use a variable but also pass this on, it should use it as a kwargs item.
-    * Does that make sense?
-    """
-    if argsdict is None:
-        argsdict = {}
-    if argsns is None:
-        nsdict = {}
-    else:
-        try:
-            nsdict = argsns.__dict__
-        except AttributeError:
-            nsdict = argsns
-    ret = dict.fromkeys(set(argsdict.keys()) | set(nsdict.keys()))
-    # Specify which order to merge depending on which dict takes precedence (should be the last)
-    mergeorder = (nsdict, argsdict) if precedence == 'argsdict' else (argsdict, nsdict)
-    if excludeNone:
-        return mergedicts(*mergeorder)
-    for d in mergeorder:
-        ret.update({k: v for k, v in d.items() if v is not None} if excludeNone else d)
-    return ret
 
 
 def argsnstodict(argsns):

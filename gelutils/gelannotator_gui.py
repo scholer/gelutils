@@ -62,13 +62,18 @@ from .gelannotator import annotate_gel, find_yamlfilepath, find_annotationsfilep
 from .argutils import parseargs, make_parser, mergedicts
 from .utils import init_logging, getrelfilepath, getabsfilepath, printdict
 from .tkui.gelannotator_tkroot import GelAnnotatorTkRoot
-from .utils import open_utf  # unicode writer. # TODO: Is this only needed for python2?
-open = open_utf     # overwrite built-in, yes that's the point: pylint: disable=W0622
+if sys.version_info[0] < 3:
+    from .utils import open_utf  # unicode writer. # TODO: Is this only needed for python2?
+    open = open_utf     # overwrite built-in, yes that's the point: pylint: disable=W0622
 from .config import DEFAULT_CONFIG_FILEPATHS, gel_exts, img_exts, cfg_exts
 from .config import filename_is_yaml, yaml_get
 
 # Configure global GelAnnotator app defaults:
-CONFIG_APP_DEFAULTS = {}
+CONFIG_APP_DEFAULTS = {
+    "saveyamlto": "{yamlfile_fnroot}.final{config_ext}",  # Always make a backup with the final parameters used
+    "stdout_mode": "w",
+    "stderr_mode": "w",
+}
 
 
 class GelAnnotatorApp(object):   # pylint: disable=R0904
@@ -122,10 +127,11 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
     * "Plot" the pixels that stands out vs the column and make a linear fit. [Figuratively]
     * Use the slope of the linear fit to determine rotation.
     """
-    def __init__(self, args):           # pylint: disable=W0621
+    def __init__(self, config, primary_file=None):           # pylint: disable=W0621
         # TODO: Rename "args" to "config".
-        self.Args = args                # only saved to make init easier.
-        logger.debug("GelAnnotatorApp initializing with args=%s", printdict(args))
+        self.Args = config                # only saved to make init easier.
+        self._primary_file = None
+        logger.debug("GelAnnotatorApp initializing with args=%s", printdict(config))
         self.Root = tkroot = GelAnnotatorTkRoot(self, title="Gel Annotator GUI")
         # self.AnnotationsText, self.YamlText
         self.Root.bind_all("<Control-Return>", self.annotate)
@@ -133,7 +139,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.Root.YamlText.bind("<Control-Return>", self.annotate)
 
         # We generally do not want gelfile to be in args after this point:
-        self._primary_file = args.pop('file')
+        if primary_file is None:
+            primary_file = config.pop('file')
 
         # Should the app use the yaml file as the root/base, or the gel file?
         # (1) We may want to re-use the same yaml file for multiple gel files.
@@ -155,10 +162,12 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         #     self.Lastuseddir = os.path.dirname(self._primary_file)
         #     self.reset_aux_files()
 
-        if self._primary_file:
-            self.reset_aux_files()
-        if not self.get_gelfilepath():
-            tkroot.after_idle(self.browse_for_gelfile)
+        # TODO: Improve how GEL-VS-CONFIG primary file mode is defined and used throughout the app's lifetime
+        if primary_file:
+            # self.reset_aux_files()
+            self.set_primary_file(primary_file)
+        else: # if not self.get_gelfilepath():
+            tkroot.after_idle(self.browse_for_primary_file)
 
     def set_primary_file(self, file):
         """ Set the primary file, either gel file or yaml/gaml file. """
@@ -175,7 +184,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         Remember that all filepaths except gelfile should be given relative to gelfile.
         """
         args = self.Args    # pylint: disable=W0621
-        annotationsfilepath = args.pop('annotationsfile', '')
+        annotationsfilepath = args.get('annotationsfile', '')
 
         logger.info("Resetting UI using primary file: %s", self._primary_file)
         if not self._primary_file:
@@ -197,14 +206,18 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             yamlfilepath = os.path.relpath(self._primary_file, start=basedir)
             logger.debug("Primary file is a yaml configuration: %s", yamlfilepath)
             self.set_yamlfilepath(yamlfilepath)
-            self.init_yaml(args)
             logger.debug("args keys: %s", args.keys())
             logger.debug("args.get('gelfile'): %s", args.get('gelfile'))
-            gelfilepath = args.pop('gelfile', '')
+            gelfilepath = args.get('gelfile', '')
             if gelfilepath:
-                logger.debug("Using gelfile from args: %s", gelfilepath)
+                logger.debug("Using gelfile from args/config: %s", gelfilepath)
+                # basenames is a list of filenames used when searching for annotationsfile.
+                basenames.append(os.path.join(basedir, gelfilepath))  # needs to be absolute.
+            elif args.get('gelfile_last_used'):
+                gelfilepath = args.get('gelfile_last_used')
                 basenames.append(os.path.join(basedir, gelfilepath))  # needs to be absolute.
             else:
+                # Search for gelfile matching the primary file name:
                 fnroot, fnext = os.path.splitext(self._primary_file)
                 logger.debug("No gelfile specified in config, searching for files starting with %s and ending with %s",
                              fnroot, gel_exts)
@@ -218,6 +231,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
                 else:
                     logger.debug("No gelfile found matching yamlfile, gelfilepath is: '%s'", gelfilepath)
             self.set_gelfilepath(gelfilepath)
+            args['gelfile'] = gelfilepath
+            self.init_yaml(args)
         else:
             # _primary_file is GEL or None:
             gelfilepath = os.path.relpath(self._primary_file, start=basedir)
@@ -244,12 +259,20 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
 
     def get_gelfilepath(self):
         """Returns content of gel-filepath entry widget."""
-        return self.Root.Gelfilepath.get()
+        filename = self.Root.Gelfilepath.get()
+        if not filename:
+            config = self.parse_config_from_yaml_widget()
+            if 'gelfile' in config:
+                return config['gelfile']
+        return filename
 
     def set_gelfilepath(self, filepath):
         """Sets content of gel-filepath entry widget."""
         logger.debug("Setting gelfilepath to %s", filepath)
         self.Root.Gelfilepath.set(filepath)
+        # Update self.Args and yaml text widget when setting gelfile when primary_file_is_yaml?
+        # Edit: Right now set_gelfilepath is intended to just set the widget text and not have side-effects,
+        # so better not do that.
 
     def get_directory(self):
         """Return the current directory."""
@@ -291,6 +314,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
 
     def init_yaml(self, args, filepath=None):       # pylint: disable=W0621
         """Merge args with yaml file (args take precedence)."""
+        # TODO: Rename to
         if filepath is None:
             filepath = getabsfilepath(self.get_gelfilepath(), self.get_yamlfilepath())
             logger.debug("init yaml filepath wasn't given, extracting from yaml widget value")
@@ -307,10 +331,11 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         except IOError:
             logger.debug("Could not find/load yaml file %s", filepath)
             yamlconfig = {}
-        logger.debug("yamlconfig: %s", yamlconfig)
+        else:
+            logger.debug("yamlconfig loaded from %s: %s", filepath, yamlconfig)
+            if yamlconfig:  # If loading empty file, the result may be None.
+                args.update(mergedicts(yamlconfig, args))  # get merged dict, then update in-place.
         logger.debug("args: %s", printdict(args))
-        if yamlconfig is not None:
-            args.update(mergedicts(yamlconfig, args))  # get merged dict, then update in-place.
         self.set_yaml(yaml.dump(args, default_flow_style=False))
 
     def load_yaml(self, filepath=None, filepath_is_relative_to_gelfile=True):
@@ -350,7 +375,12 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
 
     def get_annotationsfilepath(self):
         """Returns content of annotations-filepath entry widget. """
-        return self.Root.Annotationsfilepath.get()
+        filename = self.Root.Annotationsfilepath.get()
+        if not filename:
+            config = self.parse_config_from_yaml_widget()
+            if 'annotationsfile' in config:
+                return config['annotationsfile']
+        return filename
 
     def set_annotationsfilepath(self, filepath):
         """Sets content of annotations-filepath entry widget. """
@@ -385,19 +415,55 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.set_annotations(text)
 
     def save_annotations(self, event=None):     # pylint: disable=W0613
-        """Saves the content of annotations text widget to annotations-filepath.
-        """
+        """Saves the content of annotations text widget to annotations-filepath."""
         gelfile = self.get_gelfilepath()
         filepath_relative = self.get_annotationsfilepath()
         fn = getabsfilepath(gelfile, filepath_relative)
         text = self.get_annotations()
-        logger.debug("Saving content of annotations text widget (%s chars) to file given by annotations filepath %s"
-                     "(event=%s)", len(text), fn, event)
+        logger.debug("Saving content of annotations text widget (%s chars) to file given by annotations filepath '%s'"
+                     " (event=%s)", len(text), fn, event)
         if not fn:
             raise ValueError("Annotations file entry is empty.")
         with open(fn, 'w', encoding="utf-8") as fd:  # only use 'b' for byte/buffered input; 'str' is not byte/buffered.
             logger.debug("Saving annotations (%s chars) to file %s", len(text), fd)
             fd.write(text)
+
+    def parse_config_from_yaml_widget(self):
+        """Return parsed config dict of the yaml-formatted text of config widget."""
+        return yaml.safe_load(self.get_yaml())
+
+    def dump_config_to_yaml_widget(self, config):
+        """Set yaml-formatted text of config widget using config dict."""
+        self.set_yaml(yaml.dump(config, default_flow_style=False))
+
+    def update_entry_in_yaml(self, key, value):
+        """Update a single keyword value in the yaml config text widget."""
+        config = self.parse_config_from_yaml_widget()
+        config[key] = value
+        self.dump_config_to_yaml_widget(config)
+
+    def update_gelfile(self, gelfilename):
+        """Update gelfile keyword value in the yaml text widget."""
+        self.update_entry_in_yaml('gelfile', gelfilename)
+
+    def browse_for_primary_file(self):
+        """Invoked only if app is started without any FILE argument.
+        This will set _primary_file_mode.
+        """
+        logger.debug("Browsing for GEL file using askopenfilename dialog...")
+        filename = askopenfilename(
+            filetypes=(
+                ("GEL files", gel_exts),
+                ("Image files", img_exts),
+                ("Config files", cfg_exts),
+                ("All supported", gel_exts+img_exts+cfg_exts),
+                ("All files", "*.*")),
+            initialdir=self.get_directory(),  # self.getgeldir(),
+            parent=self.Root,
+            title="Please select a file to use (gel image or config file)"
+        )
+        # TODO: This isn't properly implemented yet:
+        self.set_primary_file(filename)
 
     def browse_for_gelfile(self):
         """Browse for gel image file.
@@ -414,7 +480,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
                                               ),
                                    initialdir=self.get_directory(),  # self.getgeldir(),
                                    parent=self.Root,
-                                   title="Please select annotations file"
+                                   title="Please select GEL image file"
                                    )
         # print("Setting gelfile to:", filename)
         #  Issue: after returning, the main UI does not take focus until the user has switched windows. (Win)
@@ -427,8 +493,16 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         if filename:
             logger.debug("Setting gelfile to: %s", filename)
             logger.debug("os.getcwd(): %s", os.getcwd())
-            self.set_primary_file(filename)
-            self.reset_aux_files()
+            if self.primary_file_is_yaml():
+                # Only set gelfile (text widget). Do not reset yaml or annotations file:
+                filename = os.path.relpath(filename, self.get_directory())
+                self.set_gelfilepath(filename)
+                self.update_gelfile(filename)
+                # self.Args['gelfile'] = filename  # Not optimal: User may have edited yaml panel.
+            else:
+                # Set selected gelfile as primary file and reset yaml+annotations files:
+                self.set_primary_file(filename)
+                self.reset_aux_files()
 
     def browse_for_yamlfile(self):
         """Browse for yaml file.
@@ -516,6 +590,9 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         logger.debug("Annotating gel '%s', using annotationsfile '%s' and yamlfile '%s' (event=%s)",
                      gelfile, annotationsfile, yamlfile, event)
         self.update_status("Converting and annotating gel...")
+        # TODO: Instead of passing yamlfile to annotate_gel, load config from yaml text widget here
+        # TODO: and pass config/"args" to annotate_gel.
+        # TODO: This will allow you to inject updated 'gelfile' value from the gelfile text widget.
         try:
             dwg, svgfilename, args = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)
         except Exception as e:
@@ -526,11 +603,14 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             self.update_status("SVG file generated: " +
                                ("...." + svgfilename[-75:] if len(svgfilename) > 80 else svgfilename))
 
-        # updated args/config is returned (with e.g. auto dynamic range)
+        # updated args/config is returned (with e.g. result of auto-calculated dynamic range)
+        # TODO: Rename 'updateyaml' to 'updateyamlfile' and make new 'updateyamlwidget' keyword.
         if args.get('updateyaml', True):
             # Not sure if this should be done here or in gelannotator:
-            logger.debug("Re-loading yaml file")
-            self.load_yaml()    # Loads content of yaml file (given by yaml-filename widget) into config text widget.
+            # logger.debug("Re-loading yaml file")
+            # self.load_yaml()    # Loads content of yaml file (given by yaml-filename widget) into config text widget.
+            logger.debug("Updating yaml config widget to display final config parameters...")
+            self.dump_config_to_yaml_widget(args)
         logger.debug("Gel annotation complete!")
         # I wouldn't expect the annotations file to have changed.
         # prevent Tkinter from propagating the event by returning the string "break"
@@ -605,6 +685,155 @@ def get_default_config(fncands=None):
     return None, None
 
 
+def get_config(scheme=1, defaults=None):
+
+    # In all schemes, defaults is our starting point:
+    config = defaults or {}
+
+    if scheme == 0:
+        # old, from commit 2d0be77c
+        # Cons: Default values different from None CANNOT be overridden by system_config or config template :O
+        argsns = parseargs(prog='gui', defaults=config)
+        config = argsns.__dict__
+
+        # 2. Config template:
+        config_template_fn = config.pop("config_template", None)
+        if config_template_fn:
+            print("Loading explicitly-specififed config_template from file: %s" % config_template_fn)
+            try:
+                template_config = yaml.load(open(config_template_fn, encoding="utf-8"))
+            except FileNotFoundError as e:
+                print("Error loading default config: %s" % e)
+            else:
+                config = mergedicts(template_config, config)  # latter takes precedence except None-valued entries
+
+        # 3. Load system-level config, unless deactivated by command line arguments:
+        if config.pop('load_system_config', True):  # incl if config is None
+            print("Trying to load default config from file paths:", DEFAULT_CONFIG_FILEPATHS)
+            system_config_fn, system_config = get_default_config()
+            if system_config:
+                print(" - Loaded system config/settings from file %s," % (system_config_fn, ),
+                      "merging with main config.")
+                config = mergedicts(system_config, config)  # latter takes precedence (except None-values)
+            else:
+                print(" - Could not find any default configuration file.")
+        else:
+            system_config_fn, system_config = None, None
+
+    if scheme == 1:
+        a = 1
+        # 1+2: Extract --no-load-system-config and --config-template from sys.argv,
+        # 3. parseargs using merged (CONFIG_APP_DEFAULTS, template_config, system_config) as defaults
+        # 4. then load and merge yamlfile.
+        # Priority is:
+        # yamlfile, user-specified command line args, template_config, system_config, CONFIG_APP_DEFAULTS
+        # 1. Load system_config (from standard locations):
+        if "--no-load-system-config" not in sys.argv:
+            print("Trying to load default config from file paths:", DEFAULT_CONFIG_FILEPATHS)
+            system_config_fn, system_config = get_default_config()
+            if system_config:
+                print(" - Loaded system config/settings from file %s," % (system_config_fn, ),
+                      "merging with main config.")
+                config = mergedicts(config, system_config)  # latter takes precedence (except None-values)
+            else:
+                print(" - Could not find any default configuration file.")
+        # 2. Load template_config (specified from command line):
+        if "--template-config" in sys.argv:
+            config_template_fn = sys.argv[sys.argv.index("--template-config")+1]
+            try:
+                template_config = yaml.load(open(config_template_fn, encoding="utf-8"))
+            except FileNotFoundError as e:
+                print("Error loading default config: %s" % e)
+            else:
+                config = mergedicts(template_config, config)  # latter takes precedence except None-valued entries
+
+        # 3. parseargs using merged (CONFIG_APP_DEFAULTS, template_config, system_config) as defaults
+        argsns = parseargs(prog='gui', defaults=config)
+        config = argsns.__dict__
+
+    elif scheme == 2:
+        # Almost like 0, but determine user_specified_args and override defaults with system_config values
+        # 1. config = parseargs(), then determine user_specified_args
+        # 2+3. then load and merge system_config and config_template,
+        # 4. then merge user_specified_args,
+        # then load and merge yamlfile.
+        # priority is:
+        # yamlfile, user-specified command line args, template config, system_config, CONFIG_APP_DEFAULTS.
+        argsns = parseargs(prog='gui', defaults=config)
+        user_specified_args = {k: v for k, v in vars(argsns).items()
+                               if v is not None and v != CONFIG_APP_DEFAULTS.get(k)}
+        config = argsns.__dict__
+        # 2. Load system-level config, unless deactivated by command line arguments:
+        if config.pop('load_system_config', True):  # incl if config is None
+            print("Trying to load default config from file paths:", DEFAULT_CONFIG_FILEPATHS)
+            system_config_fn, system_config = get_default_config()
+            if system_config:
+                print(" - Loaded system config/settings from file %s," % (system_config_fn, ),
+                      "merging with main config.")
+                config = mergedicts(config, system_config)  # latter takes precedence (except None-values)
+            else:
+                print(" - Could not find any default configuration file.")
+        # 3. Config template:
+        config_template_fn = config.pop("config_template", None)
+        if config_template_fn:
+            print("Loading explicitly-specififed config_template from file: %s" % config_template_fn)
+            try:
+                template_config = yaml.load(open(config_template_fn, encoding="utf-8"))
+            except FileNotFoundError as e:
+                print("Error loading default config: %s" % e)
+            else:
+                config = mergedicts(config, template_config)  # latter takes precedence except None-valued entries
+        # 4. merge user_specified_args to make sure they take precedence:
+        if user_specified_args:
+            config = mergedicts(config, user_specified_args)
+
+
+    elif scheme == 3:
+        # Conceptually simplest, just let system_config and config_template ALWAYS override command line flags.
+        # Cons: You override system_config by specifying ad-hoc command line arguments for debugging.
+        # 1. config = parseargs(), (without determing user_specified_args)
+        # 2+3. then load and merge system_config and config_template,
+        # 4. then load and merge yamlfile.
+        # priority is (highest-to-lowest):
+        # yamlfile, template config, system_config, command line args, CONFIG_APP_DEFAULTS.
+        argsns = parseargs(prog='gui', defaults=config)
+        config = argsns.__dict__
+        # 2. Load system-level config, unless deactivated by command line arguments:
+        if config.pop('load_system_config', True):  # incl if config is None
+            print("Trying to load default config from file paths:", DEFAULT_CONFIG_FILEPATHS)
+            system_config_fn, system_config = get_default_config()
+            if system_config:
+                print(" - Loaded system config/settings from file %s," % (system_config_fn, ),
+                      "merging with main config.")
+                config = mergedicts(config, system_config)  # latter takes precedence (except None-values)
+            else:
+                print(" - Could not find any default configuration file.")
+        # 3. Config template:
+        config_template_fn = config.pop("config_template", None)
+        if config_template_fn:
+            print("Loading explicitly-specififed config_template from file: %s" % config_template_fn)
+            try:
+                template_config = yaml.load(open(config_template_fn, encoding="utf-8"))
+            except FileNotFoundError as e:
+                print("Error loading default config: %s" % e)
+            else:
+                config = mergedicts(config, template_config)  # latter takes precedence except None-valued entries
+
+    # 4. Load yamlfile (takes precedence over everything else)
+    yamlfile = config.get("yamlfile")
+    # TODO: This also needs to take precedense when yaml_is_primary.
+    if yamlfile is None and config.get('file') and filename_is_yaml(config.get('file')):
+        yamlfile = config.get('file')  # evt. pop() here?
+    if yamlfile:
+        # If config file  is explicitly specified, do not try to catch errors:
+        with open(os.path.expanduser(yamlfile), encoding="utf-8") as fp:
+            print("Using yaml-formatted configuration file:", yamlfile)
+            yaml_config = yaml.load(fp)
+            config = mergedicts(config, yaml_config)  # latter takes precedence except None-valued entries
+
+    return config
+
+
 def main(config=None):
     """main driver for launching GUI Application.
 
@@ -623,43 +852,36 @@ def main(config=None):
     # Note: It might be a good idea to load the system-level default config (e.g. ~/.gelannotator.yaml)
     # BEFORE parsing args, and passing the default config to parseargs.
 
+    # What is the priority of configs?
+    # 1. yamlfile (loaded from disk)  (HIGHEST)
+    # 2. command line args
+    # 3. config template
+    # 4. system config.
+    # 5. CONFIG_APP_DEFAULTS          (LOWEST)
+
+    # Note that for 2. command line args, it should preferably only entries that differs from CONFIG_APP_DEFAULTS.
+    # Example: Right now, svgfnfmt defaults to "{pngfnroot}_annotated{ext}" in argparser. So values in the
+    # system_config can never override this default value.
+    # It would be nice to just use the merge of (CONFIG_APP_DEFAULTS, template_config, system_config) to
+    # specify defaults for parseargs(), but I also want to be able to disable system-level config using
+    # --no-load-system-config command line argument.
+    # Alternative 1: Use ```if "no-load-system-config" in sys.argv``` to disable loading of system_config
+    #       (and config_template) before parsing command line args and pass merged config as defaults to parseargs()
+    # Alternative 2: Make a dict with user-specified args and use that to override system_config/etc:
+    #       ```user_specified_args = {k: v for k, v in args if v is not None and v != CONFIG_APP_DEFAULTS.get(k)}```
+    # Alternative 3: Just let system_config and config_template ALWAYS override command line flags.
+    #        This is probably the simplest, but it would make it impossible to change the config from command line
+    #        as-needed, e.g. for debugging.
+
+    # However, this is not the order in which args are loaded, which is:
+    # 1. CONFIG_APP_DEFAULTS and command line args (merged, cmd args taking precedence)
+    # 2. config template (may be given by cmd args or system config)
+    # 3. system config
+    # 4. yamlfile (may be given by cmd args).
+
     # 1. Parse command line arguments, if config is not provided:
     if config is None:
-        argsns = parseargs(prog='gui', defaults=CONFIG_APP_DEFAULTS)
-        config = argsns.__dict__
-    if CONFIG_APP_DEFAULTS:
-        config = mergedicts(CONFIG_APP_DEFAULTS, config)  # latter takes precedence except None-valued entries
-
-    # 2. Load system-level config, unless deactivated by command line arguments:
-    if config.pop('load_system_config', True):  # incl if config is None
-        print("Trying to load default config from file paths:", DEFAULT_CONFIG_FILEPATHS)
-        system_config_fn, system_config = get_default_config()
-        if system_config:
-            print(" - Loaded system config/settings from file %s," % (system_config_fn, ),
-                  "merging with main config.")
-            config = mergedicts(system_config, config)
-        else:
-            print(" - Could not find any default configuration file.")
-    else:
-        system_config_fn, system_config = None, None
-    yamlfile = config.get("yamlfile")
-    config_template_fn = config.pop("config_template_fn", None)
-
-    # 3. Load EITHER yamlfile OR config_template_fn. Supporting both would be confusing.
-    if yamlfile:
-        # If config file  is explicitly specified, do not try to catch errors:
-        with open(os.path.expanduser(yamlfile), encoding="utf-8") as fp:
-            print("Using yaml-formatted configuration file:", yamlfile)
-            yaml_config = yaml.load(fp)
-            config = mergedicts(yaml_config, config)  # latter takes precedence except None-valued entries
-    elif config_template_fn:
-        print("Loading explicitly-specififed config_template_fn from file: %s" % config_template_fn)
-        try:
-            template_config = yaml.load(open(config_template_fn, encoding="utf-8"))
-        except FileNotFoundError as e:
-            print("Error loading default config: %s" % e)
-        else:
-            config = mergedicts(template_config, config)  # latter takes precedence except None-valued entries
+        config = get_config(scheme=1, defaults=CONFIG_APP_DEFAULTS)
 
     print("Config after parsing cmd args, and loading system_config, yamlfile/config_template_fn:")
     print(config)
@@ -672,19 +894,21 @@ def main(config=None):
     stderr_fn = config.pop('stderr', None)
     stderr_mode = config.pop('stderr_mode', 'w')
     if stdout_fn:
-        stdout_fd = open(stdout_fn, mode=stdout_mode, encoding='utf-8')
+        # buffering=1 (text-mode line buffering), replacing bad characters with '?' if encoding fails.
+        stdout_fd = open(stdout_fn, mode=stdout_mode, encoding='utf-8', errors='replace', buffering=1)
         print("Redirecting stdout to file:", stdout_fd)
         sys.stdout = stdout_fd  # backups are available as sys.__stdout__, sys.__stderr__
         print("stdout redirected to file:", stdout_fd)
         print("Note - date = {:%Y-%m-%d %H:%M}".format(datetime.now()), flush=True)
-        print('Note - config files: system_config_fn="%s", config_template_fn="%s", yamlfile="%s"'
-              % (system_config_fn, config_template_fn, yamlfile), flush=True)
+        # print('Note - config files: system_config_fn="%s", config_template_fn="%s", yamlfile="%s"'
+        #       % (system_config_fn, config_template_fn, yamlfile), flush=True)
         print('Note - config: "%s"' % (config, ), flush=True)
-        if config.get('stderr') is None:
+        if stderr_fn is None:
             print(" - Also redirecting stderr to same file as stdout (%s)" % (stdout_fd, ), flush=True)
             sys.stderr = stdout_fd
-    if config.get('stderr'):
-        stderr_fd = open(stderr_fn, mode=stderr_mode, encoding='utf-8')
+    if stderr_fn:
+        # buffering=1 (text-mode line buffering), replacing bad characters with '?' if encoding fails.
+        stderr_fd = open(stderr_fn, mode=stderr_mode, encoding='utf-8', errors='replace', buffering=1)
         print("Redirecting stderr to file:", stderr_fd, flush=True)
         sys.stderr = stderr_fd
 
@@ -719,7 +943,7 @@ def main(config=None):
         else:
             logger.info("Locale reset to %s; preferred encoding is now '%s'",
                         ('en_US', 'UTF-8'), locale.getpreferredencoding(False))
-    app = GelAnnotatorApp(args=config)
+    app = GelAnnotatorApp(config=config)
     logger.debug("GelAnnotatorApp created, starting mainloop()...")
     app.mainloop()
 
