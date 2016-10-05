@@ -400,15 +400,16 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
     # - Then crop, so cropping is relative to original image. But doesn't matter if using relative values...
     # - Then flip/transpose
     # - Then scale
+    # Except maybe if we are using rotate="auto" because then we prefer only to rotate after cropping and scaling...
 
-    if args['rotate']:
+    if args['rotate'] and not isinstance(args['rotate'], str):
         # PIL resample filters:: NONE = NEAREST = 0; ANTIALIAS = 1; LINEAR = BILINEAR = 2; CUBIC = BICUBIC = 3
         # PIL/Pillow rotate only supports NEAREST, BILINEAR, BICUBIC resample filters.
-        # Using BICUBIC resampling produces white/squashed pixels for saturated areas, so only using bilinear resampling.
+        # BICUBIC resampling produces white/squashed pixels for saturated areas, so only using bilinear resampling.
         logger.info("Rotating image by angle=%s degrees (resample=BILINEAR, expand=%s)",
                     args['rotate'], args.get('rotateexpands'))
         gelimg = gelimg.rotate(angle=args['rotate'], resample=BILINEAR, expand=args.get('rotateexpands'))
-        width, height = gelimg.size # Update, in case rotateexpands is True. # = widthheight
+        width, height = gelimg.size  # Update, in case rotateexpands is True. # = widthheight
 
     if args['crop']:
         # crop is 4-tuple of (left, upper, right, lower)
@@ -423,17 +424,32 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         left, upper, right, lower = crop = ensure_numeric(args['crop'], cycle([width, height]))
         if args.get('cropfromedges'):
             if width-right <= left or height-lower <= upper:
-                raise ValueError("Wrong cropping values: width-right <= left or height-lower <= upper: "\
+                raise ValueError("Wrong cropping values: width-right <= left or height-lower <= upper: "
                                  "%s-%s <= %s or %s-%s <= %s", width, right, left, height, lower, upper)
             logger.debug("Cropping image to: %s", (left, upper, width-right, height-lower))
             gelimg = gelimg.crop((left, upper, width-right, height-lower))
         else:
             if right <= left or height-lower < upper:
-                raise ValueError("Wrong cropping values: right <= left or lower <= upper: "\
+                raise ValueError("Wrong cropping values: right <= left or lower <= upper: "
                                  "%s <= %s or %s <= %s", right, left, lower, upper)
             logger.debug("Cropping image to: %s", (left, upper, right, lower))
             gelimg = gelimg.crop(crop)
         width, height = widthheight = gelimg.size # Update (for use with e.g. scale/resize)
+
+    # Auto-rotation:
+    # If we are using rotate="auto", then it is better to perform rotation after crop/scale but still before flip.
+    if isinstance(args['rotate'], str):
+        if args['rotate'].lower() == "auto":
+            from .auto_rotate import find_optimal_rotation
+            logger.info("Finding optimal rotation...")
+            # Note: for optimize_rotation, bands should be white (high pixel values), not black:
+            args['rotate'] = find_optimal_rotation(gelimg)
+        else:
+            logger.warning("Unknown value for 'rotate': %s", args['rotate'])
+        logger.info("Rotating image by angle=%s degrees (resample=BILINEAR, expand=%s)",
+                    args['rotate'], args.get('rotateexpands'))
+        gelimg = gelimg.rotate(angle=args['rotate'], resample=BILINEAR, expand=args.get('rotateexpands'))
+        width, height = gelimg.size  # Update, in case rotateexpands is True. # = widthheight
 
     # transform after cropping to make cropping coordinates be relative to original image (albeit after rotation)
     if args.get('flip_h'):
@@ -479,7 +495,6 @@ def processimage(gelimg, args=None, linearize=None, dynamicrange=None, invert=No
         except IOError as e:
             logger.info("""Could not use PIL ImageOps to perform requested operations, "%s"
                         -- falling back to standard numpy.""", e)
-
 
     ### IMAGE MODE ###
     # https://pillow.readthedocs.org/handbook/concepts.html

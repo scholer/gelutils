@@ -26,7 +26,11 @@ conda install jinja2 tornado click markupsafe pandoc pytest numpy
 Setting up for Gelutils development (see also README.md):
 
 0. Make a dedicated python environment for gelutils, e.g.:
-   ```conda create -n gelutils pip numpy Pillow==2.7 six pyyaml cffi pandoc pytest jinja```
+   ```conda create -n gelutils pip numpy Pillow==2.7 six pyyaml cffi pandoc pytest jinja2 scipy pyparsing```
+   Then activate the ```gelutils``` environment:
+   ```source activate gelutils```
+   Note: You may also want to search for the following packages (currently not available with conda):
+   ```svgwrite, cairocffi, cairosvg```
 1. cd to your dev folder and download repo: ```git clone https://github.com/scholer/gelutils.git```
 2. Install gelutils into your python environment in editable mode: ```cd gelutils```, then ```pip install -e .```
 3. Note: You can combine steps 1+2 into one: ```pip install -e git+https://github.com/scholer/gelutils```
@@ -89,6 +93,31 @@ Regarding versioning:
 * * https://git-scm.com/book/en/v2/Git-Basics-Tagging
 * * http://stackoverflow.com/questions/18216991/create-a-tag-in-github-repository
 
+
+
+
+Notes about managing conda environments and using Anaconda cloud:
+-----------------------------------------------------------------
+
+Log in to Anaconda cloud (after installing the ```anaconda-client``` package):
+    ```anaconda login```
+
+To export the gelutils environment:
+    ```conda env export -n gelutils > environment.yml```
+Then upload the exported environment to Anaconda cloud:
+    ```conda env upload gelutils```
+
+Re-create the environment using:
+    ```conda env create scholer/gelutils```
+
+You can see my environments here: https://anaconda.org/scholer/environments
+
+
+
+
+
+Refs:
+* https://docs.continuum.io/anaconda-cloud/using
 
 
 

@@ -551,7 +551,11 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
             # default_style=None, default_flow_style=None, canonical=None, indent=None, width=None,
             # allow_unicode=None, line_break=None, encoding='utf-8', explicit_start=None, explicit_end=None,
             # version=None, tags=None)
-            yaml.safe_dump(args, fd, default_flow_style=False)
+            try:
+                yaml.safe_dump(args, fd, default_flow_style=False)
+            except yaml.representer.RepresenterError as e:
+                logger.warning("yaml.representer.RepresenterError: %s. args is: %s", e, args)
+                raise
     else:
         args['gelfile_last_used'] = gelfile
         args['yamlfile_last_used'] = yamlfile
