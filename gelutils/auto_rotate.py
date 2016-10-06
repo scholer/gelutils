@@ -1,3 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+#    Copyright 2016 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 
@@ -39,9 +56,11 @@ def apply_threshold(image, threshold):
     return image
 
 
-def optimize_rotation_by_maximizing_cross_sections(
-    image, do_invert=False, threshold=None, method="brent", solver_opts=None, bounds=None, maxiter=None, **kwargs):
-    """
+def optimize_rotation_by_maximizing_cross_sections(image, rotate_func=None,
+                                                   method="brent",
+                                                   bracket=None, bounds=None,
+                                                   solver_opts=None, maxiter=None, **kwargs):
+    """Find optimal rotation for gel image such that bands and other features are aligned v/h.
 
     This seems to be a good function to maximize:
         log(np.sum(npimg.sum(axis=0)**2)) + log(np.sum(npimg.sum(axis=1)**2))
@@ -57,7 +76,11 @@ def optimize_rotation_by_maximizing_cross_sections(
 
     Args:
         image: The gel image to find optimal rotation for.
-        do_invert: Image should be inverted; bands should appear white (high pixel values).
+        rotate_func: Function used to rotate image.
+            Must accept two arguments rotate_func(image, angle) and return a 2D numpy array as output.
+            Obviously, rotate_func must be able to use the given image data structure.
+            If rotate_func is None (default), then a suitable rotate function will be selected.
+        method: The optimizer method to use, e.g. "brent", "golden", or "bounded".
         bracket: sequence, optional
             For methods ‘brent’ and ‘golden’, bracket defines the bracketing interval
             and can either have three items (a, b, c) so that a < b < c and fun(b) < fun(a), fun(c)
@@ -65,10 +88,13 @@ def optimize_rotation_by_maximizing_cross_sections(
             search (see bracket); it doesn’t always mean that the obtained solution will satisfy a <= x <= c.
         bounds: sequence, optional
             For method ‘bounded’, bounds is mandatory and must have two items corresponding to the optimization bounds.
-        tol: float, optional. Tolerance for termination. For detailed control, use solver-specific options,
+        maxiter: Specify maximum number of iterations. Can also be specified in solver_opts dict.
+        solver_opts: dict with extra solver-specific arguments, e.g.:
             e.g. `xtol` for brent and golden, and 'atol' for bounded.
-        other options: See scipy.optimize.minimize_scalar,
-            http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize_scalar.html
+        kwargs: other options, see scipy.optimize.minimize_scalar
+        (http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize_scalar.html)
+        e.g. `tol`: float, optional. Tolerance for termination. For detailed control, use solver-specific options,
+
     Returns:
         opt_result, calculated_values (2-tuple)
         where opt_result is a scipy.optimize.OptimizeResult object,
@@ -78,26 +104,29 @@ def optimize_rotation_by_maximizing_cross_sections(
     if maxiter:
         if solver_opts is None:
             solver_opts = {}
-        solver_opts = {"maxiter": maxiter}  # "golden" doesn't seem to support maxiter
+        solver_opts["maxiter"] = maxiter  # "golden" method doesn't seem to support maxiter
     # Set default required bounds parameter, if using bounded method:
     if method.lower() == "bounded" and bounds is None:
         bounds = (-5.0, 5.0)
 
-    if isinstance(image, Image.Image):
-        def rotate(img, angle):
-            return np.array(img.rotate(angle))
-    else:
-        def rotate(img, angle):
-            return sp.misc.imrotate(image, angle)
-            # return sp.ndimage.rotate(image, angle)
-        assert isinstance(image, np.ndarray)
+    if rotate_func is None:
+        if isinstance(image, Image.Image):
+            def rotate_func(img, angle):
+                return np.array(img.rotate(angle))
+        else:
+            def rotate_func(img, angle):
+                # There are a couple of function that can be used to rotate numpy array images:
+                # scipy.misc.imrotate, scipy.ndimage.rotate, and skimage.transform.rotate
+                return sp.misc.imrotate(img, angle)  # I believe this just uses PIL
+                # return sp.ndimage.rotate(img, angle)
+            assert isinstance(image, np.ndarray)
 
     calculated_values = []
 
     def rotation_cross_section_score(angle):
         """Define closure-function to minimize angle."""
         # Invert image to make dark bands have high intensity and make new areas (from rotation) be zero:
-        npimg = rotate(image, angle)
+        npimg = rotate_func(image, angle)
         # Normalize pixel values to prevent overflow:
         npimg = npimg / npimg.max()  # binary if using //, consider multiplying with 256 if you want integer operations
         sum_xsq = np.sum(npimg.sum(axis=0)**2)
@@ -110,7 +139,7 @@ def optimize_rotation_by_maximizing_cross_sections(
     opt_result = minimize_scalar(
         rotation_cross_section_score,
         method=method,
-        bounds=bounds,
+        bounds=bounds, bracket=bracket,
         options=solver_opts,
         **kwargs
     )

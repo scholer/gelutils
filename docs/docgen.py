@@ -1,19 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-##    Copyright 2016 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
-##
-##    This program is free software: you can redistribute it and/or modify
-##    it under the terms of the GNU General Public License as published by
-##    the Free Software Foundation, either version 3 of the License, or
-##    (at your option) any later version.
-##
-##    This program is distributed in the hope that it will be useful,
-##    but WITHOUT ANY WARRANTY; without even the implied warranty of
-##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##    GNU General Public License for more details.
-##
-##    You should have received a copy of the GNU General Public License
-##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#    Copyright 2016 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 import sys
@@ -24,11 +24,11 @@ from argparse import (HelpFormatter, RawDescriptionHelpFormatter, RawTextHelpFor
 from argparse import _StoreAction as StoreAction
 from argparse import _StoreTrueAction as StoreTrueAction
 from argparse import _CountAction as CountAction
-config_action_types = (StoreAction, StoreTrueAction, CountAction)
 
-import gelutils
+# import gelutils
 from gelutils.argutils import make_parser
 
+config_action_types = (StoreAction, StoreTrueAction, CountAction)
 
 # See:
 # argparse.py module - is pretty easy to understand.
@@ -65,17 +65,16 @@ def playing_around():
     # RawDescriptionHelpFormatter - Will not touch description.
     # RawTextHelpFormatter - will not touch help format.
     p = make_parser(prog="gui",
-                    formatter_class=HelpFormatter) # RawTextHelpFormatter)
+                    formatter_class=HelpFormatter)  # RawTextHelpFormatter)
 
     format_config = dict(
-        #indent_increment=2,
-        #max_help_position=80,
-        #width=1000
+        # indent_increment=2,
+        # max_help_position=80,
+        # width=1000
     )
     formatter = p.formatter_class(prog=p.prog, **format_config)
 
-
-    ## Disassembled ArgumentParser.format_help:
+    # Disassembled ArgumentParser.format_help:
     formatter.add_usage(usage=p.usage, actions=p._actions,
                         groups=p._mutually_exclusive_groups, prefix=None)
     # add_usage just does:
@@ -86,8 +85,7 @@ def playing_around():
     # def _add_item(self, func, args):
     #     self._current_section.items.append((func, args))
 
-
-    # description
+    # description:
     formatter.add_text(p.description)
 
     # positionals, optionals and user-defined groups
@@ -111,13 +109,11 @@ def playing_around():
 
     # I.e. the actual formatting is done by the section
 
-
     print(help_text)
 
     # p._optionals._actions
     # formatter.add_usage(self.usage, self._actions, self._mutually_exclusive_groups)
     # p._actions
-
 
 
 def format_actions_table(actions, prefix="<table>", postfix="</table>",
@@ -135,16 +131,14 @@ def format_actions_table(actions, prefix="<table>", postfix="</table>",
     :return:
     """
 
-
     table_strs = [prefix]
 
     if action_types:
         actions = [a for a in actions if type(a) in action_types and a.dest not in exclude_dest]
 
-
     columns = ('dest', 'metavar', 'default', 'help')
-    #row_fmt = "<tr>" + "  ".join("<td><pre>{a.%s}</pre></td>" % col for col in columns) + "</tr>"
-    #col_fmts = {"dest": "<td><strong>{a.%s}</strong></td>"} # dot-notation
+    # row_fmt = "<tr>" + "  ".join("<td><pre>{a.%s}</pre></td>" % col for col in columns) + "</tr>"
+    # col_fmts = {"dest": "<td><strong>{a.%s}</strong></td>"} # dot-notation
     cell_fmts = {"dest": "<td><strong>{%s}</strong></td>"}
     row_fmt = "<tr>" + "  ".join(cell_fmts.get(col, "<td>{%s}</td>") % col for col in columns) + "</tr>"
 
@@ -179,7 +173,6 @@ def format_actions_table(actions, prefix="<table>", postfix="</table>",
             fields['metavar'] = ", ".join(str(v) for v in fields['metavar'])
         fields['metavar'] = fields['metavar'].replace("<", "&lt;").replace(">", "&gt;")
 
-
         fields['default'] = "" if fields['default'] is None else "(default: {})".format(fields['default'])
 
         if fields['help']:
@@ -203,7 +196,6 @@ def format_actions_table(actions, prefix="<table>", postfix="</table>",
     return table_str
 
 
-
 def main(argv=None):
 
     if argv is None:
@@ -218,7 +210,6 @@ def main(argv=None):
         outputfn = argv[1]
         if len(argv) > 2:
             template = argv[2]
-
 
     p = make_parser(prog="gui")
     # p._optionals._actions
@@ -241,6 +232,6 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    #print(p.format_help())   # long help
-    #print(p.format_usage())  # brief usage
+    # print(p.format_help())   # long help
+    # print(p.format_usage())  # brief usage
     main()

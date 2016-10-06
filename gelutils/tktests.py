@@ -3,7 +3,7 @@ import ttk
 
 root = Tk()
 
-content = ttk.Frame(root, padding=(3,3,12,12))
+content = ttk.Frame(root, padding=(3, 3, 12, 12))
 frame = ttk.Frame(content, borderwidth=5, relief="sunken", width=200, height=100)
 namelbl = ttk.Label(content, text="Name")
 name = ttk.Entry(content)

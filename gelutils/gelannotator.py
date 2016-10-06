@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-##    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
-##
-##    This program is free software: you can redistribute it and/or modify
-##    it under the terms of the GNU General Public License as published by
-##    the Free Software Foundation, either version 3 of the License, or
-##    (at your option) any later version.
-##
-##    This program is distributed in the hope that it will be useful,
-##    but WITHOUT ANY WARRANTY; without even the implied warranty of
-##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##    GNU General Public License for more details.
-##
-##    You should have received a copy of the GNU General Public License
-##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#    Copyright 2014-2016 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 # pylint-xx: disable=W0142,W0621,C0103
 # pylint: disable=W0142,C0103
 
@@ -35,11 +37,10 @@ See:
 """
 
 from __future__ import print_function, absolute_import
-from six import string_types # python 2*3 compatability
 import os
-import sys
 import glob
 import yaml
+from yaml.representer import RepresenterError
 import base64
 from itertools import chain
 from PIL import Image
@@ -51,21 +52,16 @@ import logging
 # Local imports:
 from .clipboard import get_clipboard
 from .utils import (gen_trimmed_lines, trimmed_lines_from_file, init_logging,
-                    getabsfilepath, printdict, ensure_numeric)
-from .argutils import mergedicts, parseargs  # , make_parser
+                    getabsfilepath, printdict, ensure_numeric, mergedicts)
+from .argutils import parseargs  # , make_parser
 from .geltransformer import convert
 from .imageconverter import svg2png
 from .config import config_ext
 from . import __version__
 
 # Constants:
-if sys.version_info < (3, 3):
-    # flush keyword only supported for python 3.3+, so create custom print function:
-    import builtins
-
-    def print(*args, **kwargs):
-        kwargs.pop('flush', None) # remove "flush" keyword argument
-        builtins.print(*args, **kwargs)
+# flush keyword only supported for python 3.3+, so create custom print function:
+# Edit: Instead of modifying print to accept flush keyword, just make sure to use line-buffering for file objects
 
 logging.addLevelName(4, 'SPAM')  # Can be invoked as much as you'd like.
 logger = logging.getLogger(__name__)
@@ -94,7 +90,7 @@ def find_annotationsfilepath(filenames, rel=False, fallback=True):
     Update: modified get_annotation_fn_by_gel_fn to not raise StopIteration.
     """
     # gelfilebasename = os.path.basename(gelfn)       # gelfile, without directory
-    #if gelfiledir:
+    # if gelfiledir:
     #    logger.debug('Changing dir to: %s', gelfiledir)
     #    os.chdir(gelfiledir)
     logger.debug("basenames (before removing Nones and stripping file extensions): %s", filenames)
@@ -144,7 +140,7 @@ def find_annotationsfilepath(filenames, rel=False, fallback=True):
 #     pass
 
 
-def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_asterix='first_only'):
+def get_annotations(args=None, annotationsfile=None, gelfile=None):
     """Find gel/lane annotations.
 
     Load and return annotations from a gel/lane annotations file.
@@ -184,7 +180,7 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
         logger.debug("annotationsfile is %s, searching for one by gelfilename...", annotationsfile)
         annotationsfile = find_annotationsfilepath([gelfile], fallback=False)
 
-    ## We have a filepath with annotations:
+    # We have a filepath with annotations:
     if os.path.splitext(annotationsfile)[1].lower() == '.yml':
         laneannotations = yaml.load(open(annotationsfile))
     else:
@@ -192,7 +188,7 @@ def get_annotations(args=None, annotationsfile=None, gelfile=None):#, remove_ast
     return laneannotations, annotationsfile
 
 
-def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yamlfile=None, **kwargs):
+def make_svg(gelfile, args=None, annotationsfile=None, laneannotations=None, yamlfile=None, **kwargs):
     """Creates SVG file with lane annotations overlayed over the gel.
 
     Arguments:
@@ -200,6 +196,7 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yaml
         args    : dict with arguments used to control the annotations.
         annotationsfile : file with lane annotations (only used if laneannotations is None).
         laneannotations : list of lane annotations.
+        yamlfile: May be used if svgfilename format makes use of it.
 
     annotationsfile and laneannotations specifically not kwargs and defaultargs;
 
@@ -243,26 +240,24 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yaml
     yamlfnroot = os.path.splitext(os.path.basename(yamlfile))[0] if yamlfile else args.get('yamlfile', '')
     lanefnroot = os.path.splitext(os.path.basename(annotationsfile))[0] if annotationsfile else args.get('lanefile', '')
 
-    # Load annotations:
-    # locals().update(args) # I could have the args to the local namespace. However, it is better to keep the args in the args dict, so we can return an updated version of that. Also, changing locals() is not supported by pylint...
+    # 1. Load annotations:
     laneannotations = laneannotations or args.get('laneannotations')
     annotationsfile = annotationsfile or args.get('annotationsfile')
     if not laneannotations:
-        # If laneannotations are not already in args, we do not want to add them, so use laneannotations as local variable:
         laneannotations, annotationsfile = get_annotations(args, annotationsfile=annotationsfile, gelfile=gelfile)
 
-    # Update gelfile if it is not a png file:
+    # 2. Update gelfile if it is not a png file:
     if args.get('pngfile'):
         logger.debug("args['pngfile'] is specified; using this over gelfile. (%s)", args['pngfile'])
         pngfile_relative = args['pngfile']
-        pngfile_actual = getabsfilepath(gelfile, pngfile_relative) # 'pngfile' is relative to gelfile.
+        pngfile_actual = getabsfilepath(gelfile, pngfile_relative)  # 'pngfile' is relative to gelfile.
         # make sure we update gelext after re-setting to pngfile:
         # However, we do not want to update gelbasename
         # gelfp_no_ext
         pngfp_wo_ext, pngext = os.path.splitext(pngfile_actual)
         pngext = pngext.lower()
     elif gelext in ('.png', '.jpg', '.jpeg'):
-        logger.debug("args['pngfile'] not specified, but gelfile ext is suitable (%s), referring to gelfile (%s) as pngfile.",
+        logger.debug("args['pngfile'] not specified, but gelfile ext is %s, using gelfile (%s) as pngfile.",
                      gelext, gelfile)
         pngfp_wo_ext, pngext = gelfp_wo_ext, gelext
         pngfile_actual = gelfile
@@ -274,33 +269,16 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yaml
         logger.warning("args is: {%s}", printdict(args))
         raise TypeError("Could not determine pngfile version of gel image.")
 
+    # Get size of png image:
     pngimage = Image.open(pngfile_actual)
-    # image size, c.f. http://stackoverflow.com/questions/15800704/python-get-image-size-without-loading-image-into-memory
     imgwidth, imgheight = pngimage.size
     pngimage.fp.close()
-    # use gelfp_wo_ext or pngfp_wo_ext as basis?
 
     # Convert any relative values (fractions, percentage):
-    #ypad, yoff = (args['ypadding'], args['yoffset'])
-    ## If we have percentage: convert to fraction
-    #ypad, yoff = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in (ypad, yoff))
-    ## If we have fraction: convert to absolute pixel value
-    #ypad, yoff = (imgheight*y if y < 1 else y for y in (ypad, yoff))
-    #ypad, yoff = (int(round(y)) for y in (ypad, yoff)) # Ensure integer
-    ## With new ensure_numeric:
     ypad, yoff = ensure_numeric([args['ypadding'], args['yoffset']], imgheight)
 
-    # convert '5%' to 0.05 if string:
-    #xmargin = (float(x.strip('%'))/100 if isinstance(x, string_types) else x for x in args['xmargin'])
-    ## convert 0.05 to absolute pixels:
-    #xmargin = [int(round(imgwidth*x)) if x < 1 else x for x in xmargin] # Do I have to round this?
+    # convert relative values ('5%' or 0.05) to absolute image values:
     xmargin = ensure_numeric(args['xmargin'], imgwidth)
-
-
-    #xtra_right, = (args['xtraspaceright'], )
-    #xtra_right, = (float(x.strip('%'))/100 if isinstance(x, string_types) and '%' in x else x for x in (xtra_right, ))
-    #xtra_right, = (imgwidth*x if x < 1 else x for x in (xtra_right, ))
-    #xtra_right, = (int(round(y)) for y in (xtra_right, )) # Ensure integer
     xtra_right = ensure_numeric(args['xtraspaceright'], imgwidth)
 
     ext = '.svg'
@@ -310,27 +288,26 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yaml
     svgfilename = svgfnfmt.format(pngfnroot=pngfnroot, gelfnroot=gelfnroot, ext=ext,
                                   lanefnroot=lanefnroot, yamlfnroot=yamlfnroot)
     svgfilename = os.path.join(folderpath, svgfilename)
-    #svgfilename = pngfp_wo_ext + '_annotated.svg'
     size = dict(width="{}px".format(imgwidth+xtra_right),
                 height="{}px".format(imgheight+yoff))
-    # Apparently, setting width, height here doesn't work:
-    dwg = svgwrite.Drawing(svgfilename, profile='tiny') #, **size)      # size can apparently not be specified here
+    # Apparently, setting width, height (using **size) cannot be done on instantiation:
+    dwg = svgwrite.Drawing(svgfilename, profile='tiny')
     dwg.attribs.update(size)
     g1 = dwg.add(dwg.g(id='Gel'))   # elements group with gel file
 
-    ### Add png image data to svg drawing object: ###
+    # Add png image data to svg drawing object:
+
     # xlink:href is first argument 'href'.
     # width="100%" height="100%" or  width="524" height="437" ?
     # additional image attribs: overflow, width, height, transform
     if args.get('embed', True):
         filedata = open(pngfile_actual, 'rb').read()
         # when you DECODE, the length of the base64 encoded data should be a multiple of 4.
-        #print "len(filedata):", len(filedata)
-        datab64 = base64.encodestring(filedata)
+        datab64 = base64.encodebytes(filedata)
         # See http://www.askapache.com/online-tools/base64-image-converter/ for info:
-        mimebyext = {'.jpg' : 'image/jpeg',
+        mimebyext = {'.jpg': 'image/jpeg',
                      '.jpeg': 'image/jpeg',
-                     '.png' : 'image/png'}
+                     '.png': 'image/png'}
         mimetype = mimebyext[pngext]
         logger.debug("Embedding data from %s into svg file.", pngfile_actual)
         imghref = "data:"+mimetype+";base64,"+datab64.decode()
@@ -340,13 +317,12 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yaml
     img = g1.add(dwg.image(imghref, width=imgwidth, height=imgheight))  # Using size in percentage doesn't work.
     img.translate(tx=0, ty=yoff)
 
-    ### Add annotations to svg drawing object: ###
+    # Add annotations to svg drawing object:
     g2 = dwg.add(dwg.g(id='Annotations'))   # Make annotations group
 
-    Nlanes = len(laneannotations)
     # Consider deprechating xspacing argument; I only ever use xmargin.
     # Number of spaces is 1 less than number of lanes.
-    xspacing = (imgwidth-sum(xmargin))/(Nlanes-1) if not args.get('xspacing') else args['xspacing']
+    xspacing = (imgwidth-sum(xmargin))/(len(laneannotations)-1) if not args.get('xspacing') else args['xspacing']
 
     logger.debug("xmargin: %s", xmargin)
     logger.debug("xspacing: %s", xspacing)
@@ -358,22 +334,15 @@ def makeSVG(gelfile, args=None, annotationsfile=None, laneannotations=None, yaml
             if args[argkey]:
                 text.attribs[att] = args[argkey]
         text.translate(tx=xmargin[0]+xspacing*idx, ty=yoff-ypad)
-        text.rotate(-args['textrotation']) # rotate(self, angle, center=None)
+        text.rotate(-args['textrotation'])  # Negative rotation, because that is the most intuitive.
 
     dwg.save()
     logger.info("Annotated gel saved to file: %s", svgfilename)
 
     return dwg, svgfilename
 
-    # rotate(<degree> <point>)
-    # e.g. "rotate(30 10,22)" to rotate 30 degree clockwise around the point (10,22).
-    # translate(x, y)  # x pixels to the right, y pixels down.
-    # translate(10 100)
-    # Note that the order of transformations matter.
-    #
 
-
-def ensurePNG(gelfile, args, yamlfile=None, lanefile=None):
+def ensure_png_exists(gelfile, args, yamlfile=None, lanefile=None):
     """Ensures that we have a png file to overlay our annotations on.
 
     If args['gelfile'] already is a png, then just skip.
@@ -413,11 +382,11 @@ def ensurePNG(gelfile, args, yamlfile=None, lanefile=None):
     if gelext.lower() == '.gel':
         # convert gel to png:
         args.setdefault('convertgelto', 'png')
-        logger.info("ensurePNG: Converting %s to png...", gelfile)
+        logger.info("ensure_png_exists: Converting %s to png...", gelfile)
         convert(gelfile, args, yamlfile, lanefile)   # convert will update args['pngfile']
     elif gelext.lower() in ('.tif', '.tiff'):
         # convert tif to png:
-        if args.get('linearize') is None: # set sane default
+        if args.get('linearize') is None:  # set sane default
             args['linearize'] = False
         args.setdefault('convertgelto', 'png')
         convert(gelfile, args, yamlfile, lanefile)
@@ -438,7 +407,7 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     Arguments:
         args: dict with standard arguments.
         gelfile: main gelfile.
-        annotationfile: file with annotations. Is this actual or relative to gelfile? - Relative.
+        annotationsfile: file with annotations. Is this actual or relative to gelfile? - Relative.
         yamlfile: file with options in yaml format. Is this actual or relative to gelfile? - Relative.
 
     Returns:
@@ -455,7 +424,7 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     if isinstance(args, argparse.Namespace):
         args = args.__dict__
     if yamlfile is None:
-        yamlfile = args.get('yamlfile') # Do not update.
+        yamlfile = args.get('yamlfile')  # Do not update.
     if annotationsfile is None:
         annotationsfile = args.get('annotationsfile')
     if yamlfile:
@@ -485,15 +454,16 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     args['gelfile_last_used'] = gelfile
 
     # args = mergeargs(argsns=args, argsdict=yamlsettings, excludeNone=True, precedence='argns')
-    logger.debug("Ensuring that we have a PNG file to annotate using ensurePNG(%s, ...). "
+    logger.debug("Ensuring that we have a PNG file to annotate using ensure_png_exists(%s, ...). "
                  "If a PNG file is not available, or if args['reusepng'] is false, "
                  "then a PNG file will be generated from the GEL file.", gelfile)
-    ensurePNG(gelfile, args, yamlfile=yamlfile, lanefile=annotationsfile)
+    ensure_png_exists(gelfile, args, yamlfile=yamlfile, lanefile=annotationsfile)
+    # Note: args is updated in-place. yamlfile and lanefile is only used to generate pngfilename.
 
     # MAKE SVG FILE WITH ANNOTATIONS: #
-    # annotationsfile is relative to gelfile; makeSVG takes care of it.
-    logger.debug("Making annotated SVG file using makeSVG(%s, ...)", gelfile)
-    dwg, svgfilename = makeSVG(gelfile, args, annotationsfile=annotationsfile, yamlfile=yamlfile)
+    # annotationsfile is relative to gelfile; make_svg takes care of it.
+    logger.debug("Making annotated SVG file using make_svg(%s, ...)", gelfile)
+    dwg, svgfilename = make_svg(gelfile, args, annotationsfile=annotationsfile, yamlfile=yamlfile)
 
     # Convert SVG to PNG: #
     if args.get('svgtopng'):
@@ -510,13 +480,12 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     if args.get('openwebbrowser'):
         # On OS X we need to add "file://" in front of the file path for it to work
         open_path = "file://" + os.path.abspath(svgfilename)
-        print("Opening annotated svg file %s with default application for that file type." % open_path, flush=True)
+        print("Opening annotated svg file %s with default application for that file type." % open_path)
         logger.info("Opening annotated svg file %s", open_path)
         webbrowser.open(open_path)
         if svg2pngfn:
             open_path = "file://" + os.path.abspath(svg2pngfn)
-            print("Opening annotated PNG file %s (converted from svg file) with default application." % open_path,
-                  flush=True)
+            print("Opening annotated PNG file %s (converted from svg file) with default application." % open_path)
             logger.info("Opening annotated PNG file %s", open_path)
             webbrowser.open(open_path)
             # webbrowser.open will open with either default browser OR default application.
@@ -528,7 +497,7 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
     if args.get("remember_gelutils_version", True):
         args['gelutils_version'] = __version__
 
-    # Running ensurePNG and makeSVG can update args dict, e.g. with automatic dynamic range.
+    # Running ensure_png_exists and make_svg can update args dict, e.g. with automatic dynamic range.
     # if yamlfile and args.get('updateyaml', True):
     config_save_final_params = args.get('config_save_final_params', args.get('saveyamlto', True))
     if config_save_final_params:
@@ -553,7 +522,7 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
             # version=None, tags=None)
             try:
                 yaml.safe_dump(args, fd, default_flow_style=False)
-            except yaml.representer.RepresenterError as e:
+            except RepresenterError as e:
                 logger.warning("yaml.representer.RepresenterError: %s. args is: %s", e, args)
                 raise
     else:
@@ -570,30 +539,7 @@ if __name__ == '__main__':
 
     argns = parseargs()
     cmd_gelfile = argns.gelfile
-    #args = {}
-    #if argns.yamlfile:
-    #    try:
-    #        settings = yaml.load(open(argns.yamlfile))
-    #        print "Loading settings from file:", argns.yamlfile
-    #        args.update(settings)
-    #        #for key, value in settings.items():
-    #        #    setattr(argns, key, value)
-    #    except IOError as e:
-    #        print e
-    #        print "No existing yaml file", argns.yamlfile, " -- That's OK."
-    #args.update(argns.__dict)   # To get all arguments in the args dict
-    #args.update((k, v) for k, v in argns.__dict__.items() if v is not None)    # To remove None-value arguments.
-    #print argns.__dict__
-    #print args
 
-    ## If you want to go directly from a .GEL file, here is the spot:
-    # pass
-
-    #drawing = makeSVG(**args)
     drawing, svgfn, updatedargs = annotate_gel(cmd_gelfile, argns)
     if drawing:
-        print("Annotated svg saved as:", drawing.filename, flush=True)
-    #if argns.yamlfile:
-    #    with open(argns.yamlfile, 'wb') as fd:
-    #        yaml.dump(args, fd, default_flow_style=False)
-    #        print "Settings written to file:", argns.yamlfile
+        print("Annotated svg saved as:", drawing.filename)

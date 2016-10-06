@@ -14,75 +14,99 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-import Tkinter
-import tkFileDialog
-import Image
-import ImageTk
-import ImageFilter
-import ImageDraw
+
 import sys
 import os
-import signal
+# import signal
 import math
 import subprocess
 import time
+from PIL import ImageFilter
+from PIL import ImageDraw
+from PIL import Image
+try:
+    # import Tkinter as tkinter
+    from Tkinter import Tk, Label, Button, IntVar
+    from tkFileDialog import askopenfilename
+    # from Tkinter import Image
+    from Tkinter.ImageTk import PhotoImage
+except ImportError:
+    # python 3:
+    # import tkinter
+    from tkinter import Tk, Label, Button, IntVar
+    from tkinter.filedialog import askopenfilename
+    # from tkinter import Image
+    from tkinter import PhotoImage
 
-def _(s): return s  # TODO: i18n
-
-app = Tkinter.Tk()
-app.wm_title(_("CropGUI -- lossless cropping and rotation of jpeg files"))
-app.wm_iconname(_("CropGUI"))
-
-preview = Tkinter.Label(app)
-do_crop = Tkinter.Button(app, text="Crop")
-info = Tkinter.Label(app)
-preview.pack(side="bottom")
-do_crop.pack(side="left")
-info.pack(side="left")
-
-(   
+# Constants:
+(
     DRAG_NONE,
     DRAG_TL, DRAG_T, DRAG_TR,
     DRAG_L,  DRAG_C, DRAG_R,
     DRAG_BL, DRAG_B, DRAG_BR
 ) = range(10)
 
+
 def clamp(value, low, high):
-    if value < low: return low
-    if high < value: return high
+    if value < low:
+        return low
+    if high < value:
+        return high
     return value
 
+
 class DragManager(object):
-    def __init__(self, w, b=None, inf=None):
+    def __init__(self, app, w, b=None, inf=None):
         self.render_flag = 0
         self.l = w
-        if b: b.configure(command=self.done)
+        self.app = app
+        if b:
+            b.configure(command=self.done)
         self.inf = inf
+        self._image = None
+        self.tkimage = None
+        self.top = 0
+        self.left = 0
+        self.right = 0
+        self.bottom = 0
+        self.blurred = None
+        self.xor = None
+        self.x0 = None
+        self.y0 = None
         w.bind("<Button-1>", self.start)
         w.bind("<Double-Button-1>", self.start)
         w.bind("<Button1-Motion>", self.motion)
         w.bind("<ButtonRelease-1>", self.end)
-        dummy_image = Image.fromstring('RGB', (1,1), '\0\0\0')
-        self.dummy_tkimage = ImageTk.PhotoImage(dummy_image)
+        dummy_image = Image.frombytes('RGB', (1, 1), '\0\0\0')
+        self.dummy_tkimage = PhotoImage(dummy_image)
         self.state = DRAG_NONE
         self.round = 1
         self.image = None
         w.configure(image=self.dummy_tkimage)
-        self.v = Tkinter.IntVar(app)
+        self.v = IntVar(app)
 
-    def get_w(self): return self.image.size[0]
+    def get_w(self):
+        return self.image.size[0]
     w = property(get_w)
-    def get_h(self): return self.image.size[1]
+
+    def get_h(self):
+        return self.image.size[1]
     h = property(get_h)
 
     def set_image(self, image):
         if image is None:
-            if hasattr(self, 'left'): del self.left
-            if hasattr(self, 'right'): del self.right
-            if hasattr(self, 'bottom'): del self.bottom
-            if hasattr(self, 'blurred'): del self.blurred
-            if hasattr(self, 'xor'): del self.xor
-            if hasattr(self, 'tkimage'): del self.tkimage
+            if hasattr(self, 'left'):
+                del self.left
+            if hasattr(self, 'right'):
+                del self.right
+            if hasattr(self, 'bottom'):
+                del self.bottom
+            if hasattr(self, 'blurred'):
+                del self.blurred
+            if hasattr(self, 'xor'):
+                del self.xor
+            if hasattr(self, 'tkimage'):
+                del self.tkimage
             self._image = None
         else:
             self._image = image.copy()
@@ -96,30 +120,31 @@ class DragManager(object):
             self.xor = image.copy().point([x ^ 128 for x in range(256)] * mult)
         self.render()
 
-    def fix(self, a, b, lim, round):
-        a, b = sorted((b,a))
+    def fix(self, a, b, lim, round_to_int):
+        a, b = sorted((b, a))
         a = clamp(a, 0, lim)
         b = clamp(b, 0, lim)
-        if round: a = int(math.floor(a * 1. / self.round)*self.round)
+        if round_to_int:
+            a = int(math.floor(a * 1. / self.round)*self.round)
         return a, b
 
-    def set_crop(self, top, left, right, bottom, round=False):
-        self.top, self.bottom = self.fix(top, bottom, self.h, round)
-        self.left, self.right = self.fix(left, right, self.w, round)
+    def set_crop(self, top, left, right, bottom, round_to_int=False):
+        self.top, self.bottom = self.fix(top, bottom, self.h, round_to_int)
+        self.left, self.right = self.fix(left, right, self.w, round_to_int)
         self.render()
 
     def get_image(self):
         return self._image
-    image = property(get_image, set_image, None,
-                "change the target of this DragManager")
+    image = property(get_image, set_image, None, "change the target of this DragManager")
 
     def render(self):
         if not self.render_flag:
             self.render_flag = True
-            app.after_idle(self.do_render)
+            self.app.after_idle(self.do_render)
 
     def do_render(self):
-        if not self.render_flag: return
+        if not self.render_flag:
+            return
         self.render_flag = False
         if self.image is None:
             self.l.configure(image=self.dummy_tkimage)
@@ -134,11 +159,12 @@ class DragManager(object):
         dy = (b - t) / 4
 
         if self.inf:
-            self.inf.configure(text=
-                "Left:  %4d  Top:    %4d\n"
-                "Right: %4d  Bottom: %4d\n"
-                "Width: %4d  Height: %4d\n"
-                "State: %s" % (l, t, r, b, r-l, b-t, self.state),
+            self.inf.configure(
+                text=(
+                    "Left:  %4d  Top:    %4d\n"
+                    "Right: %4d  Bottom: %4d\n"
+                    "Width: %4d  Height: %4d\n"
+                    "State: %s") % (l, t, r, b, r-l, b-t, self.state),
                 font="fixed")
 
         mask = Image.new('1', self.image.size, 1)
@@ -155,11 +181,12 @@ class DragManager(object):
         draw.line([r-dx, b, r-dx, b-dy, r, b-dy], fill=0)
 
         image = Image.composite(image, self.xor, mask)
-        self.tkimage = ImageTk.PhotoImage(image)
+        self.tkimage = PhotoImage(image)
         self.l.configure(image=self.tkimage)
 
     def enter(self, event):
         pass
+
     def leave(self, event):
         pass
 
@@ -168,22 +195,32 @@ class DragManager(object):
         dx = (r - l) / 4
         dy = (b - t) / 4
 
-        if x < l: return DRAG_NONE
-        if x > r: return DRAG_NONE
-        if y < t: return DRAG_NONE
-        if y > b: return DRAG_NONE
+        if x < l:
+            return DRAG_NONE
+        if x > r:
+            return DRAG_NONE
+        if y < t:
+            return DRAG_NONE
+        if y > b:
+            return DRAG_NONE
 
         if x < l+dx:
-            if y < t+dy: return DRAG_TL
-            if y < b-dy: return DRAG_L
+            if y < t+dy:
+                return DRAG_TL
+            if y < b-dy:
+                return DRAG_L
             return DRAG_BL
         if x < r-dx:
-            if y < t+dy: return DRAG_T
-            if y < b-dy: return DRAG_C
+            if y < t+dy:
+                return DRAG_T
+            if y < b-dy:
+                return DRAG_C
             return DRAG_B
         else:
-            if y < t+dy: return DRAG_TR
-            if y < b-dy: return DRAG_R
+            if y < t+dy:
+                return DRAG_TR
+            if y < b-dy:
+                return DRAG_R
             return DRAG_BR
 
     def start(self, event):
@@ -192,8 +229,10 @@ class DragManager(object):
         self.state = self.classify(event.x, event.y)
 
     def motion(self, event):
-        dx = event.x - self.x0; self.x0 = event.x
-        dy = event.y - self.y0; self.y0 = event.y
+        dx = event.x - self.x0
+        self.x0 = event.x
+        dy = event.y - self.y0
+        self.y0 = event.y
         new_top, new_left, new_right, new_bottom = \
             self.top, self.left, self.right, self.bottom
         if self.state == DRAG_C:
@@ -236,74 +275,98 @@ class DragManager(object):
         self.done()
 
     def wait(self):
-        app.wait_variable(self.v)
+        self.app.wait_variable(self.v)
         value = self.v.get()
-        if value == -1: raise SystemExit
+        if value == -1:
+            raise SystemExit
         return value
 
 
-max_h = app.winfo_screenheight() - 64 - 32
-max_w = app.winfo_screenwidth() - 64
+def test():
 
-drag = DragManager(preview, do_crop, info)
-app.wm_protocol('WM_DELETE_WINDOW', drag.close)
+    app = Tk()
+    app.wm_title("CropGUI -- lossless cropping and rotation of jpeg files")
+    app.wm_iconname("CropGUI")
 
-def image_names():
-    if len(sys.argv) > 1:
-        for i in sys.argv[1:]: yield i
-    else:
-        while 1:
-            names = tkFileDialog.askopenfilenames(master=app,
-                defaultextension=".jpg", multiple=1, parent=app,
-                filetypes=(
-                    (_("JPEG Image Files"), ".jpg .JPG .jpeg .JPEG"),
-                    (_("All files"), "*"),
-                ),
-                title=_("Select images to crop"))
-            if not names: break
-            for name in names: yield name
+    preview = Label(app)
+    do_crop = Button(app, text="Crop")
+    info = Label(app)
+    preview.pack(side="bottom")
+    do_crop.pack(side="left")
+    info.pack(side="left")
 
-pids = set()
-def reap():
-    global pids
-    pids = set(p for p in pids if p.poll() is None)
+    max_h = app.winfo_screenheight() - 64 - 32
+    max_w = app.winfo_screenwidth() - 64
 
-for image_name in image_names():
-    i = Image.open(image_name)
-    iw, ih = i.size
-    scale=1
-    while iw > max_w or ih > max_h:
-        iw /= 2
-        ih /= 2
-        scale *= 2
-    i.thumbnail((iw, ih))
-    drag.image = i
-    drag.round = max(1, 8/scale)
-    if not drag.wait(): continue # user hit "next" (tba) without cropping
-    
-    base, ext = os.path.splitext(image_name)
-    t, l, r, b = drag.top, drag.left, drag.right, drag.bottom
-    t *= scale
-    l *= scale
-    r *= scale
-    b *= scale
-    cropspec = "%dx%d+%d+%d" % (r-l, b-t, l, t)
-    target = base + "-crop" + ext
-    target = open(target, "wb")
-    pids.add(subprocess.Popen(
-        ['jpegtran','-optimize','-progressive','-crop',cropspec,image_name],
-        stdout=target))
-    target.close()
+    drag = DragManager(app, preview, do_crop, info)
+    app.wm_protocol('WM_DELETE_WINDOW', drag.close)
 
-while pids:
-    reap()
-    sys.stdout.write("Waiting for %d children to exit.   \r" % len(pids))
-    sys.stdout.flush()
-    time.sleep(.1)
-sys.stdout.write(" "*79 + "\r")
+    def image_names():
+        if len(sys.argv) > 1:
+            for i in sys.argv[1:]:
+                yield i
+        else:
+            while 1:
+                names = askopenfilename(
+                    master=app,
+                    defaultextension=".jpg", multiple=1, parent=app,
+                    filetypes=(
+                        ("JPEG Image Files", ".jpg .JPG .jpeg .JPEG"),
+                        ("All files", "*"),
+                    ),
+                    title="Select images to crop")
+                if not names:
+                    break
+                for name in names:
+                    yield name
+
+    pids = set()
+
+    def reap():
+        global pids
+        pids = set(p for p in pids if p.poll() is None)
+
+    for image_name in image_names():
+        img = Image.open(image_name)
+        iw, ih = img.size
+        scale = 1
+        while iw > max_w or ih > max_h:
+            iw /= 2
+            ih /= 2
+            scale *= 2
+        img.thumbnail((iw, ih))
+        drag.image = img
+        drag.round = max(1, 8/scale)
+        if not drag.wait():
+            continue  # user hit "next" (tba) without cropping
+
+        base, ext = os.path.splitext(image_name)
+        t, l, r, b = drag.top, drag.left, drag.right, drag.bottom
+        t *= scale
+        l *= scale
+        r *= scale
+        b *= scale
+        cropspec = "%dx%d+%d+%d" % (r-l, b-t, l, t)
+        target = base + "-crop" + ext
+        target = open(target, "wb")
+        pids.add(subprocess.Popen(
+            ['jpegtran', '-optimize', '-progressive', '-crop', cropspec, image_name],
+            stdout=target))
+        target.close()
+
+    while pids:
+        reap()
+        sys.stdout.write("Waiting for %d children to exit.   \r" % len(pids))
+        sys.stdout.flush()
+        time.sleep(.1)
+    sys.stdout.write(" "*79 + "\r")
+
 
 # 1. open image
 # 2. choose 1/2, 1/4, 1/8 scaling so that resized image fits onscreen
 # 3. load image at requested size
 # 4. run GUI to get desired crop settings
 # 5. write output file
+
+if __name__ == '__main__':
+    test()

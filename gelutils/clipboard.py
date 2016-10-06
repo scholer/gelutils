@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-##    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
-##
-##    This program is free software: you can redistribute it and/or modify
-##    it under the terms of the GNU General Public License as published by
-##    the Free Software Foundation, either version 3 of the License, or
-##    (at your option) any later version.
-##
-##    This program is distributed in the hope that it will be useful,
-##    but WITHOUT ANY WARRANTY; without even the implied warranty of
-##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##    GNU General Public License for more details.
-##
-##    You should have received a copy of the GNU General Public License
-##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 
@@ -38,7 +39,7 @@ app.processEvents() # Is required to avoid hanging...
 
 """
 from __future__ import print_function
-from six import string_types # python 2*3 compatability
+from six import string_types  # python 2*3 compatability
 import os
 import sys
 
@@ -47,35 +48,35 @@ try:
 except ImportError:
     from tkinter import Tk
 
-## Clipboard in GTK:
+# Clipboard in GTK:
 try:
     import pygtk
     pygtk.require('2.0')
-    import gtk # gtk provides clipboard access:
+    import gtk  # gtk provides clipboard access:
     # clipboard = gtk.clipboard_get()
     # text = clipboard.wait_for_text()
 except ImportError:
     # Will happen on Windows/Mac:
     pass
 
-## win32clipboard:
+# win32clipboard:
 try:
     import win32clipboard
-    #print "win32clipboard is available."
+    # print "win32clipboard is available."
 except ImportError:
     pass
 
-## pyperclip:
+# pyperclip:
 try:
     import pyperclip
-    #print "pyperclip is available."
+    # print "pyperclip is available."
 except ImportError:
     # check for import with
     # globals(), locals(), vars() or sys.modules.keys()
-    #>>> if 'pyperclip' in sys.modules.keys()
+    # >>> if 'pyperclip' in sys.modules.keys()
     pass
 
-## xerox:
+# xerox:
 try:
     import xerox
 except ImportError:
@@ -89,7 +90,7 @@ def set_clipboard(text, datatype=None):
 
     Args:
         text: A string with text to copy to the clipboard.
-        datatype currently not used. Will generally assumed to be unicode text.
+        datatype: currently not used. Will generally assumed to be unicode text.
 
     Examples:
         >>> set_clipboard("hello there")
@@ -112,16 +113,17 @@ def set_clipboard(text, datatype=None):
         # SetClipboardData Usage:
         # >>> wcb.SetClipboardData(<type>, <data>)
         # wcb.SetClipboardData(wcb.CF_TEXT, text.encode('utf-8')) # doesn't work
-        wcb.SetClipboardData(wcb.CF_UNICODETEXT, unicode(text)) # works
-        wcb.CloseClipboard() # User cannot use clipboard until it is closed.
+        wcb.SetClipboardData(wcb.CF_UNICODETEXT, text)  # works
+        wcb.CloseClipboard()  # User cannot use clipboard until it is closed.
     else:
         # If code is run from within e.g. an ipython qt console, invoking Tk root's mainloop() may hang the console.
         tkroot = Tk()
         # r.withdraw()
         tkroot.clipboard_clear()
         tkroot.clipboard_append(text)
-        tkroot.mainloop() # the Tk root's mainloop() must be invoked.
+        tkroot.mainloop()  # the Tk root's mainloop() must be invoked.
         tkroot.destroy()
+
 
 def get_clipboard():
     """Get content of OS clipboard.
@@ -151,8 +153,9 @@ def get_clipboard():
         except TypeError as err:
             print(err)
             print("No text in clipboard.")
-        wcb.CloseClipboard() # User cannot use clipboard until it is closed.
-        return data
+        else:
+            wcb.CloseClipboard()  # User cannot use clipboard until it is closed.
+            return data
     else:
         print("locals.keys() is: ", sys.modules.keys().keys())
         print("falling back to Tk...")
@@ -168,13 +171,14 @@ def get_clipboard():
 copy = set_clipboard
 paste = get_clipboard
 
-def addToClipBoard_windows(text):
+
+def add_to_clipboard_windows(text):
     """
     This uses the external 'clip' program to add content to the windows clipboard by invoking:
-        >>> echo <text> | clip
+        $ > echo <text> | clip
 
     Example:
-        >>> addToClipBoard('penny lane')
+        >>> add_to_clipboard_windows('penny lane')
 
     """
     command = 'echo ' + text.strip() + '| clip'
@@ -197,7 +201,7 @@ def copy_file_to_clipboard(file):
 
         The same effect can be obtained by giving the filepath directly:
         >>> copy_file_to_clipboard('/path/to/a/textfile.txt')
-        >>> content = get_clipboard() # returns content of /path/to/a/textfile.txt
+        >>> content = get_clipboard()  # returns content of /path/to/a/textfile.txt
     """
     if isinstance(file, string_types):
         with open(file) as fd:

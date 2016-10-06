@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-##    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
-##
-##    This program is free software: you can redistribute it and/or modify
-##    it under the terms of the GNU General Public License as published by
-##    the Free Software Foundation, either version 3 of the License, or
-##    (at your option) any later version.
-##
-##    This program is distributed in the hope that it will be useful,
-##    but WITHOUT ANY WARRANTY; without even the implied warranty of
-##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##    GNU General Public License for more details.
-##
-##    You should have received a copy of the GNU General Public License
-##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # pylint: disable=W0142,C0103
 
@@ -36,7 +36,7 @@ Using PIL?
 * http://stackoverflow.com/questions/3600164/read-svg-file-with-python-pil
 * Need to use cairo.
 ** EDIT: In fact, you could use PIL, if you instead of creating an SVG just creates a PostScript document:
-    >>> from PIL import PSDraw
+    ```from PIL import PSDraw```
     See https://pillow.readthedocs.org/handbook/tutorial.html#postscript-printing
 
 So... Trying to get it working on Windows...
@@ -89,21 +89,19 @@ Of course, on Linux getting cairo to work should not be as much of an issue...
 """
 
 from __future__ import print_function, absolute_import
-from six import string_types # python 2*3 compatability
+from six import string_types  # python 2*3 compatability
 import os
 import sys
 from subprocess import Popen, PIPE, STDOUT
-CLOSE_FDS = not sys.platform.startswith('win')
-
-#import PIL
-
 import logging
-logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
-logger = logging.getLogger(__name__)
 
 # Local imports:
 from .geltransformer import convert
 
+logging.addLevelName(4, 'SPAM')  # Can be invoked as much as you'd like.
+logger = logging.getLogger(__name__)
+
+CLOSE_FDS = not sys.platform.startswith('win')
 
 
 def gel2png(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None, **kwargs):
@@ -113,19 +111,19 @@ def gel2png(filepath, linearize=True, dynamicrange=None, crop=None, rotate=None,
     and saves as .png.
     Returns filename of the saved png file.
     """
-    #gelbasename, gelext = os.path.split(filepath)
+    # gelbasename, gelext = os.path.split(filepath)
     img, args = convert(filepath, None,
                         linearize=linearize, dynamicrange=dynamicrange, crop=crop, rotate=rotate,
-                        **kwargs) # pylint: disable=W0612
+                        **kwargs)  # pylint: disable=W0612
     return args['pngfile']
 
 
-def svg2png(svgfilepath, target='png', tool=None, removeExt=True, **kwargs):
+def svg2png(svgfilepath, target='png', tool=None, remove_ext=True, **kwargs):
     """create a png file by converting a svg file.
 
     Converts svgfilepath file to target format.
     If target is just an extension, it is appended to svgfilepath.
-    If removeExt is set to false, will save output as path/to/inputfile.svg.png
+    If remove_ext is set to false, will save output as path/to/inputfile.svg.png
     instead of path/to/inputfile.png .
 
     <tool> can be either 'cairo' or 'imagemagick'.
@@ -158,9 +156,9 @@ def svg2png(svgfilepath, target='png', tool=None, removeExt=True, **kwargs):
     for key in tool:
         convert_method = methods[key]
         try:
-            #outputfn = convert_method(svgfilepath, target, kwargs)
+            # outputfn = convert_method(svgfilepath, target, kwargs)
             logger.debug("Trying to convert '%s' using method %s", svgfilename, convert_method)
-            outputfn = convert_method(svgfilename, target, kwargs) # currently using filename, not path.
+            outputfn = convert_method(svgfilename, target, kwargs)  # currently using filename, not path.
             outputfn = os.path.abspath(outputfn)
             logger.debug("--conversion succeeded, output file: '%s'", outputfn)
             break
@@ -170,7 +168,8 @@ def svg2png(svgfilepath, target='png', tool=None, removeExt=True, **kwargs):
         os.chdir(initialcwd)
     return outputfn
 
-def target2outputfilepath(inputfilepath, target, removeExt=True):
+
+def target2outputfilepath(inputfilepath, target, remove_ext=True):
     """convert input file to target format.
 
     Converts a generic target param, which can be either an actual filepath,
@@ -187,7 +186,7 @@ def target2outputfilepath(inputfilepath, target, removeExt=True):
         if not target[0] == '.':
             # Ensure that target (file ext) starts with '.', e.g. '.png':
             target = '.' + target
-        if removeExt:
+        if remove_ext:
             # If input is 'myfile.bmp' and target is '.png', make outputfilepath 'myfile.png':
             outputfilepath = os.path.splitext(inputfilepath)[0] + target
         else:
@@ -227,10 +226,11 @@ def debug_cairo():
 
     """
     # Test for cairocffi:
-    import cffi
+    # import cffi
     import ctypes.util
-    import os, sys
-    from fnmatch import fnmatch
+    import os
+    import sys
+    # from fnmatch import fnmatch
     try:
         import cairocffi
         print("cairocffi library available (version %s / VERSION %s / cairo version: %s)" %
@@ -264,11 +264,11 @@ def debug_cairo():
         if not suitable_lib_found:
             print("\nManually looking for cairo .dll/.so for cffi binding:")
             # TODO: You should add implicit paths, e.g. /usr/local/lib/ etc, on unix/OSX
-            paths = [os.path.abspath(pth) for pth in sys.path if os.path.isdir(pth)] # Nope, not sys.path, but PATH
-            paths = [os.path.abspath(pth) for pth in os.environ['PATH'].split(os.pathsep) if os.path.isdir(pth)] # path or PATH env var?
+            paths = [os.path.abspath(pth) for pth in sys.path if os.path.isdir(pth)]  # Nope, not sys.path, but PATH
+            paths = [os.path.abspath(pth) for pth in os.environ['PATH'].split(os.pathsep) if os.path.isdir(pth)]
             print("\n".join("%s <- %s" % (p, elem)
                             for p in paths for elem in os.listdir(p)
-                            #if any(fnmatch(elem, "*%s*.dll" % alt) for alt in libname_alternatives)))
+                            # if any(fnmatch(elem, "*%s*.dll" % alt) for alt in libname_alternatives)))
                             if any(elem in ("%s.dll" % alt, "%s.so" % alt) for alt in libname_alternatives)))
     try:
         import cairo
@@ -302,7 +302,7 @@ def cairo_available():
     return available
 
 
-def cairo_convert(inputfilepath, target='png', removeExt=True, **kwargs):   # I do not use kwargs, pylint: disable=W0613
+def cairo_convert(inputfilepath, target='png', remove_ext=True, **kwargs):  # I do not use kwargs, pylint: disable=W0613
     """Use cairo to convert a file to the given target format.
 
     Convert with cairo library.
@@ -330,20 +330,22 @@ def cairo_convert(inputfilepath, target='png', removeExt=True, **kwargs):   # I 
     if ext not in ('.png', '.pdf', '.ps'):
         raise ValueError("Target '%s' not recognized." % target)
 
-    converters = {'.png': svg2png,
-                  '.pdf': svg2pdf,
-                  '.ps' : svg2ps
-                 }
+    converters = {
+        '.png': svg2png,
+        '.pdf': svg2pdf,
+        '.ps': svg2ps
+    }
     convert_method = converters[ext]
     logger.info("Converting %s to %s using method %s", inputfilepath,
-                 outputfilepath, convert_method)
+                outputfilepath, convert_method)
     ret = convert_method(url=inputfilepath, write_to=outputfilepath)
     logger.info("%s(url=%s, write_to=%s) returned '%s'",
-                 convert_method, inputfilepath, outputfilepath, ret)
+                convert_method, inputfilepath, outputfilepath, ret)
     return outputfilepath
 
 
-### ImageMagick functions:  ###
+# ImageMagick functions:
+# ----------------------
 
 def imagemagick_available():
     """Probe whether ImageMagick command line tool is available on the current system."""
@@ -360,7 +362,9 @@ def imagemagick_available():
         logger.warn("ImageMagick NOT FOUND: ")
         return False
 
-def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', scale='', resize='', crop='', cmdlineargs=''):  # pylint: disable=R0912,R0913
+
+def imagemagick_convert(inputfilepath, target='png', remove_ext=True,
+                        rotate='', scale='', resize='', crop='', cmdlineargs=''):  # pylint: disable=R0912,R0913
     """Convert inputfilepath to target using imagemagick.
 
     <target> can be either a filetype, e.g. 'png' or '.png',
@@ -382,11 +386,11 @@ def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', 
     * pypi.python.org/pypi/PythonMagickWand/
     * pypi.python.org/pypi?%3Aaction=search&term=imagemagick
     """
-    ## Try to use ImageMagick
-    ## From eea.converter project, file converter/convert.py
+    # Try to use ImageMagick
+    # From eea.converter project, file converter/convert.py
     # The terms 'basename' and 'filename' are somewhat ambiguous:
     # - filename can either just 'filename.ext', or it can be the full filepath '/path/to/filename.txt'
-    # - basename can also mean 'filename.ext' (python), or it can mean just 'filename' without extension (wikipedia, ruby)
+    # - basename can mean 'filename.ext' (python), or it can mean just 'filename' without extension (wikipedia, ruby)
     # I adopt the following convension:
     # - FILEPATH is the only term used for the full '/path/to/file.ext' (both absolute and relative).
     # - FILENAME and BASENAME both mean 'file.ext' and nothing else.
@@ -396,11 +400,11 @@ def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', 
     # - If you need to refer to '/path/to/file' (full filepath without extension)
     #   you should always make that very explicit and always use os.path.splitext(inputfilepath)[0]
 
-    #dirpath = os.path.dirname(inputfilepath)
-    #filename = os.path.basename(inputfilepath)
-    #filenamestem, filenameext = os.path.splitext(filename)
+    # dirpath = os.path.dirname(inputfilepath)
+    # filename = os.path.basename(inputfilepath)
+    # filenamestem, filenameext = os.path.splitext(filename)
     outputfilepath = target2outputfilepath(inputfilepath, target)
-    ## Check that ImageMagick is available:
+    # Check that ImageMagick is available:
     if not imagemagick_available():
         raise RuntimeError('ImageMagick is not installed. Aborting...')
 
@@ -433,9 +437,8 @@ def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', 
         infile=inputfilepath, rotate=rotate, resize=resize, scale=scale, crop=crop,
         cmdargs=cmdlineargs, outfile=outputfilepath
     )
-    process = Popen(cmd, shell=True,
-                        stdin=PIPE, stdout=PIPE, stderr=STDOUT,
-                        close_fds=CLOSE_FDS)
+    process = Popen(
+        cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=CLOSE_FDS)
     res = process.stdout.read()
     if res:
         logger.info("ImageMagick command produced stdout messages: %s", res)
@@ -443,12 +446,10 @@ def imagemagick_convert(inputfilepath, target='png', removeExt=True, rotate='', 
     return outputfilepath
 
 
-
-
 if __name__ == '__main__':
 
-    #from argutils import parseargs
-    #argns = parseargs('imageconverter')
+    # from argutils import parseargs
+    # argns = parseargs('imageconverter')
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument('function')
@@ -458,7 +459,7 @@ if __name__ == '__main__':
 
     argns = ap.parse_args()
 
-    functions = {'svg2png' : svg2png,
+    functions = {'svg2png': svg2png,
                  'convertgel': gel2png}
 
     for input_fn in argns.inputfiles:

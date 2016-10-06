@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-##    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
-##
-##    This program is free software: you can redistribute it and/or modify
-##    it under the terms of the GNU General Public License as published by
-##    the Free Software Foundation, either version 3 of the License, or
-##    (at your option) any later version.
-##
-##    This program is distributed in the hope that it will be useful,
-##    but WITHOUT ANY WARRANTY; without even the implied warranty of
-##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##    GNU General Public License for more details.
-##
-##    You should have received a copy of the GNU General Public License
-##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 # pylint: disable=W0142,C0103
 
 """
@@ -22,10 +24,7 @@ Common module for parsing and handling arguments.
 
 
 """
-import os
 import argparse
-
-from .utils import mergedicts
 
 
 def make_parser(prog='gelannotator', defaults=None,
@@ -262,12 +261,12 @@ def make_parser(prog='gelannotator', defaults=None,
         # TODO, edit: Some of these are for the text, some are for the image, but they are all somewhat related
         # TODO, edit: in that all relates to the position of text and image relative to each other.
         # TODO, edit: so maybe prefix with pos_img_*/pos_text_* or canvas_image_*/canvas_text_* ?
-        ap.add_argument('--yoffset', metavar="int-or-fraction",
-                        help="Y offset (how far down the gel image should be).") #, default=100
-        ap.add_argument('--ypadding', metavar="int-or-fraction",
-                        help="Vertical space between gel image and annotations.") #, default=100
-        ap.add_argument('--xmargin', nargs=2, metavar=("left", "right"),
-                        help="Margin to the right and left of lane annotations to the outer edge of GEL image.") # , default=(30, 40)
+        ap.add_argument('--yoffset', metavar="int-or-fraction",  # , default=100
+                        help="Y offset (how far down the gel image should be).")
+        ap.add_argument('--ypadding', metavar="int-or-fraction",  # , default=100
+                        help="Vertical space between gel image and annotations.")
+        ap.add_argument('--xmargin', nargs=2, metavar=("left", "right"),  # , default=(30, 40)
+                        help="Margin to the right and left of lane annotations to the outer edge of GEL image.")
         ap.add_argument('--xspacing', metavar="int-or-fraction",
                         help="Force a certain x spacing between lanes.")
         ap.add_argument('--xtraspaceright', metavar="int-or-fraction",
@@ -338,12 +337,12 @@ def make_parser(prog='gelannotator', defaults=None,
     return ap
 
 
-def parseargs(prog='gelannotator', argv=None, defaults=None):#, partial=False, mockstring=None):
+def parseargs(prog='gelannotator', argv=None, defaults=None):  # , partial=False, mockstring=None):
     """
     Perform parsing.
     """
     ap = make_parser(prog=prog, defaults=defaults)
-    #if partial:
+    # if partial:
     #    # parse_known_args will not raise errors if sys.argv arguments not recognized by this parser.
     #    # This is useful if you have several parts of the program parsing the arguments.
     #    return ap.parse_known_args()
@@ -352,8 +351,6 @@ def parseargs(prog='gelannotator', argv=None, defaults=None):#, partial=False, m
         if argns.dynamicrange[0] == 'auto':
             argns.dynamicrange = 'auto'
     return argns
-
-
 
 
 def argsnstodict(argsns):

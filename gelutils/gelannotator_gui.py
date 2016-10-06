@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-##    Copyright 2014-2016 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
-##
-##    This program is free software: you can redistribute it and/or modify
-##    it under the terms of the GNU General Public License as published by
-##    the Free Software Foundation, either version 3 of the License, or
-##    (at your option) any later version.
-##
-##    This program is distributed in the hope that it will be useful,
-##    but WITHOUT ANY WARRANTY; without even the implied warranty of
-##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##    GNU General Public License for more details.
-##
-##    You should have received a copy of the GNU General Public License
-##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#    Copyright 2014-2016 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 # pylint: disable=W0142,C0103
 
 """
@@ -40,33 +42,27 @@ import yaml
 import webbrowser
 from datetime import datetime
 from six import string_types
-if sys.version_info < (3, 3):
-    # flush keyword only supported for python 3.3+, so create custom print function:
-    import builtins
-    def print(*args, **kwargs):
-        kwargs.pop('flush', None) # remove "flush" keyword argument
-        builtins.print(*args, **kwargs)
-try:
-    from tkFileDialog import askopenfilename
-except ImportError:
-    # python 3:
-    from tkinter.filedialog import askopenfilename      # pylint: disable=F0401
 import logging
-logging.addLevelName(4, 'SPAM') # Can be invoked as much as you'd like.
-logger = logging.getLogger(__name__)
 
 # Local imports:
 # Note: doing local imports means you cannot execute ```python gelannotator_gui.py``` directly any more,
 # you have to either invoke it from a bootstrap script, or do ```python -m gelutils.gelannotator_gui```.
 from .gelannotator import annotate_gel, find_yamlfilepath, find_annotationsfilepath
-from .argutils import parseargs, make_parser, mergedicts
-from .utils import init_logging, getrelfilepath, getabsfilepath, printdict
+from .argutils import parseargs, make_parser
+from .utils import init_logging, getrelfilepath, getabsfilepath, printdict, mergedicts
 from .tkui.gelannotator_tkroot import GelAnnotatorTkRoot
-if sys.version_info[0] < 3:
-    from .utils import open_utf  # unicode writer. # TODO: Is this only needed for python2?
-    open = open_utf     # overwrite built-in, yes that's the point: pylint: disable=W0622
 from .config import DEFAULT_CONFIG_FILEPATHS, gel_exts, img_exts, cfg_exts
-from .config import filename_is_yaml, yaml_get
+from .config import filename_is_yaml
+
+# flush keyword only supported for python 3.3+, so create custom print function:
+# Edit: Instead of modifying print to accept flush keyword, just make sure to use line-buffering for file objects
+try:
+    from tkFileDialog import askopenfilename
+except ImportError:
+    # python 3:
+    from tkinter.filedialog import askopenfilename      # pylint: disable=F0401
+logging.addLevelName(4, 'SPAM')  # Can be invoked as much as you'd like.
+logger = logging.getLogger(__name__)
 
 # Configure global GelAnnotator app defaults:
 CONFIG_APP_DEFAULTS = {
@@ -137,6 +133,8 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         self.Root.bind_all("<Control-Return>", self.annotate)
         self.Root.AnnotationsText.bind("<Control-Return>", self.annotate)
         self.Root.YamlText.bind("<Control-Return>", self.annotate)
+        self.helpfile = os.path.join(os.path.abspath(os.path.dirname(
+            os.path.realpath(__file__))), '..', 'docs', 'GelAnnotator_GUI_help.md')
 
         # We generally do not want gelfile to be in args after this point:
         if primary_file is None:
@@ -166,7 +164,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         if primary_file:
             # self.reset_aux_files()
             self.set_primary_file(primary_file)
-        else: # if not self.get_gelfilepath():
+        else:  # if not self.get_gelfilepath():
             tkroot.after_idle(self.browse_for_primary_file)
 
     def set_primary_file(self, file):
@@ -188,7 +186,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
 
         logger.info("Resetting UI using primary file: %s", self._primary_file)
         if not self._primary_file:
-            print("Error: Primary file not set, cannot continue.", flush=True)
+            print("Error: Primary file not set, cannot continue.")
             logger.error("Error: Primary file not set, cannot continue.")
             return
         basedir = os.path.dirname(os.path.abspath(self._primary_file))
@@ -330,7 +328,6 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
                 logger.debug("loading yaml file: %s", filepath)
         except IOError:
             logger.debug("Could not find/load yaml file %s", filepath)
-            yamlconfig = {}
         else:
             logger.debug("yamlconfig loaded from %s: %s", filepath, yamlconfig)
             if yamlconfig:  # If loading empty file, the result may be None.
@@ -489,7 +486,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         # gelfilepath = os.path.realpath(gelfilepath)
         # self.set_gelfilepath(gelfilepath)
         logger.info("User selected gel file: %s", filename)
-        print("Gel file selected:", filename, flush=True)
+        print("Gel file selected:", filename)
         if filename:
             logger.debug("Setting gelfile to: %s", filename)
             logger.debug("os.getcwd(): %s", os.getcwd())
@@ -521,7 +518,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             return
         gelfile = self.get_gelfilepath()
         filename = getrelfilepath(gelfile, filename)
-        print("Yaml file selected:", filename, flush=True)
+        print("Yaml file selected:", filename)
         logger.debug("Setting yamlfile to: %s", filename)
         logger.debug("os.getcwd(): %s", os.getcwd())
         self.set_yamlfilepath(filename)
@@ -564,11 +561,9 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         # event not used, method could be function pylint: disable=W0613,R0201
         # but, it is easier to bind buttons if we can pass App instance when initializing GelAnnotatorTkRoot
         """
-        helpfile = os.path.join(os.path.abspath(os.path.dirname(
-            os.path.realpath(__file__))), '..', 'docs', 'GelAnnotator_GUI_help.md')
-        logger.debug("Showing help file: %s (event=%s)", helpfile, event)
+        logger.debug("Showing help file: %s (event=%s)", self.helpfile, event)
         # OS X needs "file://" to open files with webbrowser module:
-        webbrowser.open("file://" + helpfile)
+        webbrowser.open("file://" + self.helpfile)
 
     def update_status(self, newstatus):
         if len(newstatus) > 110:
@@ -678,7 +673,7 @@ def get_default_config(fncands=None):
             continue
         except yaml.error.YAMLError:
             logger.info("YAMLError, could not parse file content (continuing search): %s", fn)
-            print("WARNING: YAML could not parse the content of default config file %s." % fn, flush=True)
+            print("WARNING: YAML could not parse the content of default config file %s." % fn)
             continue
         else:
             return fn, default_config
@@ -717,11 +712,8 @@ def get_config(scheme=1, defaults=None):
                 config = mergedicts(system_config, config)  # latter takes precedence (except None-values)
             else:
                 print(" - Could not find any default configuration file.")
-        else:
-            system_config_fn, system_config = None, None
 
     if scheme == 1:
-        a = 1
         # 1+2: Extract --no-load-system-config and --config-template from sys.argv,
         # 3. parseargs using merged (CONFIG_APP_DEFAULTS, template_config, system_config) as defaults
         # 4. then load and merge yamlfile.
@@ -787,7 +779,6 @@ def get_config(scheme=1, defaults=None):
         if user_specified_args:
             config = mergedicts(config, user_specified_args)
 
-
     elif scheme == 3:
         # Conceptually simplest, just let system_config and config_template ALWAYS override command line flags.
         # Cons: You override system_config by specifying ad-hoc command line arguments for debugging.
@@ -847,7 +838,7 @@ def main(config=None):
         >>> main()
     """
 
-    print("\nApp main() started {:%Y-%m-%d %H:%M}".format(datetime.now()), flush=True)
+    print("\nApp main() started {:%Y-%m-%d %H:%M}".format(datetime.now()))
     print("- default encoding:", locale.getpreferredencoding(False))
     # Note: It might be a good idea to load the system-level default config (e.g. ~/.gelannotator.yaml)
     # BEFORE parsing args, and passing the default config to parseargs.
@@ -893,28 +884,28 @@ def main(config=None):
     stdout_mode = config.pop('stdout_mode', 'w')
     stderr_fn = config.pop('stderr', None)
     stderr_mode = config.pop('stderr_mode', 'w')
-    if stdout_fn:
+    if stdout_fn is not None:
         # buffering=1 (text-mode line buffering), replacing bad characters with '?' if encoding fails.
         stdout_fd = open(stdout_fn, mode=stdout_mode, encoding='utf-8', errors='replace', buffering=1)
         print("Redirecting stdout to file:", stdout_fd)
         sys.stdout = stdout_fd  # backups are available as sys.__stdout__, sys.__stderr__
         print("stdout redirected to file:", stdout_fd)
-        print("Note - date = {:%Y-%m-%d %H:%M}".format(datetime.now()), flush=True)
+        print("Note - date = {:%Y-%m-%d %H:%M}".format(datetime.now()))
         # print('Note - config files: system_config_fn="%s", config_template_fn="%s", yamlfile="%s"'
-        #       % (system_config_fn, config_template_fn, yamlfile), flush=True)
-        print('Note - config: "%s"' % (config, ), flush=True)
+        #       % (system_config_fn, config_template_fn, yamlfile))
+        print('Note - config: "%s"' % (config, ))
         if stderr_fn is None:
-            print(" - Also redirecting stderr to same file as stdout (%s)" % (stdout_fd, ), flush=True)
+            print(" - Also redirecting stderr to same file as stdout (%s)" % (stdout_fd, ))
             sys.stderr = stdout_fd
-    if stderr_fn:
+    if stderr_fn is not None:
         # buffering=1 (text-mode line buffering), replacing bad characters with '?' if encoding fails.
         stderr_fd = open(stderr_fn, mode=stderr_mode, encoding='utf-8', errors='replace', buffering=1)
-        print("Redirecting stderr to file:", stderr_fd, flush=True)
+        print("Redirecting stderr to file:", stderr_fd)
         sys.stderr = stderr_fd
 
     if not config.pop('disable_logging', False):
         print("Initializing logging system using:",
-              ", ".join("%s=%s" % (k, v) for k, v in config.items() if k.startswith("log")), flush=True)
+              ", ".join("%s=%s" % (k, v) for k, v in config.items() if k.startswith("log")))
         logger.debug("Initializing logging system...")
         init_logging(config)
         logger.info("logging system started, locale.getpreferredencoding(False) = %s",
@@ -923,7 +914,7 @@ def main(config=None):
         print("Logging disabled (disable_logging=True)...")
 
     print("\n\nApp config loaded, logging and stdout/stderr output configured, preferred encoding:",
-          locale.getpreferredencoding(False), flush=True)
+          locale.getpreferredencoding(False))
 
     # For debugging:
     # logger.setLevel(logging.DEBUG)      # Set special loglevel for this main module
@@ -934,7 +925,7 @@ def main(config=None):
     if "utf-8" not in preferredencoding.lower():
         # Avoid encoding errors by always using the same locale and encoding:
         # (alternatively always specify encoding keyword to open() files)
-        print("Resetting locale to ('en_US', 'UTF-8') - was originally %s..." % (preferredencoding, ), flush=True)
+        print("Resetting locale to ('en_US', 'UTF-8') - was originally %s..." % (preferredencoding, ))
         try:
             locale.setlocale(locale.LC_ALL, ('en_US', 'UTF-8'))
         except Exception as e:

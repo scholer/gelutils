@@ -11,7 +11,8 @@ Changes since last release:
 * New: primary_file can now be specified as a separate argument to GelAnnotatorApp. This better reflects the new mode of operation which is based on whether the primary file is a .gel or .gaml file.
 * New: Regarding updateyaml and persisting final parameters: Previously, updateyaml=True meant overwriting the main yaml file with the final parameters. Now, I use config_save_final_params to save the final parameters and update_yaml is instead used to update the GUI widget config display.
 * Updated Installation.md docs describing how to Create Automator application script on Mac/OSX.
-
+* New feature: Gel images can now be rotated using rotate="auto". This uses the new auto_rotate module which is called in geltransformer.processimage(). This will find an optimal rotation such that bands and other features are aligned vertically and horizontally.  
+* Removed official support for python 2. (You can probably still make it work with python 2 with relative ease, but that should be as separate branch/fork, instead of trying to support both with the same python files.)
 
 
 Release 0.6.1:

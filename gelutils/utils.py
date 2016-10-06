@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-##    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
-##
-##    This program is free software: you can redistribute it and/or modify
-##    it under the terms of the GNU General Public License as published by
-##    the Free Software Foundation, either version 3 of the License, or
-##    (at your option) any later version.
-##
-##    This program is distributed in the hope that it will be useful,
-##    but WITHOUT ANY WARRANTY; without even the implied warranty of
-##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##    GNU General Public License for more details.
-##
-##    You should have received a copy of the GNU General Public License
-##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#    Copyright 2014 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # pylint: disable=C0103
 
 """
@@ -185,10 +185,10 @@ def getrelfilepath(gelfilepath, otherfilepath):
     """
     # first ensure that both files are absolute. You could also do a lot of "if otherfilepath is not absolute, then...",
     # but this is easier:
-    #absgelfilepath, absotherfilepath = [os.path.abspath(p) for p in (gelfilepath, otherfilepath)]
-    #common = os.path.commonprefix(absgelfilepath, absotherfilepath)
+    # absgelfilepath, absotherfilepath = [os.path.abspath(p) for p in (gelfilepath, otherfilepath)]
+    # common = os.path.commonprefix(absgelfilepath, absotherfilepath)
     # This might be really awkward if len(common)
-    #relpath = absotherfilepath[len(common)+1]
+    # relpath = absotherfilepath[len(common)+1]
     # os.path.relpath can do what I want:
     geldirpath = os.path.dirname(gelfilepath)
     return os.path.relpath(otherfilepath, start=geldirpath)
@@ -197,18 +197,19 @@ def getrelfilepath(gelfilepath, otherfilepath):
 def printdict(d):
     """Returns a string of d with sorted keys."""
     try:
-        return "{"+", ".join("{}: {}".format(repr(k), repr(v)) for k, v in sorted(d.items())) +"}"
+        return "{" + ", ".join("{}: {}".format(repr(k), repr(v)) for k, v in sorted(d.items())) + "}"
     except AttributeError:
         return d
 
 
-def getLoglevelInt(loglevel, defaultlevel=None):
+def get_loglevel_as_integer(loglevel, defaultlevel=None):
     """Get a proper loglevel integer.
 
     Used to ensure that a value is a valid loglevel integer.
-    If loglevel is already an integer, or a string representation of an interger, this integer is returned.
-    If loglevel is a registrered level NAME (e.g. DEBUG, INFO, WARNING, ERROR), the correspoinding integer value is returned.
-    If anything fails, falls back to defaultlevel (if provided), or else logging.WARNING.
+    * If loglevel is already an integer, or a string representation of an interger, this integer is returned.
+    * If loglevel is a registrered level NAME (e.g. DEBUG, INFO, WARNING, ERROR), then
+        the correspoinding integer value is returned.
+    * If anything fails, falls back to defaultlevel (if provided), or else logging.WARNING.
     """
     if defaultlevel is None:
         defaultlevel = logging.WARNING
@@ -241,38 +242,37 @@ def init_logging(args=None, prefix="gelutils"):
         # Assume it is a NameSpace object returned by argparse.ArgumentParser.parse_args()
         args = args.__dict__
 
-    loglevel = getLoglevelInt(args.pop('loglevel', None))
+    loglevel = get_loglevel_as_integer(args.pop('loglevel', None))
     logtofile = args.pop('logtofile', None)
     if logtofile:
         logtofile = os.path.expanduser(logtofile)
 
     # Examples of different log formats:
-    #logfmt = "%(levelname)s: %(filename)s:%(lineno)s %(funcName)s() > %(message)s"
-    #logfmt = "%(levelname)s %(name)s:%(lineno)s %(funcName)s() > %(message)s"
+    # logfmt = "%(levelname)s: %(filename)s:%(lineno)s %(funcName)s() > %(message)s"
+    # logfmt = "%(levelname)s %(name)s:%(lineno)s %(funcName)s() > %(message)s"
     # loguserfmt = format of log displayed to the user; logfilefmt = format of log messages written to logfile.
     logconsolefmt = "%(asctime)s %(levelname)-15s %(name)20s:%(lineno)-4s%(funcName)20s() %(message)s"
     logfilefmt = '%(asctime)s %(levelname)-6s - %(name)s:%(lineno)s - %(funcName)s() - %(message)s'
-    logdatefmt = "%Y%m%d-%H:%M:%S" # "%Y%m%d-%Hh%Mm%Ss"
-    logtimefmt = "%H:%M:%S" # Output to user in console
+    logdatefmt = "%Y%m%d-%H:%M:%S"  # "%Y%m%d-%Hh%Mm%Ss"
+    logtimefmt = "%H:%M:%S"  # Output to user in console
     logformat = args.pop('logformat', logfilefmt if logtofile else logconsolefmt)
     logdatefmt = args.pop('logdatefmt', logdatefmt if logtofile else logtimefmt)
 
-
-    #logfiledir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'logs')
-    #if not os.path.exists(logfiledir):
+    # logfiledir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'logs')
+    # if not os.path.exists(logfiledir):
     #    os.mkdir(logfiledir)
-    #if argsns.logtofile:
+    # if argsns.logtofile:
     #    logfilepath = argsns.logtofile
-    #else:
+    # else:
     #    logfilenameformat = '{}_testing.log' if getattr(argsns, 'testing', False) else '{}_debug.log'
     #    logfilename = logfilenameformat.format(prefix)
     #    logfilepath = os.path.join(logfiledir, logfilename)
 
-    #logging.root.setLevel(loglevel)
-    #logstreamhandler = logging.StreamHandler()
-    #logging.root.addHandler(logstreamhandler)
-    #logstreamformatter = logging.Formatter(loguserfmt, logtimefmt)
-    #logstreamhandler.setFormatter(logstreamformatter)
+    # logging.root.setLevel(loglevel)
+    # logstreamhandler = logging.StreamHandler()
+    # logging.root.addHandler(logstreamhandler)
+    # logstreamformatter = logging.Formatter(loguserfmt, logtimefmt)
+    # logstreamhandler.setFormatter(logstreamformatter)
 
     logging.basicConfig(level=loglevel,
                         format=logformat,
@@ -293,9 +293,9 @@ def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None, includeemp
     The 'includeempty' arg is not available: A line must start with 'listchar' to even be included.
     If you want 'empty' lines when using 'wikilist' lineinput, just add "empty" lines with '#' as the first char.
     """
-    #if not includeempty:
-        # Remove empty lines. Actually, this is not needed; empty lines cannot have the '#'
-        # (listchar) at line[0] which is required to be included.
+    # if not includeempty:
+    #     # Remove empty lines. Actually, this is not needed; empty lines cannot have the '#'
+    #     # (listchar) at line[0] which is required to be included.
     lines = gen_stripped_nonempty_lines(lines)
     lines = (line[1:].strip().split(listchar)[0] for line in lines if line[0] in listchar)
     return lines
@@ -304,14 +304,18 @@ def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None, includeemp
 def gen_trimmed_lines(lines, commentchar='#', commentmidchar=None, includeempty=False):
     """Generate "nice" lane annotations, trimmed, stripped and without comments.
 
-    Returns non-empty, non-comment lines.
+    Returns:
+        list of non-empty, non-comment lines.
+
     Args:
-        commentchar (default='#') defines a character that is used to denote a comment in a line:
+        lines: The lines to trim, list of strings.
+        commentchar: (default='#') defines a character that is used to denote a comment in a line:
             # This is a note.
-        commentmidchar can be used to define a 'mid-line' comment.
+        commentmidchar: can be used to define a 'mid-line' comment, e.g. in this case:
             data = value # Here is a 'midline comment' about data or value.
-        includeempty : whether to include empty lines. Default (False) is to remove empty lines.
-    commentmidchar defaults to the same as commentchar.
+            commentmidchar defaults to the same as commentchar.
+        includeempty: whether to include empty lines. Default (False) is to remove empty lines.
+
     Set commentchar to False (not None) to disable "midline comments".
     """
     if commentmidchar is None:
@@ -370,7 +374,7 @@ def trimmed_lines_from_file(filepath, args=None):
             trimmed_lines = gen_wikilist_entries(fd, args['lines_listchar'], args['lines_commentmidchar'])
         else:
             set_if_none(args, 'lines_commentchar', '#')  # Explicitly added to args to make it easier to change.
-            includeempty = args.setdefault('lines_includeempty', 'False')
+            includeempty = args.setdefault('lines_includeempty', False)
             trimmed_lines = gen_trimmed_lines(fd, args.get('lines_commentchar', '#'),
                                               args.get('lines_commentmidchar'), includeempty=includeempty)
         lines = list(trimmed_lines)
@@ -439,19 +443,19 @@ def mergedicts(*dicts):
     return ret
 
 
-def mergeargs(argsns, argsdict=None, excludeNone=True, precedence='argsdict'):
+def mergeargs(argsns, argsdict=None, exclude_none=True, precedence='argsdict'):
     """Merge argns and argsdict into a single dict.
 
     Merges arguments from <argsdict> and <argsns> (argparse Namespace or similar object).
     The returned dict is guaranteed to have all keys from both argsns and argsdict,
-    even if they are None and <excludeNone> is True.
-    <excludeNone> only refers to whether elements with value of None still takes
+    even if they are None and <exclude_none> is True.
+    <exclude_none> only refers to whether elements with value of None still takes
     preference when the dicts are merged.
     * argns can be either an object or a dict.
     * argsdict, if specified must be a dict or None.
     * If argsdict is not specified, an empty dict is used. The result is then simply
         argsns.__dict__.copy().
-    * If excludeNone is set to True (default), only non-None values from argsns is loaded to argsdict.
+    * If exclude_none is set to True (default), only non-None values from argsns is loaded to argsdict.
     * <precedence> can be either 'argsns' or 'argsdict'. If 'argsdict' is specified (default),
         entries in the argsdict take precedence over entries in argsns.
         If specifying 'argsns', entries in argsns will override entries in argsdict.
@@ -479,8 +483,8 @@ def mergeargs(argsns, argsdict=None, excludeNone=True, precedence='argsdict'):
     ret = dict.fromkeys(set(argsdict.keys()) | set(nsdict.keys()))
     # Specify which order to merge depending on which dict takes precedence (should be the last)
     mergeorder = (nsdict, argsdict) if precedence == 'argsdict' else (argsdict, nsdict)
-    if excludeNone:
+    if exclude_none:
         return mergedicts(*mergeorder)
     for d in mergeorder:
-        ret.update({k: v for k, v in d.items() if v is not None} if excludeNone else d)
+        ret.update({k: v for k, v in d.items() if v is not None} if exclude_none else d)
     return ret
