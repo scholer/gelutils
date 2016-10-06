@@ -59,7 +59,7 @@ class GelAnnotatorTkRoot(Tk):    # pylint: disable=R0904
         Tk.__init__(self)  # IMPORTANT FIRST STEP for a Tk root!
         self.App = app          # Needed to bind button function? No, I bind button function in App code instead.
 
-        self.iconbitmap("/Users/rasmus/Dev/gelutils/res/icons/Version2/GelAnnotator_v2-2.ico")
+        # self.iconbitmap("/Users/rasmus/Dev/gelutils/res/icons/Version2/GelAnnotator_v2-2.ico")
         # Init variables:
         self.Gelfilepath = StringVar()
         self.Gelfiledirectory = StringVar()
@@ -194,7 +194,7 @@ Non-used:
         self.bind_all("<Escape>", loose_focus)
 
         # ANNOTATIONS FRAME:
-        annotationsframe = Frame(textinput)
+        annotationsframe = Frame(textinput, borderwidth=1)
         annotationsframe.grid(sticky='news', column=0, row=0)
         annotationsframe.rowconfigure(1, weight=1)             # row 1 column 0 has text input
         annotationsframe.columnconfigure(0, weight=1)
@@ -210,7 +210,7 @@ Non-used:
         # More cheat-sheet: http://stackoverflow.com/questions/16082243/how-to-bind-ctrl-in-python-tkinter
 
         # YAML FRAME:
-        yamlframe = Frame(textinput)
+        yamlframe = Frame(textinput, borderwidth=1)
         yamlframe.grid(sticky='news', column=1, row=0)
         yamlframe.rowconfigure(1, weight=1)             # row 1 has text input
         yamlframe.columnconfigure(0, weight=1)
@@ -221,8 +221,8 @@ Non-used:
         text.bind(sequence='<Control-s>', func=self.App.save_yaml)
         # text.bind("<Control-Return>", dont_propagate)
 
-        # INFO FRAME  - displays some help to the user:
-        infoframe = Frame(mainframe, bd=1, relief='sunken')     # Specify starting width and height
+        # INFO FRAME  - displays some help to the user (status bar)
+        infoframe = Frame(mainframe, borderwidth=1, relief='sunken')     # Specify starting width and height
         infoframe.grid(sticky="news", column=0, row=3)  # Make sure it expands
         # standard statusbar style:
         # Using standard tk, don't want to bother with ttk styles for now...
