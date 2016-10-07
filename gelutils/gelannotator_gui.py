@@ -591,12 +591,12 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
         try:
             dwg, svgfilename, args = annotate_gel(gelfile, yamlfile=yamlfile, annotationsfile=annotationsfile)
         except Exception as e:
-            logger.info("Error annotate_gel:", e)
-            self.update_status("Error: %s" % e)
-            return
+            logger.info("Error annotate_gel: %s", e)
+            self.update_status("ERROR: %s" % e)
+            raise
         else:
             self.update_status("SVG file generated: " +
-                               ("...." + svgfilename[-75:] if len(svgfilename) > 80 else svgfilename))
+                               (svgfilename if len(svgfilename) < 80 else "...." + svgfilename[-75:]))
 
         # updated args/config is returned (with e.g. result of auto-calculated dynamic range)
         # TODO: Rename 'updateyaml' to 'updateyamlfile' and make new 'updateyamlwidget' keyword.
@@ -606,7 +606,7 @@ class GelAnnotatorApp(object):   # pylint: disable=R0904
             # self.load_yaml()    # Loads content of yaml file (given by yaml-filename widget) into config text widget.
             logger.debug("Updating yaml config widget to display final config parameters...")
             self.dump_config_to_yaml_widget(args)
-        logger.debug("Gel annotation complete!")
+        logger.info("Gel annotation complete!")
         # I wouldn't expect the annotations file to have changed.
         # prevent Tkinter from propagating the event by returning the string "break"
 
@@ -840,6 +840,14 @@ def main(config=None):
 
     print("\nApp main() started {:%Y-%m-%d %H:%M}".format(datetime.now()))
     print("- default encoding:", locale.getpreferredencoding(False))
+    try:
+        import matplotlib
+        logger.info("matplotlib library is available, setting tkagg as backend.")
+        matplotlib.use('tkagg')
+    except ImportError:
+        matplotlib = None
+        logger.info("matplotlib library is NOT available, setting matplotlib=%s." % matplotlib)
+
     # Note: It might be a good idea to load the system-level default config (e.g. ~/.gelannotator.yaml)
     # BEFORE parsing args, and passing the default config to parseargs.
 
