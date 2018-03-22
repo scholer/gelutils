@@ -28,8 +28,11 @@ import os
 import sys
 from six import string_types
 import codecs
-import logging
 from itertools import chain
+import json
+import yaml
+import logging
+import logging.config
 logger = logging.getLogger(__name__)
 
 
@@ -226,7 +229,7 @@ def get_loglevel_as_integer(loglevel, defaultlevel=None):
     return loglevel
 
 
-def init_logging(args=None, prefix="gelutils"):
+def init_logging(config=None, prefix="gelutils"):
     """Initialize logging.
 
     Set up standard logging system based on values provided by argsns, namely:
@@ -236,49 +239,52 @@ def init_logging(args=None, prefix="gelutils"):
 
     """
 
-    if args is None:
-        args = {}
-    elif not isinstance(args, dict):
+    if config is None:
+        config = {}
+    elif not isinstance(config, dict):
         # Assume it is a NameSpace object returned by argparse.ArgumentParser.parse_args()
-        args = args.__dict__
+        config = config.__dict__
 
-    loglevel = get_loglevel_as_integer(args.pop('loglevel', None))
-    logtofile = args.pop('logtofile', None)
-    if logtofile:
-        logtofile = os.path.expanduser(logtofile)
+    dictconfig_fn = config.get("logging_config_dict_file")
+    dictconfig = config.get("logging_config_dict")
+    if dictconfig_fn or dictconfig:
+        if dictconfig_fn:
+            fnbase, fnext = os.path.splitext(dictconfig_fn)
+            if fnext.lower() == ".yaml":
+                print("Configuring logging system using dict config from yaml-formatted file:", dictconfig_fn)
+                with open(dictconfig_fn) as fp:
+                    dictconfig = yaml.load(fp)
+            else:
+                print("Configuring logging system using dict config from json-formatted file:", dictconfig_fn)
+                with open(dictconfig_fn) as fp:
+                    dictconfig = json.load(fp)
+        else:
+            print("Configuring logging system using dict from logging_control settings file.")
+        logging.config.dictConfig(dictconfig)
+        logger.info("Logging system initialized using dict-config "
+                    + ("from file %s." % dictconfig_fn if dictconfig_fn else "from config-provided dict."))
 
-    # Examples of different log formats:
-    # logfmt = "%(levelname)s: %(filename)s:%(lineno)s %(funcName)s() > %(message)s"
-    # logfmt = "%(levelname)s %(name)s:%(lineno)s %(funcName)s() > %(message)s"
-    # loguserfmt = format of log displayed to the user; logfilefmt = format of log messages written to logfile.
-    logconsolefmt = "%(asctime)s %(levelname)-15s %(name)20s:%(lineno)-4s%(funcName)20s() %(message)s"
-    logfilefmt = '%(asctime)s %(levelname)-6s - %(name)s:%(lineno)s - %(funcName)s() - %(message)s'
-    logdatefmt = "%Y%m%d-%H:%M:%S"  # "%Y%m%d-%Hh%Mm%Ss"
-    logtimefmt = "%H:%M:%S"  # Output to user in console
-    logformat = args.pop('logformat', logfilefmt if logtofile else logconsolefmt)
-    logdatefmt = args.pop('logdatefmt', logdatefmt if logtofile else logtimefmt)
+    else:
+        loglevel = get_loglevel_as_integer(config.pop('loglevel', None))
+        logtofile = config.pop('logtofile', None)
+        if logtofile:
+            logtofile = os.path.expanduser(logtofile)
 
-    # logfiledir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'logs')
-    # if not os.path.exists(logfiledir):
-    #    os.mkdir(logfiledir)
-    # if argsns.logtofile:
-    #    logfilepath = argsns.logtofile
-    # else:
-    #    logfilenameformat = '{}_testing.log' if getattr(argsns, 'testing', False) else '{}_debug.log'
-    #    logfilename = logfilenameformat.format(prefix)
-    #    logfilepath = os.path.join(logfiledir, logfilename)
-
-    # logging.root.setLevel(loglevel)
-    # logstreamhandler = logging.StreamHandler()
-    # logging.root.addHandler(logstreamhandler)
-    # logstreamformatter = logging.Formatter(loguserfmt, logtimefmt)
-    # logstreamhandler.setFormatter(logstreamformatter)
-
-    logging.basicConfig(level=loglevel,
-                        format=logformat,
-                        datefmt=logdatefmt,
-                        filename=logtofile)
-    logger.info("Logging system initialized with loglevel %s, logfile filename=%s", loglevel, logtofile)
+        # Examples of different log formats:
+        # logfmt = "%(levelname)s: %(filename)s:%(lineno)s %(funcName)s() > %(message)s"
+        # logfmt = "%(levelname)s %(name)s:%(lineno)s %(funcName)s() > %(message)s"
+        # loguserfmt = format of log displayed to the user; logfilefmt = format of log messages written to logfile.
+        logconsolefmt = "%(asctime)s %(levelname)-15s %(name)20s:%(lineno)-4s%(funcName)20s() %(message)s"
+        logfilefmt = '%(asctime)s %(levelname)-6s - %(name)s:%(lineno)s - %(funcName)s() - %(message)s'
+        logdatefmt = "%Y%m%d-%H:%M:%S"  # "%Y%m%d-%Hh%Mm%Ss"
+        logtimefmt = "%H:%M:%S"  # Output to user in console
+        logformat = config.pop('logformat', logfilefmt if logtofile else logconsolefmt)
+        logdatefmt = config.pop('logdatefmt', logdatefmt if logtofile else logtimefmt)
+        logging.basicConfig(level=loglevel,
+                            format=logformat,
+                            datefmt=logdatefmt,
+                            filename=logtofile)
+        logger.info("Logging system initialized with loglevel %s, logfile filename=%s", loglevel, logtofile)
 
 
 def gen_wikilist_entries(lines, listchar='*#-+', commentmidchar=None, includeempty=False):

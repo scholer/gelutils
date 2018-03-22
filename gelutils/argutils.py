@@ -88,6 +88,9 @@ def make_parser(prog='gelannotator', defaults=None,
                     help="Logging level, e.g. 10, 30, or 'DEBUG', 'INFO.")
     ap.add_argument('--logtofile', default=defaults.get('logtofile'),
                     help="Write log output to file rather than console.")
+    ap.add_argument('--logging-config', dest='logging_config_dict_file',
+                    default=defaults.get('logging_config_dict_file'),
+                    help="Write log output to file rather than console.")
     # Note: If action='store_true', then default is False not None.
     # Using default=None so None can be used to indicate a value that has not been specified.
     ap.add_argument('--disable-logging', dest='disable_logging', action='store_true', default=None,

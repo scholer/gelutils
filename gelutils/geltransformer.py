@@ -542,16 +542,22 @@ def transform_image(gelimg, args):
         # convert fraction values (0.05 or "5%") to absolute pixels:
         width, height = gelimg.size  # Update, in case rotateexpands is True. # = widthheight
         left, upper, right, lower = crop = ensure_numeric(args['crop'], cycle(gelimg.size))
+        # OBS: Origin is lower left corner, which makes the (left, upper, right, lower) notation a little awkward.
         if args.get('cropfromedges'):
             if width-right <= left or height-lower <= upper:
-                raise ValueError("Wrong cropping values: width-right <= left or height-lower <= upper: "
-                                 "%s-%s <= %s or %s-%s <= %s", width, right, left, height, lower, upper)
+                raise ValueError("Wrong from-edge cropping values: width-right <= left or height-lower <= upper: "
+                                 "%s-%s <= %s or %s-%s <= %s" % (width, right, left, height, lower, upper))
             logger.debug("Cropping image to: %s", (left, upper, width-right, height-lower))
             gelimg = gelimg.crop((left, upper, width-right, height-lower))
         else:
             if right <= left or height-lower < upper:
-                raise ValueError("Wrong cropping values: right <= left or lower <= upper: "
-                                 "%s <= %s or %s <= %s", right, left, lower, upper)
+                raise ValueError((
+                    "Wrong absolute cropping values. "
+                    "Right ({right}) must be larger than left ({left}) "
+                    "AND upper ({upper}) must be larger than lower ({lower}) "
+                    "Either right <= left or upper <= lower: "
+                    "{right} <= {left} or {upper} <= {lower}").format(
+                    right=right, left=left, lower=lower, upper=upper))
             logger.debug("Cropping image to: %s", (left, upper, right, lower))
             gelimg = gelimg.crop(crop)
         if args.get('crop_update_to_absolute'):

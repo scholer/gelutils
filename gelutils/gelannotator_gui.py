@@ -680,7 +680,7 @@ def get_default_config(fncands=None):
     return None, None
 
 
-def get_config(scheme=1, defaults=None):
+def get_config(scheme=2, defaults=None):
 
     # In all schemes, defaults is our starting point:
     config = defaults or {}
@@ -781,7 +781,7 @@ def get_config(scheme=1, defaults=None):
 
     elif scheme == 3:
         # Conceptually simplest, just let system_config and config_template ALWAYS override command line flags.
-        # Cons: You override system_config by specifying ad-hoc command line arguments for debugging.
+        # Cons: It is not ppossible to override system_config through ad-hoc command line arguments e.g. for debugging.
         # 1. config = parseargs(), (without determing user_specified_args)
         # 2+3. then load and merge system_config and config_template,
         # 4. then load and merge yamlfile.

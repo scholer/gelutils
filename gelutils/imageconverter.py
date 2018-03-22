@@ -446,8 +446,18 @@ def imagemagick_convert(inputfilepath, target='png', remove_ext=True,
     return outputfilepath
 
 
-if __name__ == '__main__':
+def svg2png_cli():
 
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('inputfiles', nargs="+")
+    ap.add_argument('--target', default='png', help="Target file/filetype.")
+    argns = ap.parse_args()
+    for input_fn in argns.inputfiles:
+        svg2png(input_fn, target=argns.target)
+
+
+def main():
     # from argutils import parseargs
     # argns = parseargs('imageconverter')
     import argparse
@@ -462,5 +472,10 @@ if __name__ == '__main__':
     functions = {'svg2png': svg2png,
                  'convertgel': gel2png}
 
+    # TODO: Use proper subparser/command approach..
     for input_fn in argns.inputfiles:
         functions[argns.function](input_fn, target=argns.target)
+
+
+if __name__ == '__main__':
+    main()
