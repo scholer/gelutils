@@ -8,7 +8,7 @@ Gelutils - Installation:
 * This may be the easiest way to get and install gelutils.
 * First, if you are using environments, create a new environment for gelutils -- or activate an existing environment you want to install gelutils into.
     * If using Anaconda, create a conda environment that includes ```numpy, pyyaml, six, pillow=2.7, cffi```.
-    * Example: ```conda create -n gelutils six numpy pillow=2.7 pyyaml cffi```
+    * Example: ```conda create -n gelutils python=3 pillow=2.7 six numpy pyyaml cffi```
 * Then install gelutils using ```pip install gelutils```.
 
 

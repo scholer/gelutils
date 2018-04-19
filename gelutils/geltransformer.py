@@ -199,7 +199,7 @@ gelfilemodes = {
     # (II, 0, 1, 1, (16,), ()): ("I", "I;32N") # This produces an IOError during load()
     # (II, 1, 1, 1, (32,), ()): ("I", "I;32N")
 }
-
+# TODO: Simply updating PIL.TiffImagePlugin.OPEN_INFO doesn't work for newer versions of Pillow. That must be fixed.
 OPEN_INFO.update(gelfilemodes)  # Update the OPEN_INFO dict; is used to identify TIFF image modes.
 
 PIL_VERSION = Image.VERSION
@@ -293,6 +293,7 @@ def find_dynamicrange(npdata, cutoff=(0, 0.99), roundtonearest=None, converter='
     I.e. for a cutoff of (0.02, 0.95), this function will return a dynamic range
     that will quench the lowest 2% and the top 5%.
     """
+    # TODO: Re-implement this using np.percentile
     if roundtonearest in (None, True):
         roundtonearest = 1000
     counts, bins = numpy.histogram(npdata, bins=100)        # pylint: disable=E1101

@@ -8,7 +8,7 @@ pyyaml
 # svgwrite is available on Anaconda using e.g. the bioconda channel: conda install -c bioconda svgwrite=1.1.6
 svgwrite
 numpy
-scipy
+# scipy  # only for auto_rotate
 # numpy used for array processing, e.g. during linearization.
 # base64 is included for python3+
 # base64 
@@ -17,4 +17,4 @@ cffi
 cairocffi
 cairosvg
 # matplotlib is mostly used to show images on an ad-hoc basis:
-matplotlib
+# matplotlib

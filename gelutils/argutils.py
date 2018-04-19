@@ -164,6 +164,7 @@ def make_parser(prog='gelannotator', defaults=None,
                     help="Force saving yaml to this file when complete.")
     # TODO: Rename to config_update_display - config/yaml/parameters/params/args/configuration/options
     # Usually this should be left disabled, but can be used to display and tune auto-calculated parameters.
+    # See also: `saveyamlto` - the "final" yaml is saved to this file.
     ap.add_argument('--no-update-yaml', dest='updateyaml', action='store_false', default=None,
                     help="Do not update yaml settings after run to reflect the final settings used.")
     ap.add_argument('--update-yaml', dest='updateyaml', action='store_true',
@@ -171,8 +172,8 @@ def make_parser(prog='gelannotator', defaults=None,
 
     # "save", "record", "write", "persist" or "remember" - add static parameters to config:
     # Edit, probably just always save gelutils version to final_params config file.
-    ap.add_argument('--remember-gelutils-version', action='store_true', default=defaults.get('save_gelutils_version'),
-                    help="Save svg as png (requires cairo package).")
+    # ap.add_argument('--remember-gelutils-version', action='store_true', default=defaults.get('save_gelutils_version'),
+    #                 help="Save gelutils version number (makes it easier to use old .gaml files).")
     # Remember/record/save input gel filename to yaml config.
     # TODO: Rename to "record-gelfile" ?
     # TODO, edit: Maybe just have a mandatory "gelfile_lastused" entry?

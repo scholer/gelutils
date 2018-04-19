@@ -494,8 +494,8 @@ def annotate_gel(gelfile=None, args=None, yamlfile=None, annotationsfile=None):
             # subprocess.call(['xdg-open', filename])  on POSIX (or possibly just use open)
             # c.f. http://stackoverflow.com/questions/434597/open-document-with-default-application-in-python
 
-    if args.get("remember_gelutils_version", True):
-        args['gelutils_version'] = __version__
+    # if args.get("remember_gelutils_version", True):  # Actually, there is no reason not to always remember this.
+    args['__gelutils_version__'] = __version__
 
     # Running ensure_png_exists and make_svg can update args dict, e.g. with automatic dynamic range.
     # if yamlfile and args.get('updateyaml', True):
