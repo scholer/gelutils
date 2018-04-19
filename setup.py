@@ -37,7 +37,7 @@ setup(
                  "acquired from e.g. Typhoon scanners, GelDocs or similar."),
     long_description=long_description,
     # long_description=open('README.txt').read(),
-    version='0.6.2dev',  # update: version and download_url, also gelutils.__init__.__version__.
+    version='0.6.3dev',  # update: version and download_url, also gelutils.__init__.__version__.
     packages=['gelutils', 'gelutils.tkui'],  # List all packages (directories) to include in the source dist.
     url="https://github.com/scholer/gelutils",
     download_url='https://github.com/scholer/gelutils/tarball/0.6.2',
@@ -60,6 +60,8 @@ setup(
             # These should all be lower-case, else you may get an error when uninstalling:
             'gelannotator=gelutils.gelannotator:main',
             'annotategel_debug=gelutils.gelannotator_gui:main',  # Run as console script for debugging.
+            # TODO: Make a svgtopng entry point. - gelutils.imageconverter:svg2png
+            'svg2png=gelutils.imageconverter:svg2png_cli',
         ],
         'gui_scripts': [
             'AnnotateGel=gelutils.gelannotator_gui:main',

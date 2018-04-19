@@ -31,6 +31,8 @@ Setting up for Gelutils development (see also README.md):
    ```source activate gelutils```
    Note: You may also want to search for the following packages (currently not available with conda):
    ```svgwrite, cairocffi, cairosvg```
+   Note 2: You may also want the full/"extended" environment:
+   ```conda create -n gelutils-extended Pillow=2.7 six pyyaml cffi pytest scipy scikit-image networkx pandas notebook matplotlib```
 1. cd to your dev folder and download repo: ```git clone https://github.com/scholer/gelutils.git```
 2. Install gelutils into your python environment in editable mode: ```cd gelutils```, then ```pip install -e .```
 3. Note: You can combine steps 1+2 into one: ```pip install -e git+https://github.com/scholer/gelutils```
@@ -84,6 +86,7 @@ setup.py example files and guides:
 
 * https://github.com/pypa/sampleproject/blob/master/setup.py
 * https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
+
 
 Regarding versioning:
 * I *am* trying to adhere to [semantic versioning](http://semver.org).

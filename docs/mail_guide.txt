@@ -1,0 +1,62 @@
+
+
+Quick guide:
+------------
+
+The software can be used to quickly annotate gels. It can use a raw GEL data file (and perform proper linearization of the pixels), and generates an image with lane annotations (in SVG and/or PNG format).
+
+I intend the session to be purely informal, demo'ing the program and helping those interested with the setup while we drink beer/cider/"tea".
+
+As reference, here is an overview of how to get the program set up:
+
+	(1) Get Python.
+	(2) Get some extra python packages.
+	(3) Get the gel annotating program.
+
+
+(1) First, you need Python 2.7 to run the program. (This is also what powers e.g. cadnano2...) If you already have Python 3.4 installed, that might also work. But in general, I still recommend installing Python 2.7.
+
+If you are on Mac/Linux, and you have a relatively updated version, then you likely already have Python 2.7.
+
+If you are on Windows, and you do not already have Python 2.7, you can download either the default python distribution or one of the "fully featured" distributions, e.g.:
+    * python.org/download       - The "official" distribution.
+    * continuum.io/downloads    - Anaconda, my favorite distribution.
+
+You can test whether Python is installed by invoking "python" from the terminal (on OS X - found in Applications->Utilities) or the "command line" (on Windows - found in the start menu or search for "cmd").
+
+
+(2) Next you need to download a few python packages:
+
+If you have a "non-default" distribution (such as Anaconda) you can use the distributions package manager (e.g. 'conda') for installing packages.
+
+Otherwise, the easiest way to get packages is to use 'pip'. -- You can check if you have pip by running 'pip' in the terminal/"command line". If you do not already have pip installed, you can get it by running: "sudo easy_install pip".
+If you are on Windows, instead of writing "sudo" before all commands, open the command line as administrator by right-clicking the shortcut and select "Run as administrator".
+
+With pip installed (or using your distributions package manager in place of 'pip'):
+* sudo pip install pyyaml
+* sudo pip install pillow
+* sudo pip install numpy
+* sudo pip install svgwrite
+
+If you are on OSX, pip may fail. If it does, replace "sudo pip install" with "sudo python -m easy_install", e.g.:
+    sudo python -m easy_install pyyaml
+
+You now have a fully-functional python setup!
+
+
+(3) Download the Gel Annotating software:
+
+Go to github.com/scholer/gelutils and click the "Download ZIP" button.
+You can also use the direct link: https://github.com/scholer/gelutils/archive/master.zip
+Extract the zip file to whatever folder you'd like.
+
+
+PS: If you want to be really funky, you can also use git.
+	git clone https://github.com/scholer/gelutils.git
+(This is what developers use to share and distribute their code. Git makes it easy to "pull" the latest updates simply by invoking "git pull".)
+
+
+PPS: You may want to also install 'cairo' if you want to convert the annotated SVG files to PNG. ImageMagick can be used as fallback, but the quality is not as high as with cairo. Installing Cairo on OS X requires either homebrew, mac ports or fink, and typically also XQuarts. See cairographics.org/download for more info on how to get cairo for your system.
+With cairo installed on your computer, you need to also get proper python binding:
+* sudo pip install cairocffi
+* sudo pip install cairosvg
