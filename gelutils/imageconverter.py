@@ -318,6 +318,27 @@ def cairo_convert(inputfilepath, target='png', remove_ext=True, **kwargs):  # I 
     Raises:
         ValueError if target is not recognized.
         RuntimeError if no cairo library is available.
+
+    I'm having issues with cairosvg,
+    svg2png gives a wrong argument to urllib.requests.urlopen,
+    when reading local file.
+    This riases a FileNotFoundError,
+    which then raises a urllib.error.URLError.
+    But the main issue is that it sets
+        host = <the correct file path>      # req.host
+        filename = ''                       # req.selector
+        localfile = ''                      # url2pathname(filename)
+    And then tries to read the localfile.
+
+    Quick debug:
+        cairosvg -f png -o test.png input.svg
+    Above only works for CairoSVG 2+;
+        python -c "import cairosvg; cairosvg.svg2png('input.svg', 'test.png')
+
+    It seems that the problem is in urllib itself?
+    from urllib.request import Request;
+    req = Request('file://input.svg');
+    print((req.type, req.host, req.selector, req.fragment, ' = ', req.full_url, ));
     """
     if not cairosvg_available():
         print("Cairosvg not available... debugging cairo...")
@@ -335,12 +356,17 @@ def cairo_convert(inputfilepath, target='png', remove_ext=True, **kwargs):  # I 
         '.pdf': svg2pdf,
         '.ps': svg2ps
     }
+    # Fix for Windows where cairosvg doesn't handle local filenames well:
+    inputfilepath = 'file://localhost/{}'.format(os.path.abspath(inputfilepath))
     convert_method = converters[ext]
-    logger.info("Converting %s to %s using method %s", inputfilepath,
-                outputfilepath, convert_method)
+    print("Converting %r to %r using method %r" % (inputfilepath, outputfilepath, convert_method))
+    print("Current directory:", os.getcwd())
+    print("Absolute file path:", os.path.abspath(inputfilepath))
+    print("File exists:", os.path.isfile(inputfilepath))
+    logger.info("Converting %r to %r using method %r", inputfilepath, outputfilepath, convert_method)
     ret = convert_method(url=inputfilepath, write_to=outputfilepath)
-    logger.info("%s(url=%s, write_to=%s) returned '%s'",
-                convert_method, inputfilepath, outputfilepath, ret)
+    logger.info("%s(url=%s, write_to=%s) returned '%s'", convert_method, inputfilepath, outputfilepath, ret)
+    print(" - convert ok:", ret)
     return outputfilepath
 
 

@@ -60,23 +60,36 @@ setup(
             # These should all be lower-case, else you may get an error when uninstalling:
             'gelannotator=gelutils.gelannotator:main',
             'annotategel_debug=gelutils.gelannotator_gui:main',  # Run as console script for debugging.
-            # TODO: Make a svgtopng entry point. - gelutils.imageconverter:svg2png
-            'svg2png=gelutils.imageconverter:svg2png_cli',
+            'annotategel_gui=gelutils.gelannotator_gui:main',  # This may just be the official entry point.
+            'svg2png=gelutils.imageconverter:svg2png_cli',  # edit: maybe just use cairosvg?
         ],
         'gui_scripts': [
             'AnnotateGel=gelutils.gelannotator_gui:main',
+            # NOTE: GUI scripts does not work for Conda environments on Windows!
+            # I'm having nothing but trouble with the GUI script entry point on Windows;
+            # I get ImportError in the AnnotateGel-script.pyw bootstrapping script:
+            # "The 'gelutils' distribution was not found and is required by the application".
+            # I suspect it is an issue with conda environments for GUI, but I'm not sure.
+            # When running the .pyw script, the default pythonw.exe is used, not the environment-specific one.
+            # In any case, running the console script works just fine, only "problem" is that the console is open.
+            # Many of the posted issues are Mac-specific, but I think there is a similar issue for Windows.
+            # https://github.com/ContinuumIO/anaconda-issues/issues/446
+            # https://github.com/ContinuumIO/anaconda-issues/issues/199#issuecomment-226976038
+            # https://github.com/conda-forge/python-feedstock/issues/23
+
+
         ]
     },
 
     install_requires=[
-        'pyyaml',
-        'svgwrite',
-        'six',
-        'pillow==2.7',
-        'numpy',
-        'cffi',      # Cairo is only required to convert SVG files to PNG
+        'pyyaml',       # YAML files
+        'svgwrite',     # Composing svg files.
+        'six',          # Python2.7 compatability
+        'pillow==2.7',  # Image reading and manipulation.
+        'numpy',        # Adjusting contrast, mostly.
+        'cffi',         # Cairo - used to convert SVG files to PNG
         'cairocffi',
-        'cairosvg'
+        'cairosvg',
     ],
     classifiers=[
         # How mature is this project? Common values are

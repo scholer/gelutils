@@ -41,26 +41,127 @@ pip install -U gelutils
 ```
 
 
-Python Installation:
---------------------
 
-In general, I recommend using either Anaconda or a package manager to install Python and pip.
-Anaconda is available from [here](https://www.continuum.io/downloads).
-If you are already using a package manager (e.g. [chocolatey](https://chocolatey.org/) on Windows),
-you may want to use your package manager to install Python.
 
-Inside your Python distribution you may want to have separate Python **environments**.
-*Why do you need "environments"?*
- *  A: Some Python applications may require a very specific set of dependencies, which can sometimes be incompatible.
-    For example, Gelutils requires a specific version of Pillow, an image processing library.
-    Using the current version of Pillow, or a very old version, will give an error.
-    However, what if you have another Python package or application which requires the newest version of Pillow?
-    How do you make these work together, using the same Python installation?
-    The answer is to have separate Python environments, one for each application.
+Installing dependencies:
+------------------------
 
-Environments can be created and managed in a couple of different ways:
- * If you are using the Anaconda Python distribution, use ```conda``` command line tool
-   to create environments and install packages (using ```pip``` when a conda package is not yet available).
+To run the program, you need Python. Python is very widely used and may already be
+present on your system. (Open a terminal and type 'python' to check.)
+
+    * GelUtils have been developed for python 2.7
+    * It might work on python 3+, but it is a pain to ensure that it runs on both python 2 and 3.
+
+If it is not present, use your package manager to install it.
+If you are on Windows, you can either download the default python distribution
+or one of the "fully featured" distributions:
+    * python.org/download       - The "official" distribution.
+    * continuum.io/downloads    - Anaconda, my favorite distribution.
+    * enthought.com/downloads   - Enthought Canopy, another good distribution.
+    * winpython.sourceforge.net - WinPython is another, slightly older distribution.
+
+
+The primary dependencies are:
+    * yaml (pyyaml)
+    * Python Image Library, PIL - or Pillow.
+    * numpy  (to linearize GEL data)
+    * svgwrite (to create svg file with annotations)
+    * cairo, cairosvg and cairocffi  -- or alternatively just imagemagick  (to generate the last, annotated PNG image)
+    * six (for python 2 & 3 compatability)
+
+You should be able to generate most of these through your distribution's package manager.
+If it is not available through the package manager, use pip:
+    >>> pip search <package>        - to search for packages.
+    >>> pip install <package>       - to install a package.
+
+For generating the last PNG image with annotations, the best results are produced
+with cairosvg+cairocffi, and the Cairo toolkit.
+However, these can be a bit tricky to install, especially on windows.
+
+
+
+### Installing Cairo graphics dependency
+
+Here are some useful links to get Cairo installed on Windows:
+* https://pythonhosted.org/cairocffi/overview.html
+* https://cairographics.org/download/
+* http://www.gtk.org/download/win64.php - The official GTK+ installer.
+* http://gtk-win.sourceforge.net/home/index.php/Main/Downloads - Alexander Shaduri's GTK+ installer.
+* https://groups.google.com/forum/#!topic/wxpython-dev/xi5NJY3xE_8
+* https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+* http://win32builder.gnome.org/, e.g. http://win32builder.gnome.org/gtk+-bundle_3.6.4-20131201_win64.zip 
+
+
+
+Steps:
+1. Download and install one the GTK+ installers mentioned above. 
+    Make sure to let the installer set PATH variable.
+    If you don't want to actually install GTK+, you can also just extract the files and add the 
+    `<GTK DIR>/bin` directory to your `$PATH` environment variable.
+2. Install with `pip install cairocffi cairosvg`.
+3. Verify your installation by running the following command in a new terminal:
+    `python -c "import cairocffi; print('ALL OK')"`
+    If you see "ALL OK" printed, then cairocffi has been properly configured.
+    Otherwise, try to download and install a different version of GTK+/Cairo - or 
+    follow the troubleshooting guide below.
+
+
+
+#### Cairo - troubleshooting
+
+First, open a new terminal, and print the `PATH` environment variable, 
+and make sure the Cairo/GTK `bin\` directory has been added to the search PATH:
+* On Windows: `echo %PATH%`
+* On OSX/Linux: `echo $PATH`
+
+
+Then, see if python can find your cairo library (binary .dll or .so file):
+
+    python -c "import ctypes.util; path = ctypes.util.find_library('libcairo-2'); print(path)"
+    python -c "import ctypes.util; path = ctypes.util.find_library('cairo-2'); print(path)"
+
+If both of these commands prints `None`, then Python is unable to find your cairo binary.
+Please make sure that you have properly configured the PATH environment variable.
+In particular, make sure the GTK path you've added ended with `\bin`, i.e. not just the root GTK folder.
+
+Otherwise, try to see if you can manually load the .DLL/.SO binary library:
+
+    python -c "import cffi; ffi = cffi.FFI(); ffi.dlopen('libcairo-2')"
+
+
+If you get "OSError: cannot load library libcairo.so.2: error 0x7e":
+
+* This can happen if your Cairo library is either not properly installed, 
+    or if you have the wrong version installed,
+    for instance if your python is 64-bit and the Cairo/GTK library is 32-bit.
+    Try to install a different version of GTK/Cairo.
+* Update: The official GTK installer is no longer available from the official website, 
+    but there are other Windows installers out there, see links above.
+    Again, just extract and add the `bin\` directory to your `PATH` environment variable.
+* For Windows, try downloading a GTK installer from http://win32builder.gnome.org:
+    * The following worked for me last time: 
+        http://win32builder.gnome.org/gtk+-bundle_3.6.4-20131201_win64.zip - extract 
+        and add the `bin\` folder to your path.
+
+
+
+### Alternatives to Cairo
+
+**ImageMagick:**
+If you already have ImageMagick installed you might want to just use ImageMagick as a fallback in lieu of Cairo.
+(ImageMagick  is one of the best and ubiquitous tools for converting and transforming images - highly recommended.)
+
+
+**Inkscape:**
+You can also use Inkscape to convert SVG files to PNG. 
+You will have to do this from the command line as a separate step.
+
+
+**Matplotlib:**
+Matplotlib can also be used to annotate images and create SVG and PNG output.
+This, however, has not yet been implemented in `Gelutils`.
+
+
 
 
 
@@ -89,8 +190,53 @@ If you get a "compiler" error, make sure you have a compiler installed.
 
 
 
-Create Automator App (OS X / MacOS):
---------------------------------------
+
+Appendix I: Python Installation:
+--------------------------------
+
+In general, I recommend using either Anaconda or a package manager to install Python and pip.
+Anaconda is available from [here](https://www.continuum.io/downloads).
+If you are already using a package manager (e.g. [chocolatey](https://chocolatey.org/) on Windows),
+you may want to use your package manager to install Python.
+
+I also recommend using dedicated *Python environments*, 
+inside your Python distribution,
+and creating a dedicated python environment for this gelutils app.
+
+* *Q: What is the advantage of using python "environments"?*
+*  A: Some Python applications may require a very specific set of dependencies, which can sometimes be incompatible.
+    For example, Gelutils requires a specific version of Pillow, an image processing library.
+    Using the current version of Pillow, or a very old version, will give an error.
+    However, what if you have another Python package or application which requires the newest version of Pillow?
+    How do you make these work together, using the same Python installation?
+    The answer is to have separate Python environments, one for each application.
+
+Environments can be created and managed in a couple of different ways:
+ * If you are using the Anaconda Python distribution, use ```conda``` command line tool
+   to create environments and install packages (using ```pip``` when a conda package is not yet available).
+
+
+
+Appendix II: Standard environments and entry points:
+----------------------------------------------------
+
+
+
+Conda ENVIRONMENTS:
+* gelutils = dev version at /Dev/Gelutils, installed using ```pip install -e```
+* gelutils-release-testing = sdist release test env, installed using ```python setup.py sdist && pip install pip install dist/gelutils-<version>.tar.gz```
+* gelutils-pypi-test = PyPI release test env, installed using ```pip install gelutils```.
+
+Entry points:
+* AnnotateGel = Main GUI app, intended for regular users.
+* AnnotateGel_debug = GUI app, launched from terminal to get stdout/stderr directly in console. (Does not work when launched as Automator App).
+* * AnnotateGel_debug entry point was previously named AnnotateGel_console.
+
+
+
+
+Appendix III: Create Automator App (OS X / MacOS)
+-------------------------------------------------
 
 
 Notes:
@@ -109,27 +255,15 @@ Notes:
 * However, if using --stdout/--stderr to redirect, then annotategel will make sure to open the file in line-buffered
   mode, which eliminates this issue.
 
-
-# Conda ENVIRONMENTS:
-# * gelutils = dev version at /Dev/Gelutils, installed using ```pip install -e```
-# * gelutils-release-testing = sdist release test env, installed using ```python setup.py sdist && pip install pip install dist/gelutils-<version>.tar.gz```
-# * gelutils-pypi-test = PyPI release test env, installed using ```pip install gelutils```.
-
-Entry points:
-* AnnotateGel = Main GUI app, intended for regular users.
-* AnnotateGel_debug = GUI app, launched from terminal to get stdout/stderr directly in console. (Does not work when launched as Automator App).
-* * AnnotateGel_debug entry point was previously named AnnotateGel_console.
-
-
 Example Automator script:
 
-    # Dev version: *ACTIVE*
+    # Using dev version: *ACTIVE*
     /Users/rasmus/anaconda3/envs/gelutils/bin/AnnotateGel "$@" --stdout /Users/rasmus/appdata/gelutils/AnnotateGel.stdout
 
-    # Release testing:
+    # Testing release version:
     # /Users/rasmus/anaconda3/envs/gelutils-release-testing/bin/AnnotateGel "$@" --stdout /Users/rasmus/appdata/gelutils/AnnotateGel.stdout
 
-    # PyPI testing:
+    # Testing PyPI version:
     # /Users/rasmus/anaconda3/envs/gelutils-pypi-test/bin/AnnotateGel "$@" &> /Users/rasmus/appdata/gelutils/AnnotateGel.out
 
     # If you get errors, just open AnnotateGel_console from within a terminal using:
@@ -137,7 +271,7 @@ Example Automator script:
 
 
 
-### Q: I really want to have a console/terminal displaying print messages. Isn't that possible?
+#### Q: I really want to have a console/terminal displaying print messages. Isn't that possible?
 
 
 A1: I tried to get an online terminal using
@@ -167,7 +301,7 @@ Obviously, this is pretty complex and weird, and only works when print messages 
 
 
 
-### Q: How can I get the proper AnnotateGel icon for my Automator Application script?
+#### Q: How can I get the proper AnnotateGel icon for my Automator Application script?
 
 Method 1: If you already have another application with the icon you want for your App script:
 * Find the source app with the icon you want
@@ -194,6 +328,7 @@ it will not automatically use the same icon.
 The actual window icon, displayed in the application drawer or when you ALT+TAB (or CMD+TAB)
 through open apps, is specified by tkinter using ```tkroot.iconbitmap(<path-to-icon>)```,
 just like how the app title is specified using ```tkroot.title("AnnotateGel (Gelutils)")```.
+
 
 Refs:
 * http://stackoverflow.com/questions/18537918/set-window-icon

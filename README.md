@@ -116,6 +116,33 @@ Environments can be created and managed in a couple of different ways:
    to create environments and install packages (using ```pip``` when a conda package is not yet available).
 
 
+**Cairo installation:**
+
+Cairo is used for converting the annotated SVG files to PNG.
+
+Cairo is an external graphics library, used by e.g. the GTK+ graphics toolkit used by many apps.
+
+If you have GTK+ installed, you may already have the required Cairo dependency.
+
+Otherwise, you will have to obtain the needed DLL.
+
+The easiest way to intall the required DLL is to use [Alexander Shaduri’s GTK+ installer](https://gtk-win.sourceforge.io/home/index.php/Main/Downloads).
+
+If you do not want to install GTK+, you can also just extract the GTK+ installer to a temporary directory (using e.g. 7zip), and copy the file `libcairo-2.dll` to `<PYTHON INSTALL DIR>\Library\bin`.
+
+To check if Cairo has been installed, you can invoke one of the following commands from the terminal:
+
+    $ python -c "import ctypes.util; print(ctypes.util.find_library('libcairo-2'))"
+    $ python -c "import cairosvg"
+
+
+
+
+Alternatives:
+* Use matplotlib to annotate the image.
+* 
+
+
 
 Troubleshooting:
 ----------------

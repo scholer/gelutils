@@ -838,15 +838,17 @@ def main(config=None):
         >>> main()
     """
 
-    print("\nApp main() started {:%Y-%m-%d %H:%M}".format(datetime.now()))
-    print("- default encoding:", locale.getpreferredencoding(False))
+    logfilefd = open('gelannotator_gui.log', 'a')
+    print("\nApp main() started {:%Y-%m-%d %H:%M}".format(datetime.now()), file=logfilefd)
+    print("- default encoding:", locale.getpreferredencoding(False), file=sys.stderr)
     try:
+        # Wait until logging is available, or print to stderr instead:
         import matplotlib
-        logger.info("matplotlib library is available, setting tkagg as backend.")
+        print("matplotlib library is available, setting tkagg as backend.", file=sys.stderr)
         matplotlib.use('tkagg')
     except ImportError:
         matplotlib = None
-        logger.info("matplotlib library is NOT available, setting matplotlib=%s." % matplotlib)
+        print("matplotlib library is NOT available, setting matplotlib=%s." % matplotlib, file=sys.stderr)
 
     # Note: It might be a good idea to load the system-level default config (e.g. ~/.gelannotator.yaml)
     # BEFORE parsing args, and passing the default config to parseargs.
@@ -913,16 +915,16 @@ def main(config=None):
 
     if not config.pop('disable_logging', False):
         print("Initializing logging system using:",
-              ", ".join("%s=%s" % (k, v) for k, v in config.items() if k.startswith("log")))
+              ", ".join("%s=%s" % (k, v) for k, v in config.items() if k.startswith("log")), file=sys.stderr)
         logger.debug("Initializing logging system...")
         init_logging(config)
         logger.info("logging system started, locale.getpreferredencoding(False) = %s",
                     locale.getpreferredencoding(False))
     else:
-        print("Logging disabled (disable_logging=True)...")
+        print("Logging disabled (disable_logging=True)...", file=sys.stderr)
 
     print("\n\nApp config loaded, logging and stdout/stderr output configured, preferred encoding:",
-          locale.getpreferredencoding(False))
+          locale.getpreferredencoding(False), file=sys.stderr)
 
     # For debugging:
     # logger.setLevel(logging.DEBUG)      # Set special loglevel for this main module

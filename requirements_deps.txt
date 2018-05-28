@@ -1,0 +1,24 @@
+# Extra dependencies: Requirements and requirements' requirements, 
+# Listing these here so you can install as many as possible with Conda.
+
+Pillow==2.7
+six
+pyyaml
+numpy
+
+cffi
+
+cairocffi
+# Cairo library (with the required DLL) needs to be installed separately, I think.
+# The "CFFI" can be delivered by Conda, 
+# while libcairo-2.dll can be provided by [Alexander Shaduri’s GTK+ installer](https://gtk-win.sourceforge.io/home/index.php/Main/Downloads)
+# (GTK+ uses cairo, so installing GTK+ will also install Cairo)
+# c.f. https://cairocffi.readthedocs.io/en/latest/overview.html
+
+cairosvg
+cssselect2  # used by cairosvg
+defusedxml  # used by cairosvg
+tinycss2  # used by cairosvg
+
+svgwrite
+pyparsing  # used by svgwrite
