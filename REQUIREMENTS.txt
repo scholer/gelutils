@@ -1,6 +1,6 @@
 # python>=3
 # PIL
-Pillow==2.7
+Pillow==6.2.0
 # PIL  # mock to prevent lint errors
 six
 # yaml
