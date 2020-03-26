@@ -138,8 +138,28 @@ To check if Cairo has been installed, you can invoke one of the following comman
 
 
 
-Alternatives:
-* Use matplotlib to annotate the image.
+Alternatives and prior art:
+---------------------------
+
+Here is a quick list of alternative tools for annotating Gel Images:
+
+* Gel Annotator (this project).
+* gelImage
+    * A single-file Python GUI program to annotate TIFF gel images using wxPython and Cairo. 
+    * Last updated 2015.
+    * https://github.com/openpaul/gelImage
+* GelScape
+    * A wep-app for annotating gel images. Requires Java-enabled browser.
+    * Also available as an offline Java app, which I haven't tried.
+    * Last updated 2003.
+    * Code not available on website or GitHub.
+* General vector-graphics apps:
+    * Adobe Illustrator.
+    * InkScape.
+    * PowerPoint.
+* Generic image apps:
+    * ImageJ.
+* Python, Pillow, and Matplotlib to annotate the image.
 * 
 
 
