@@ -1,6 +1,6 @@
 # python>=3
 # PIL
-Pillow==2.7
+Pillow==9.0.0
 six
 # yaml
 pyyaml
