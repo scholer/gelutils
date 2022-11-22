@@ -1,7 +1,7 @@
 # Extra dependencies: Requirements and requirements' requirements, 
 # Listing these here so you can install as many as possible with Conda.
 
-Pillow==2.7
+Pillow==9.3.0
 six
 pyyaml
 numpy

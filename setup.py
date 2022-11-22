@@ -85,7 +85,7 @@ setup(
         'pyyaml',       # YAML files
         'svgwrite',     # Composing svg files.
         'six',          # Python2.7 compatability
-        'pillow==2.7',  # Image reading and manipulation.
+        'pillow==9.3.0',  # Image reading and manipulation.
         'numpy',        # Adjusting contrast, mostly.
         'cffi',         # Cairo - used to convert SVG files to PNG
         'cairocffi',
